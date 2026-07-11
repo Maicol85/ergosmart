@@ -191,6 +191,30 @@ textarea{resize:vertical;min-height:56px}
 .ecg-slot .eico{font-size:24px;color:var(--text3);pointer-events:none}
 .ecg-slot .etxt{font-size:10px;color:var(--text3);pointer-events:none}
 .ecg-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2}
+/* ECG COMPARATIVO (fases × derivaciones) */
+.ecgc-phases{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.ecgc-slot{background:var(--bg3);border:2px dashed var(--border);border-radius:8px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.ecgc-slot:hover{border-color:var(--accent)}
+.ecgc-slot.has-img{border-style:solid;border-color:var(--accent2)}
+.ecgc-slot.drag-over{border-color:var(--accent3);background:rgba(16,185,129,.08)}
+.ecgc-slot .ecgc-lbl{padding:5px 7px;border-bottom:1px solid var(--border);background:var(--card2)}
+.ecgc-slot .ecgc-lbl input{background:transparent;border:none;color:var(--accent2);font-size:11px;font-weight:700;width:100%;outline:none}
+.ecgc-slot .ecgc-drop{position:relative;aspect-ratio:3/2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.ecgc-slot .ecgc-drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.ecgc-slot .ecgc-drop .eico{font-size:22px;color:var(--text3);pointer-events:none}
+.ecgc-slot .ecgc-drop .etxt{font-size:9px;color:var(--text3);pointer-events:none;text-align:center;padding:0 4px}
+.ecgc-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2}
+.ecgc-slot .ecgc-rx{position:absolute;top:4px;right:4px;background:rgba(239,68,68,.85);color:#fff;border:none;border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;display:none;z-index:5;font-weight:700}
+.ecgc-slot:hover .ecgc-rx{display:block}
+table.ecgc-grid{border-collapse:collapse;min-width:900px}
+table.ecgc-grid th,table.ecgc-grid td{border:1px solid var(--border);padding:0}
+table.ecgc-grid thead th{background:var(--card2);color:var(--accent2);font-size:10px;font-weight:800;padding:5px 3px;text-align:center}
+table.ecgc-grid .ecgc-phase-th{background:var(--card2);color:var(--text);font-size:10px;font-weight:700;padding:5px 8px;text-align:left;white-space:nowrap;min-width:100px}
+table.ecgc-grid td.ecgc-cell{width:72px;height:56px;background:#fff;text-align:center;vertical-align:middle}
+table.ecgc-grid td.ecgc-cell img{width:100%;height:54px;object-fit:contain;display:block}
+table.ecgc-grid td.ecgc-cell .ecgc-empty{color:#c99;font-size:12px}
+.ecgc-spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent2);border-radius:50%;display:inline-block;animation:ecgcSpin .7s linear infinite}
+@keyframes ecgcSpin{to{transform:rotate(360deg)}}
 /* DUKE */
 .duke-box{padding:14px;border-radius:8px;text-align:center}
 .d-bajo{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
@@ -820,6 +844,46 @@ body.printing-clean #clean-controls{display:none!important}
   <div class="ecg-grid" id="egrid"></div>
 </div></div>
 
+<!-- ═══ ECG COMPARATIVO (fases × 12 derivaciones · Claude Vision) ═══ -->
+<div class="sc" id="secgc"><div class="sh" onclick="tg('secgc')"><span class="st">🫀 ECG Comparativo — Fases × 12 derivaciones</span><span class="ci">▼</span></div><div class="sb">
+
+  <!-- API KEY -->
+  <div class="ecgc-apikey no-print" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+    <label style="margin:0;white-space:nowrap">🔑 API Key de Claude</label>
+    <input type="password" id="ecgc-apikey" class="fi" placeholder="sk-ant-..." style="flex:1;min-width:200px" autocomplete="off">
+    <button type="button" class="btn btn-primary btn-sm" onclick="ecgcSaveKey()">Guardar</button>
+    <span style="font-size:10px;color:var(--text3)">Se guarda localmente (clave <code>ecg_api_key</code>).</span>
+  </div>
+
+  <!-- CONTROLES -->
+  <div class="no-print" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+    <button type="button" class="btn btn-sm" style="background:var(--bg3);border:1px solid var(--border);color:var(--text)" onclick="ecgcRefreshPhases()">🔄 Actualizar fases desde la tabla</button>
+    <button type="button" class="btn btn-primary btn-sm" id="ecgc-btn-analyze" onclick="ecgcAnalyze()">🤖 Analizar con Claude Vision</button>
+    <span style="font-size:10px;color:var(--text3)">Una imagen por fase · Clic · Arrastrar · Ctrl+V</span>
+  </div>
+
+  <!-- PROGRESO -->
+  <div id="ecgc-progress" style="display:none;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;color:var(--accent2)">
+    <span class="ecgc-spin"></span><span id="ecgc-progress-msg">Analizando fases con Claude Vision…</span>
+  </div>
+
+  <!-- ZONAS DE CARGA POR FASE -->
+  <div class="ecgc-phases" id="ecgc-phases"></div>
+
+  <!-- GRILLA COMPARATIVA EN PANTALLA -->
+  <div id="ecgc-result" style="display:none;margin-top:16px">
+    <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px">Grilla comparativa — Fases × 12 derivaciones</div>
+    <div style="overflow-x:auto"><table class="ecgc-grid" id="ecgc-compgrid"></table></div>
+  </div>
+
+  <!-- PDF ECG -->
+  <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+    <button type="button" class="btn btn-sm" style="background:var(--accent3);color:#fff" onclick="ecgcExportComparativo()">📄 PDF ECG comparativo</button>
+    <button type="button" class="btn btn-sm" style="background:var(--accent3);color:#fff" onclick="ecgcExportPorFase()">📄 PDF ECG por fase</button>
+  </div>
+
+</div></div>
+
 </div></div><!-- /main img -->
 
 <!-- ═══ TAB CONCLUSIÓN ═══ -->
@@ -1100,6 +1164,7 @@ window.onload=()=>{
   initPdfColor();
   initEstiloConcl();
   renderLogoCentro();
+  ecgcInit();
   ensureReposo();
 };
 
@@ -1587,9 +1652,41 @@ function exportPDF(){
   // ════════════════════════════════════════════════════════════
   // BLOQUE 6 · REGISTRO ELECTROCARDIOGRÁFICO
   // ════════════════════════════════════════════════════════════
-  drawBar('REGISTRO ELECTROCARDIOGRÁFICO');
-  fn(8); tc(120,120,120); checkPage(6);
-  doc.text('ECGs pendientes de integración.', mL+1, y+4); y += 6;
+  const _ecgcPhases = (typeof ecgcAnalyzedPhases==='function') ? ecgcAnalyzedPhases() : [];
+  if(_ecgcPhases.length){
+    drawBar('ELECTROCARDIOGRAMA COMPARATIVO');
+    // Grilla compacta: filas = fases, columnas = 12 derivaciones
+    const gx=mL, gw=pgW, labelColW=30, headerRowH=5, cellW=(gw-labelColW)/ECGC_LEADS.length;
+    checkPage(headerRowH+8);
+    let gy=y;
+    fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(gx,gy,gw,headerRowH,'F');
+    tc(255,255,255); fb(6); doc.text('Fase',gx+1.5,gy+headerRowH-1.5);
+    ECGC_LEADS.forEach((l,i)=>{ doc.text(l,gx+labelColW+i*cellW+cellW/2,gy+headerRowH-1.5,{align:'center'}); });
+    y=gy+headerRowH;
+    const rowH=11;
+    doc.setLineWidth(0.15); dc(200,200,200);
+    _ecgcPhases.forEach((ph,ri)=>{
+      checkPage(rowH+2);
+      const ry=y;
+      fc(245,247,250); dc(200,200,200); doc.rect(gx,ry,labelColW,rowH,'FD');
+      tc(40,40,40); fb(6);
+      const lbl=doc.splitTextToSize(ph.label||('Fase '+(ri+1)),labelColW-2.5);
+      doc.text(lbl,gx+1.2,ry+3.4);
+      ECGC_LEADS.forEach((lead,ci)=>{
+        const cx=gx+labelColW+ci*cellW;
+        fc(255,255,255); dc(200,200,200); doc.rect(cx,ry,cellW,rowH,'FD');
+        const crop=(ph.crops||{})[lead];
+        if(crop){ try{ doc.addImage(crop,'PNG',cx+0.4,ry+0.4,cellW-0.8,rowH-0.8); }catch(_e){} }
+        else { dc(205,205,205); doc.setLineWidth(0.2); const ly=ry+rowH/2; doc.line(cx+1.2,ly,cx+cellW-1.2,ly); doc.setLineWidth(0.15); dc(200,200,200); }
+      });
+      y+=rowH;
+    });
+    y+=2;
+  } else {
+    drawBar('REGISTRO ELECTROCARDIOGRÁFICO');
+    fn(8); tc(120,120,120); checkPage(6);
+    doc.text('Sin ECG comparativo analizado.', mL+1, y+4); y += 6;
+  }
 
   // ─── firma final (alineada a la derecha, estilo index.html) ───
   checkPage(28); y += 8;
@@ -1667,7 +1764,7 @@ function toggleTheme(){const h=document.documentElement,d=h.getAttribute('data-t
 (()=>{const t=localStorage.getItem('ergo_theme');if(t){document.documentElement.setAttribute('data-theme',t);document.getElementById('tbtn').textContent=t==='light'?'🌙':'☀️';}})();
 
 // TABS
-function swTab(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');if(btn){btn.classList.add('active');}else{document.querySelectorAll('.tab-btn').forEach(b=>{const oc=b.getAttribute('onclick')||'';if(oc.indexOf("'"+id+"'")!==-1)b.classList.add('active');});}if(id==='guard')rGuard();if(id==='analisis')renderAnalisisCharts();}
+function swTab(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');if(btn){btn.classList.add('active');}else{document.querySelectorAll('.tab-btn').forEach(b=>{const oc=b.getAttribute('onclick')||'';if(oc.indexOf("'"+id+"'")!==-1)b.classList.add('active');});}if(id==='guard')rGuard();if(id==='analisis')renderAnalisisCharts();if(id==='img')ecgcRefreshPhases();}
 function renderAnalisisCharts(){
   const tb=document.getElementById('tetb');
   const rows=tb?Array.from(tb.querySelectorAll('tr')):[];
@@ -2291,7 +2388,23 @@ function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,re
 function cFCobj(){const edad=parseInt(document.getElementById('cfced').value)||0,rep=parseInt(document.getElementById('cfcrep').value)||0;if(!edad){document.getElementById('crfc').textContent='Ingresá la edad';return;}const fcme=220-edad,p85=Math.round(fcme*0.85),p62=Math.round(fcme*0.62),kv=rep>0?Math.round(rep+0.85*(fcme-rep)):null;document.getElementById('crfc').innerHTML=`FCME (220−edad): <strong>${fcme} lpm</strong><br>85% FCME — prueba máxima sin BB: <strong>${p85} lpm</strong><br>62% FCME — prueba suficiente con BB: <strong>${p62} lpm</strong>${kv?`<br>Karvonen 85% (reserva FC): <strong>${kv} lpm</strong>`:''}`;}
 
 // LIMPIAR
-function limpiar(){if(!confirm('¿Limpiar todos los datos del formulario?'))return;const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);updComp();updResumen();showToast('Formulario limpiado');}
+function limpiar(){if(!confirm('¿Limpiar todos los datos del formulario?'))return;const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();
+// Resetear campos calculados automáticamente (displays con textContent, no inputs)
+['vfcme','v85','virc','fcr','fc85r','fc62r','fcar','ccsd','nyhad','ptpv','ptpl','ptprec'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
+// Suficiencia de la prueba y badge PTP
+['sufbdg','ptpbdg'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent='—';e.className='badge';}});
+// IRC display (input readonly)
+const _irc=document.getElementById('ircdisp');if(_irc)_irc.value='';
+// Clasificación CCS/NYHA y sexo PTP: quitar estado activo de todos los cls-btn
+document.querySelectorAll('.cls-btn').forEach(b=>b.className='cls-btn');
+// Tabla PTP: deseleccionar tipo dolor, rango etario, sexo; limpiar resaltado y resultado (22%)
+ptpSexo='';
+const _tdol=document.getElementById('tdol');if(_tdol)_tdol.selectedIndex=0;
+const _ptpe=document.getElementById('ptpe');if(_ptpe)_ptpe.selectedIndex=0;
+document.querySelectorAll('.ptpc').forEach(c=>c.classList.remove('ptp-sel'));
+const _ptpr=document.getElementById('ptpr');if(_ptpr)_ptpr.classList.remove('show');
+const _ptpv=document.getElementById('ptpv');if(_ptpv)_ptpv.style.color='';
+updComp();updResumen();showToast('Formulario limpiado');}
 
 // UNIDAD VELOCIDAD
 let velUnit='kmh'; // 'kmh' | 'mph'
@@ -2571,6 +2684,375 @@ function renderLogoCentro(){const img=document.getElementById('logo-centro-img')
 
 // TOAST
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2600);}
+
+/* ════════════════════════════════════════════════════════════════
+   ECG COMPARATIVO — Fases × 12 derivaciones (Claude Vision)
+   · Fases derivadas de la tabla de etapas (#tetb .ela input)
+   · Una zona de carga por fase (clic/arrastrar/Ctrl+V)
+   · Análisis con Claude Vision → recorte de 12 derivaciones por fase
+   · Grilla comparativa en pantalla + 2 PDF (comparativo / por fase)
+   · localStorage: API key `ecg_api_key` (compartida con ECG Comparativo)
+   ════════════════════════════════════════════════════════════════ */
+const ECGC_LEADS=['I','II','III','aVR','aVL','aVF','V1','V2','V3','V4','V5','V6'];
+const ECGC_ROWS=[['I','II','III'],['aVR','aVL','aVF'],['V1','V2','V3'],['V4','V5','V6']];
+// Estado en memoria: una entrada por fase {label, base64, blob, mime, crops}
+const ECGC={apiKey:localStorage.getItem('ecg_api_key')||'',phases:[],analyzed:false,pasteTarget:null,seq:0};
+
+function ecgcInit(){
+  const inp=document.getElementById('ecgc-apikey');
+  if(inp)inp.value=ECGC.apiKey||'';
+  ecgcRefreshPhases();
+  // Pegar (Ctrl+V) en la zona activa
+  document.addEventListener('paste',e=>{
+    const secc=document.getElementById('secgc');
+    if(!secc)return;
+    const items=e.clipboardData&&e.clipboardData.items;if(!items)return;
+    for(const it of items){
+      if(it.type&&it.type.startsWith('image/')){
+        const file=it.getAsFile();if(!file)break;
+        let idx=ECGC.pasteTarget;
+        if(idx==null||!ECGC.phases[idx]){ idx=ECGC.phases.findIndex(p=>!p.base64); }
+        if(idx>=0&&idx<ECGC.phases.length){ ecgcAddFile(file,idx); e.preventDefault(); }
+        break;
+      }
+    }
+  });
+}
+
+function ecgcSaveKey(){
+  const inp=document.getElementById('ecgc-apikey');
+  const v=(inp&&inp.value||'').trim();
+  ECGC.apiKey=v;
+  try{localStorage.setItem('ecg_api_key',v);}catch(e){}
+  showToast(v?'🔑 API Key guardada':'API Key vaciada');
+}
+
+// Lee las etiquetas de fase desde la tabla de etapas (#tetb, celda .ela input)
+function ecgcReadTablePhases(){
+  const trs=[...document.querySelectorAll('#tetb tr')];
+  const labels=[];
+  trs.forEach(tr=>{
+    const inp=tr.querySelector('.ela input');
+    const lbl=inp?(inp.value||'').trim():'';
+    if(lbl)labels.push(lbl);
+  });
+  return labels;
+}
+
+// Reconstruye las zonas de carga a partir de la tabla, preservando imágenes ya cargadas (por índice/etiqueta)
+function ecgcRefreshPhases(){
+  const cont=document.getElementById('ecgc-phases');
+  if(!cont)return;
+  const labels=ecgcReadTablePhases();
+  const prev=ECGC.phases;
+  const next=labels.map((lbl,i)=>{
+    // 1) preservar por índice si coincide la etiqueta; 2) por etiqueta; 3) fase nueva vacía
+    let match=(prev[i]&&prev[i].label===lbl)?prev[i]:null;
+    if(!match)match=prev.find(p=>p&&p.label===lbl&&!p._used)||null;
+    if(match){match._used=true;match.label=lbl;return match;}
+    return {label:lbl,base64:'',blob:'',mime:'',crops:{}};
+  });
+  prev.forEach(p=>{if(p)delete p._used;});
+  next.forEach(p=>{if(p)delete p._used;});
+  ECGC.phases=next;
+  ecgcRenderSlots();
+}
+
+function ecgcRenderSlots(){
+  const cont=document.getElementById('ecgc-phases');
+  if(!cont)return;
+  if(!ECGC.phases.length){
+    cont.innerHTML='<p style="color:var(--text2);font-size:12px;padding:8px 0">No hay fases en la tabla de etapas. Cargá las etapas y pulsá «🔄 Actualizar fases desde la tabla».</p>';
+    return;
+  }
+  cont.innerHTML=ECGC.phases.map((p,i)=>{
+    const has=!!p.base64;
+    return '<div class="ecgc-slot'+(has?' has-img':'')+'" data-idx="'+i+'">'
+      +'<div class="ecgc-lbl"><input type="text" value="'+esc(p.label)+'" onclick="event.stopPropagation()" oninput="ecgcSetLabel('+i+',this.value)"></div>'
+      +'<div class="ecgc-drop">'
+      +(has?'<img src="'+p.blob+'" alt="'+esc(p.label)+'">':'<div class="eico">📋</div><div class="etxt">Clic · Arrastrar · Ctrl+V</div>')
+      +'<button type="button" class="ecgc-rx" onclick="ecgcRemove(event,'+i+')" style="'+(has?'':'display:none')+'">✕</button>'
+      +'<input type="file" accept="image/*" onchange="ecgcOnFile(this,'+i+')" onclick="event.stopPropagation()">'
+      +'</div></div>';
+  }).join('');
+  // drag & drop + selección de destino para pegar
+  [...cont.querySelectorAll('.ecgc-slot')].forEach(slot=>{
+    const idx=parseInt(slot.getAttribute('data-idx'),10);
+    slot.addEventListener('click',()=>{ECGC.pasteTarget=idx;});
+    slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('drag-over');});
+    slot.addEventListener('dragleave',()=>slot.classList.remove('drag-over'));
+    slot.addEventListener('drop',e=>{e.preventDefault();slot.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))ecgcAddFile(f,idx);});
+  });
+}
+
+function ecgcSetLabel(i,val){ if(ECGC.phases[i])ECGC.phases[i].label=val; }
+function ecgcOnFile(inp,i){ const f=inp.files&&inp.files[0]; if(f)ecgcAddFile(f,i); }
+
+function ecgcRemove(ev,i){
+  if(ev)ev.stopPropagation();
+  if(ECGC.phases[i]){ECGC.phases[i].base64='';ECGC.phases[i].blob='';ECGC.phases[i].mime='';ECGC.phases[i].crops={};}
+  ECGC.analyzed=false;
+  const rc=document.getElementById('ecgc-result');if(rc)rc.style.display='none';
+  ecgcRenderSlots();
+}
+
+async function ecgcAddFile(file,i){
+  if(!ECGC.phases[i])return;
+  try{
+    const p=await ecgcPrepImage(file);
+    ECGC.phases[i].base64=p.base64;
+    ECGC.phases[i].blob=p.blob;
+    ECGC.phases[i].mime=p.mime;
+    ECGC.phases[i].crops={};
+    ECGC.analyzed=false;
+    const rc=document.getElementById('ecgc-result');if(rc)rc.style.display='none';
+    ecgcRenderSlots();
+  }catch(e){ showToast('⚠ No se pudo procesar la imagen'); }
+}
+
+// Preproceso suave: rota vertical→horizontal + contraste +20% / brillo +10% (sin recorte/CLAHE/binarización)
+function ecgcPrepImage(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      const dataURL=ev.target.result;
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const sw=img.naturalWidth,sh=img.naturalHeight;
+          const portrait=sh>sw;
+          const cw=portrait?sh:sw,chh=portrait?sw:sh;
+          const cv=document.createElement('canvas');cv.width=cw;cv.height=chh;
+          const ctx=cv.getContext('2d');
+          if(portrait){ctx.translate(cw/2,chh/2);ctx.rotate(Math.PI/2);ctx.drawImage(img,-sw/2,-sh/2);}
+          else{ctx.drawImage(img,0,0);}
+          const C=1.20,B=255*0.10;
+          const id=ctx.getImageData(0,0,cw,chh),dd=id.data;
+          for(let k=0;k<dd.length;k+=4){for(let c=0;c<3;c++){let v=(dd[k+c]-128)*C+128+B;dd[k+c]=v<0?0:v>255?255:v;}}
+          ctx.putImageData(id,0,0);
+          const out=cv.toDataURL('image/jpeg',0.92);
+          resolve({base64:out.split(',')[1],blob:out,mime:'image/jpeg'});
+        }catch(e){
+          const b64=dataURL.split(',')[1];
+          resolve({base64:b64,blob:dataURL,mime:file.type||'image/jpeg'});
+        }
+      };
+      img.onerror=reject;
+      img.src=dataURL;
+    };
+    r.onerror=reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function ecgcLoadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
+function ecgcCropImg(img,c){
+  const W=img.naturalWidth,H=img.naturalHeight;
+  const x=Math.max(0,Math.round(c.x*W)),y=Math.max(0,Math.round(c.y*H));
+  const w=Math.min(Math.round(c.w*W),W-x),h=Math.min(Math.round(c.h*H),H-y);
+  if(w<=0||h<=0)throw new Error('crop inválido');
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  cv.getContext('2d').drawImage(img,x,y,w,h,0,0,w,h);
+  return cv.toDataURL('image/png');
+}
+
+// Envía UNA imagen (una fase) a Claude Vision → {leads:{lead:{x,y,w,h,quality}}}
+async function ecgcAnalyzeOne(phase){
+  const prompt='Analizás UNA imagen de un electrocardiograma (ECG) de 12 derivaciones (foto o escaneo) correspondiente a UNA fase de un estudio de ergometría comparativo. La imagen puede contener TODAS las derivaciones o solo ALGUNAS.\n\nDerivaciones posibles: I, II, III, aVR, aVL, aVF, V1, V2, V3, V4, V5, V6.\n\nTarea:\nDetectá SOLO las derivaciones realmente presentes y legibles en ESTA imagen. Para cada una, indicá las coordenadas de recorte (fracciones 0-1 respecto del ancho/alto total de la imagen: x, y = esquina superior izquierda; w, h = ancho/alto) que encierren ese trazado completo con su etiqueta, y una "quality" de 0 a 1 que refleje qué tan nítida/completa está esa derivación.\n\nRespondé ÚNICAMENTE con JSON válido, sin texto extra ni markdown. Incluí en "leads" SOLO las derivaciones presentes:\n{\n  "leads": { "II": {"x":0,"y":0,"w":0,"h":0,"quality":0.0} }\n}';
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':ECGC.apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens:1500,
+      messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:phase.mime,data:phase.base64}},
+        {type:'text',text:prompt}
+      ]}]
+    })
+  });
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||('HTTP '+res.status));}
+  const data=await res.json();
+  const text=(data.content||[]).map(c=>c.text||'').join('');
+  const clean=text.replace(/```json|```/g,'').trim();
+  let parsed;
+  try{parsed=JSON.parse(clean);}catch(e){throw new Error('Respuesta inesperada de Claude: '+text.slice(0,180));}
+  return parsed;
+}
+
+async function ecgcAnalyze(){
+  if(!ECGC.apiKey){showToast('⚠ Guardá tu API Key primero');return;}
+  const toDo=ECGC.phases.filter(p=>p.base64);
+  if(!toDo.length){showToast('⚠ Cargá al menos una imagen de ECG por fase');return;}
+  const prog=document.getElementById('ecgc-progress'),msg=document.getElementById('ecgc-progress-msg'),btn=document.getElementById('ecgc-btn-analyze');
+  if(prog)prog.style.display='flex';
+  if(btn)btn.disabled=true;
+  if(msg)msg.textContent='Analizando '+toDo.length+' fase'+(toDo.length>1?'s':'')+' con Claude Vision…';
+  try{
+    await Promise.all(toDo.map(async phase=>{
+      const parsed=await ecgcAnalyzeOne(phase);
+      const bitmap=await ecgcLoadImg('data:'+phase.mime+';base64,'+phase.base64);
+      const leads=(parsed&&parsed.leads)||{};
+      const crops={};
+      ECGC_LEADS.forEach(lead=>{
+        const c=leads[lead];if(!c)return;
+        const q=typeof c.quality==='number'?c.quality:0.5;
+        if(q<0.4)return;
+        try{crops[lead]=ecgcCropImg(bitmap,c);}catch(e){console.warn('crop',lead,e);}
+      });
+      phase.crops=crops;
+    }));
+    ECGC.analyzed=true;
+    ecgcRenderCompGrid();
+    const rc=document.getElementById('ecgc-result');if(rc)rc.style.display='block';
+    const totalDet=ECGC.phases.reduce((n,p)=>n+Object.keys(p.crops||{}).length,0);
+    showToast(totalDet?('✅ '+totalDet+' derivaciones detectadas'):'⚠ No se detectaron derivaciones');
+  }catch(err){
+    showToast('⚠ Error en el análisis: '+err.message);
+  }finally{
+    if(prog)prog.style.display='none';
+    if(btn)btn.disabled=false;
+  }
+}
+
+// Grilla en pantalla: filas = fases, columnas = 12 derivaciones
+function ecgcRenderCompGrid(){
+  const tbl=document.getElementById('ecgc-compgrid');
+  if(!tbl)return;
+  let html='<thead><tr><th class="ecgc-phase-th">Fase \\ Deriv.</th>';
+  ECGC_LEADS.forEach(l=>{html+='<th>'+l+'</th>';});
+  html+='</tr></thead><tbody>';
+  ECGC.phases.forEach((p,i)=>{
+    if(!p.base64&&!Object.keys(p.crops||{}).length)return;
+    html+='<tr><td class="ecgc-phase-th">'+esc(p.label||('Fase '+(i+1)))+'</td>';
+    ECGC_LEADS.forEach(lead=>{
+      const crop=(p.crops||{})[lead];
+      html+='<td class="ecgc-cell">'+(crop?'<img src="'+crop+'" alt="'+lead+'">':'<span class="ecgc-empty">—</span>')+'</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  tbl.innerHTML=html;
+}
+
+// Fases con al menos una derivación recortada (para exportPDF principal)
+function ecgcAnalyzedPhases(){ return ECGC.phases.filter(p=>p.crops&&Object.keys(p.crops).length); }
+
+function ecgcReset(){
+  ECGC.phases=[];ECGC.analyzed=false;ECGC.pasteTarget=null;
+  const rc=document.getElementById('ecgc-result');if(rc)rc.style.display='none';
+  ecgcRefreshPhases();
+}
+
+/* ── PDF ECG: helpers (encabezado médico + copyright, estilo ErgoSmart) ── */
+function ecgcPdfTema(){
+  const A={1:[51,65,85],2:[26,92,58],3:[74,26,122],4:[123,45,66]};
+  return A[String(localStorage.getItem('ergo_pdf_color')||'1')]||A['1'];
+}
+function ecgcPdfHeader(doc,W,ACC,mL,mR){
+  const g=id=>document.getElementById(id);
+  const sv=id=>{const e=g(id);return e?(e.value||'').trim():'';};
+  const hdrH=24;
+  doc.setFillColor(ACC[0],ACC[1],ACC[2]);doc.rect(0,0,W,hdrH,'F');
+  try{const logo=localStorage.getItem('ergo_logo_centro');if(logo){const lp=doc.getImageProperties(logo);const lh=17,lw=(lp.width&&lp.height)?lh*(lp.width/lp.height):lh;doc.addImage(logo,lp.fileType||undefined,W-lw-6,3.5,lw,lh);}}catch(e){}
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('ECG Comparativo — Ergometría',mL,11);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.text('Análisis comparativo por fases · 12 derivaciones',mL,16.5);
+  const med=[sv('fn'),sv('fmat')?('Mat. '+sv('fmat')):'',sv('finst'),sv('fciu')].filter(Boolean).join('  ·  ');
+  if(med){doc.setFontSize(7.5);doc.text(med,mL,21);}
+  let y=hdrH+6;
+  doc.setTextColor(40,40,40);doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text('DATOS DEL PACIENTE',mL,y);y+=4;
+  doc.setDrawColor(ACC[0],ACC[1],ACC[2]);doc.setLineWidth(0.4);doc.line(mL,y,mR,y);y+=5;
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(60,60,60);
+  const sx=sv('psex'),sexo=sx==='M'?'Masculino':sx==='F'?'Femenino':'—';
+  const fr=sv('fe'),fecha=fr?fr.split('-').reverse().join('/'):'—';
+  doc.text('Paciente: '+(sv('pn')||'—'),mL,y);doc.text('C.I.: '+(sv('pci')||'—'),mL+(mR-mL)*0.55,y);y+=5.2;
+  doc.text('Edad: '+(sv('ped')||'—')+' años',mL,y);doc.text('Sexo: '+sexo,mL+(mR-mL)*0.33,y);doc.text('Fecha: '+fecha,mL+(mR-mL)*0.62,y);y+=6;
+  return y;
+}
+function ecgcPdfCopyright(doc,cx,cy){
+  const tot=doc.internal.getNumberOfPages();
+  for(let p=1;p<=tot;p++){doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(150,150,150);doc.text('© 2026 Dr. M. D. S. y col. · ErgoSmart · Todos los derechos reservados · Uso clínico exclusivo',cx,cy,{align:'center'});}
+}
+function ecgcPdfFilename(suf){
+  const pac=(document.getElementById('pn').value||'Paciente').replace(/[\\/:*?"<>|]/g,'_').trim().replace(/\s+/g,'_')||'Paciente';
+  const fecha=document.getElementById('fe').value||'';
+  return 'ECGcomparativo_'+pac+(fecha?'_'+fecha:'')+(suf||'')+'.pdf';
+}
+
+// PDF ECG comparativo — una sola hoja apaisada (fases × derivaciones)
+function ecgcExportComparativo(){
+  if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('⚠ La biblioteca PDF está cargando');return;}
+  const phases=ecgcAnalyzedPhases();
+  if(!phases.length){showToast('⚠ Analizá al menos una fase primero');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const ACC=ecgcPdfTema();const W=297,H=210,mL=10,mR=287;
+  let y=ecgcPdfHeader(doc,W,ACC,mL,mR);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(40,40,40);
+  doc.text('GRILLA COMPARATIVA · FASES × 12 DERIVACIONES',mL,y);y+=4;
+  const gx=mL,gy=y,gw=mR-mL,labelColW=34,headerRowH=6,cellW=(gw-labelColW)/ECGC_LEADS.length;
+  const nRows=phases.length,availH=(H-10)-gy-headerRowH,rowH=Math.max(10,Math.min(26,availH/Math.max(1,nRows)));
+  doc.setFillColor(ACC[0],ACC[1],ACC[2]);doc.rect(gx,gy,gw,headerRowH,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+  doc.text('Fase',gx+2,gy+headerRowH-1.8);
+  ECGC_LEADS.forEach((l,i)=>doc.text(l,gx+labelColW+i*cellW+cellW/2,gy+headerRowH-1.8,{align:'center'}));
+  doc.setLineWidth(0.15);doc.setDrawColor(200,200,200);
+  phases.forEach((ph,ri)=>{
+    const ry=gy+headerRowH+ri*rowH;
+    doc.setFillColor(245,247,250);doc.rect(gx,ry,labelColW,rowH,'FD');
+    doc.setTextColor(40,40,40);doc.setFont('helvetica','bold');doc.setFontSize(7);
+    doc.text(doc.splitTextToSize(ph.label||('Fase '+(ri+1)),labelColW-3),gx+1.5,ry+4);
+    ECGC_LEADS.forEach((lead,ci)=>{
+      const cx=gx+labelColW+ci*cellW;
+      doc.setFillColor(255,255,255);doc.rect(cx,ry,cellW,rowH,'FD');
+      const crop=(ph.crops||{})[lead];
+      if(crop){try{doc.addImage(crop,'PNG',cx+0.5,ry+0.5,cellW-1,rowH-1);}catch(e){}}
+      else{doc.setDrawColor(205,205,205);doc.setLineWidth(0.2);const ly=ry+rowH/2;doc.line(cx+1.5,ly,cx+cellW-1.5,ly);doc.setDrawColor(200,200,200);doc.setLineWidth(0.15);}
+    });
+  });
+  ecgcPdfCopyright(doc,W/2,H-4);
+  doc.save(ecgcPdfFilename('_grilla'));
+}
+
+// PDF ECG por fase — una página por fase (layout clásico 12 derivaciones)
+function ecgcExportPorFase(){
+  if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){showToast('⚠ La biblioteca PDF está cargando');return;}
+  const phases=ecgcAnalyzedPhases();
+  if(!phases.length){showToast('⚠ Analizá al menos una fase primero');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const ACC=ecgcPdfTema();const W=210,mL=12,mR=198,pgW=186;
+  phases.forEach((ph,idx)=>{
+    if(idx>0)doc.addPage();
+    let y=ecgcPdfHeader(doc,W,ACC,mL,mR);
+    doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(ACC[0],ACC[1],ACC[2]);
+    doc.text('FASE: '+(ph.label||('Fase '+(idx+1))),mL,y);y+=5;
+    doc.setDrawColor(ACC[0],ACC[1],ACC[2]);doc.setLineWidth(0.4);doc.line(mL,y,mR,y);y+=5;
+    const gx=mL,gy=y,gw=pgW,gh=210;
+    doc.setFillColor(255,255,255);doc.setDrawColor(210,210,210);doc.setLineWidth(0.2);
+    doc.rect(gx,gy,gw,gh,'FD');
+    const cellW=gw/3,cellH=gh/4,labelH=4;
+    ECGC_ROWS.forEach((row,ri)=>{
+      row.forEach((lead,ci)=>{
+        const cx=gx+ci*cellW,cy=gy+ri*cellH;
+        const crop=(ph.crops||{})[lead];
+        if(crop){try{doc.addImage(crop,'PNG',cx,cy+labelH,cellW,cellH-labelH);}catch(e){}}
+        else{doc.setDrawColor(205,205,205);doc.setLineWidth(0.3);const ly=cy+labelH+(cellH-labelH)/2;doc.line(cx+2,ly,cx+cellW-2,ly);}
+        doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(ACC[0],ACC[1],ACC[2]);
+        doc.text(lead,cx+1.5,cy+3.4);
+      });
+    });
+  });
+  ecgcPdfCopyright(doc,105,292);
+  doc.save(ecgcPdfFilename('_porfase'));
+}
 </script>
 <div class="modal-overlay" id="modal-logo-gallery" style="display:none" onclick="if(event.target===this)closeLogoGallery()">
   <div class="modal-box" style="max-width:460px">
