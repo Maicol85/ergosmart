@@ -351,6 +351,31 @@ body.printing-clean > *:not(#clean-overlay){display:none!important}
 body.printing-clean #clean-overlay{position:static!important;overflow:visible!important;padding:0!important}
 body.printing-clean #clean-controls{display:none!important}
 @media(max-width:768px){.fc-targets{grid-template-columns:1fr 1fr}.fg4,.fg3{grid-template-columns:1fr 1fr}.ar-grid,.ccs-g{grid-template-columns:1fr}}
+/* ══ LOGIN REDISEÑADO (scopeado, no afecta al aviso) ══ */
+#modal-login{background:radial-gradient(1200px 600px at 50% 22%,#5c3210 0%,#3d1f00 52%,#1f1000 100%)!important;backdrop-filter:blur(4px)}
+#modal-login .modal-box{background:rgba(255,255,255,.055)!important;border:1px solid rgba(251,146,60,.3)!important;box-shadow:0 24px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:blur(10px);border-radius:18px}
+#modal-login .modal-logo h1{font-size:50px;font-weight:900;letter-spacing:-1px;line-height:1;color:#fbbf24;text-shadow:0 0 22px rgba(251,146,60,.55)}
+#modal-login .modal-logo h1 span{color:#fbbf24}
+#modal-login .modal-logo p{font-size:15px;color:#ffffff;font-weight:600;opacity:1}
+#modal-login h2{color:#ffedd5!important}
+#modal-login p{color:rgba(255,240,225,.72)}
+#modal-login .fg label{color:rgba(255,240,225,.78)}
+#modal-login input#login-pass{background:rgba(30,15,0,.55)!important;border:1px solid rgba(251,146,60,.32)!important;color:#fff4e6!important}
+#modal-login .em-line{font-size:13px;color:#fdba74;opacity:.9;font-weight:500;letter-spacing:.5px;text-align:center;margin-top:14px}
+#modal-login .btn-primary{background:linear-gradient(135deg,#fb923c,#14b8a6)!important;color:#2a1500!important;border:none!important;font-weight:800;box-shadow:0 6px 18px rgba(251,146,60,.4)}
+#login-eye{position:absolute;top:50%;right:8px;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1}
+@keyframes ergoRun{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes ergoArmF{0%,100%{transform:rotate(28deg)}50%{transform:rotate(-30deg)}}
+@keyframes ergoArmB{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(28deg)}}
+@keyframes ergoLegF{0%,100%{transform:rotate(-34deg)}50%{transform:rotate(32deg)}}
+@keyframes ergoLegB{0%,100%{transform:rotate(32deg)}50%{transform:rotate(-34deg)}}
+@keyframes ergoBelt{to{stroke-dashoffset:-16}}
+#ergo-run .runner{animation:ergoRun .5s ease-in-out infinite}
+#ergo-run .armF{transform-box:fill-box;transform-origin:top center;animation:ergoArmF .5s ease-in-out infinite}
+#ergo-run .armB{transform-box:fill-box;transform-origin:top center;animation:ergoArmB .5s ease-in-out infinite}
+#ergo-run .legF{transform-box:fill-box;transform-origin:top center;animation:ergoLegF .5s ease-in-out infinite}
+#ergo-run .legB{transform-box:fill-box;transform-origin:top center;animation:ergoLegB .5s ease-in-out infinite}
+#ergo-run .belt{stroke-dasharray:6 6;animation:ergoBelt .4s linear infinite}
 /* ══ INTRO CARRUSEL (ErgoSmart) ══ */
 #intro-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px; }
 #intro-card { background:#181c27;border:1px solid #2a3050;border-radius:18px;width:100%;max-width:650px;height:480px;box-shadow:0 16px 64px rgba(0,0,0,0.8);display:flex;flex-direction:column;overflow:hidden; }
@@ -386,17 +411,50 @@ body.printing-clean #clean-controls{display:none!important}
 <!-- MODAL -->
 <div class="modal-overlay" id="modal-login" style="z-index:1100">
   <div class="modal-box" style="max-width:400px">
-    <div class="modal-logo"><h1>Ergo<span>Smart</span></h1><p>Prueba Ergométrica Graduada · Sistema de Registro Clínico</p></div>
+    <div class="modal-logo">
+      <svg id="ergo-run" width="132" height="106" viewBox="0 0 132 116" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 6px;filter:drop-shadow(0 4px 14px rgba(251,146,60,.4))">
+        <!-- Cinta / treadmill -->
+        <g>
+          <!-- base de la cinta -->
+          <rect x="14" y="92" width="104" height="12" rx="6" fill="#2a1500" stroke="#fb923c" stroke-width="2"/>
+          <!-- banda deslizante animada -->
+          <line class="belt" x1="20" y1="98" x2="112" y2="98" stroke="#fdba74" stroke-width="2.4" stroke-linecap="round"/>
+          <!-- consola / poste -->
+          <path d="M112 92 V60" stroke="#fb923c" stroke-width="3" stroke-linecap="round"/>
+          <rect x="104" y="46" width="20" height="15" rx="3" fill="#2a1500" stroke="#fb923c" stroke-width="2"/>
+          <line x1="108" y1="51" x2="120" y2="51" stroke="#fdba74" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="108" y1="56" x2="116" y2="56" stroke="#fdba74" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>
+        </g>
+        <!-- Corredor -->
+        <g class="runner" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" fill="none">
+          <!-- piernas -->
+          <path class="legB" d="M58 66 L50 88"/>
+          <path class="legF" d="M58 66 L70 86"/>
+          <!-- tronco -->
+          <path d="M58 42 L58 66"/>
+          <!-- brazos -->
+          <path class="armB" d="M58 48 L46 58"/>
+          <path class="armF" d="M58 48 L72 54"/>
+        </g>
+        <!-- cabeza -->
+        <circle class="runner" cx="58" cy="34" r="7" fill="#fbbf24"/>
+      </svg>
+      <h1>Ergo<span>Smart</span></h1><p>Prueba Ergométrica Graduada</p>
+    </div>
     <h2 style="color:var(--accent)">🔐 Acceso</h2>
     <p>Ingresá tu contraseña para acceder al sistema.</p>
     <div class="fg" style="margin-top:14px">
       <label>Contraseña</label>
-      <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password"
-        style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none"
-        onkeydown="if(event.key==='Enter')ergoLogin()">
+      <div style="position:relative">
+        <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 40px 10px 12px;color:var(--text);font-size:14px;outline:none"
+          onkeydown="if(event.key==='Enter')ergoLogin()">
+        <button type="button" id="login-eye" onclick="toggleLoginPass()" title="Mostrar / ocultar contraseña">👁️</button>
+      </div>
     </div>
     <div id="login-error" style="display:none;color:var(--danger);font-size:12px;margin-top:8px">✕ Contraseña incorrecta. Intentá nuevamente.</div>
     <div class="modal-footer"><button class="btn btn-primary" onclick="ergoLogin()">Ingresar</button></div>
+    <div class="em-line">EasyMed</div>
   </div>
 </div>
 
@@ -1149,6 +1207,7 @@ function metsFrase(m){ return m<4?'Actividad sedentaria (caminar lento)':m<6?'Ac
 const ERGO_LOGIN_PASS='maicolergo1', ERGO_LOGIN_TTL=8*60*60*1000, ERGO_LOGIN_KEY='ergo_login_expira';
 function ergoSesionValida(){const exp=parseInt(localStorage.getItem(ERGO_LOGIN_KEY)||'0',10);return exp>Date.now();}
 function initLogin(){const lg=document.getElementById('modal-login'),conf=document.getElementById('modal-conf');if(ergoSesionValida()){if(lg)lg.style.display='none';}else{if(conf)conf.style.display='none';if(lg){lg.style.display='flex';const p=document.getElementById('login-pass');if(p)p.focus();}}}
+function toggleLoginPass(){const i=document.getElementById('login-pass'),e=document.getElementById('login-eye');if(!i)return;const show=i.type==='password';i.type=show?'text':'password';if(e)e.textContent=show?'🙈':'👁️';i.focus();}
 function ergoLogin(){const inp=document.getElementById('login-pass'),err=document.getElementById('login-error');if(inp&&inp.value===ERGO_LOGIN_PASS){localStorage.setItem(ERGO_LOGIN_KEY,String(Date.now()+ERGO_LOGIN_TTL));document.getElementById('modal-login').style.display='none';const conf=document.getElementById('modal-conf');if(conf)conf.style.display='flex';}else{if(err)err.style.display='block';if(inp){inp.value='';inp.focus();}}}
 
 window.onload=()=>{
