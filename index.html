@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ErgoSmart – Prueba Ergométrica Graduada</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0f1623;--bg2:#161e2e;--bg3:#1e2a3a;--card:#1a2435;--card2:#202d40;--border:#2a3a52;--accent:#0ea5e9;--accent2:#06b6d4;--accent3:#10b981;--warn:#f59e0b;--danger:#ef4444;--positive:#22c55e;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--font:'Segoe UI',system-ui,sans-serif}
 [data-theme="light"]{--bg:#f1f5f9;--bg2:#e2e8f0;--bg3:#ffffff;--card:#ffffff;--card2:#f8fafc;--border:#cbd5e1;--accent:#0284c7;--accent2:#0891b2;--accent3:#059669;--warn:#d97706;--danger:#dc2626;--positive:#16a34a;--text:#0f172a;--text2:#475569;--text3:#94a3b8}
@@ -613,6 +614,10 @@ body.printing-clean #clean-controls{display:none!important}
         <span style="font-size:11px;color:var(--text3)">Estudio:</span>
         <input class="fi" type="date" id="fe" title="Fecha del estudio" oninput="updComp()" style="min-width:125px">
       </span>
+      <span class="hdr-ew" style="gap:5px">
+        <span style="font-size:11px;color:var(--text3)">Solicitud:</span>
+        <input class="fi" type="date" id="fecha_solicitud_ergo" title="Fecha de solicitud" style="min-width:125px">
+      </span>
     </div>
   </div>
 </div>
@@ -654,6 +659,7 @@ body.printing-clean #clean-controls{display:none!important}
 <div class="tab-bar no-print">
   <button class="tab-btn" onclick="swTab('calc',this)">🧮 Calculadoras</button>
   <button class="tab-btn" onclick="swTab('ref',this)">📚 Referencias</button>
+  <button class="tab-btn" onclick="swTab('lab',this);if(window.ergoLabInit)ergoLabInit()">🔬 Laboratorio</button>
 </div>
 
 <!-- ═══ TAB PACIENTE ═══ -->
@@ -970,6 +976,14 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
 </div></div>
 
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+  <input type="checkbox" id="caso_interes_ergo" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+  <label for="caso_interes_ergo" style="font-size:.84rem;cursor:pointer;">
+    🎓 Marcar como <strong>caso de interés</strong>
+    <span style="font-weight:400;color:var(--text2);">(ateneo / docencia / publicación)</span>
+  </label>
+</div>
+
 <!-- FIRMA IMPRESIÓN -->
 <div id="print-firma" style="display:none;margin-top:20pt;padding-top:14pt;border-top:1pt solid #e2e8f0">
   <div style="display:flex;align-items:center;gap:14pt">
@@ -1064,10 +1078,372 @@ body.printing-clean #clean-controls{display:none!important}
     <input type="date" id="bhas" oninput="rGuard()">
     <select id="bres" onchange="rGuard()" style="min-width:150px"><option value="">Todos los resultados</option><option value="pos">Positivo</option><option value="neg">Negativo</option><option value="nc">No concluyente</option></select>
     <button class="btn btn-outline btn-sm" onclick="lBusq()">✕ Limpiar</button>
+    <button class="btn" onclick="exportarErgoJSON()">📤 Exportar JSON</button>
+    <input type="file" id="ergo-import-file" accept=".json" style="display:none" onchange="importarErgoJSON(this.files[0]);this.value='';">
+    <button class="btn" onclick="document.getElementById('ergo-import-file').click()">📥 Importar JSON</button>
+  </div>
+  <div style="background:var(--bg2);border-radius:10px;border:1px solid var(--border);padding:12px;margin-bottom:12px;">
+    <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">
+      🔍 Filtrar informes
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:.72rem;color:var(--text2);">Resultado</label>
+        <select id="ef-resultado" onchange="ergoAplicarFiltros()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:.82rem;">
+          <option value="">Todos</option>
+          <option value="neg">Negativo</option>
+          <option value="pos">Positivo</option>
+          <option value="inc">Indeterminado</option>
+          <option value="via">Viabilidad</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:.72rem;color:var(--text2);">METs</label>
+        <select id="ef-mets" onchange="ergoAplicarFiltros()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:.82rem;">
+          <option value="">Todos</option>
+          <option value="lt5">&lt; 5 METs</option>
+          <option value="5a10">5–10 METs</option>
+          <option value="gt10">&gt; 10 METs</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:.72rem;color:var(--text2);">Duke Score</label>
+        <select id="ef-duke" onchange="ergoAplicarFiltros()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:.82rem;">
+          <option value="">Todos</option>
+          <option value="alto">Alto riesgo</option>
+          <option value="inter">Riesgo intermedio</option>
+          <option value="bajo">Bajo riesgo</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:.72rem;color:var(--text2);">Casos de interés</label>
+        <select id="ef-interes" onchange="ergoAplicarFiltros()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:.82rem;">
+          <option value="">Todos</option>
+          <option value="si">Solo casos de interés</option>
+        </select>
+      </div>
+
+      <button onclick="ergoLimpiarFiltros()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:.82rem;cursor:pointer;">
+        🧹 Limpiar
+      </button>
+
+    </div>
+    <div id="ef-resultado-txt" style="font-size:.75rem;color:var(--text2);margin-top:8px;"></div>
   </div>
   <div class="sv-table-wrap" id="svlist"><div class="sv-empty">No hay informes guardados.</div></div>
   <div class="sv-cmpbar no-print" id="sv-cmpbar"><button class="btn btn-primary btn-sm" id="sv-cmpbtn" onclick="compararSel()" disabled>⇄ Comparar seleccionados (0)</button></div>
 </div></div>
+
+<!-- ═══ TAB LABORATORIO ═══ -->
+<div id="tab-lab" class="tab-panel"><div class="main">
+<style>
+  #tab-lab .el-card{background:var(--bg2);border-radius:12px;
+    border:1px solid var(--border);overflow:hidden;margin-bottom:16px;}
+  #tab-lab .el-hdr{background:var(--bg3);color:var(--accent);
+    padding:10px 16px;font-size:.84rem;font-weight:700;}
+  #tab-lab .el-body{padding:14px;}
+  #tab-lab .el-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:700px){#tab-lab .el-grid{grid-template-columns:1fr;}}
+  #tab-lab .el-stat{display:flex;justify-content:space-between;
+    align-items:center;padding:7px 0;border-bottom:1px solid var(--border);
+    font-size:.84rem;}
+  #tab-lab .el-stat:last-child{border-bottom:none;}
+  #tab-lab .el-lbl{color:var(--text2);}
+  #tab-lab .el-val{font-weight:700;color:var(--accent);}
+  #tab-lab .el-bar-wrap{display:flex;flex-direction:column;gap:6px;}
+  #tab-lab .el-bar-row{display:flex;align-items:center;gap:8px;
+    font-size:.78rem;}
+  #tab-lab .el-bar-lbl{width:140px;color:var(--text2);
+    flex-shrink:0;text-align:right;}
+  #tab-lab .el-bar-bg{flex:1;background:var(--bg3);border-radius:4px;
+    height:18px;overflow:hidden;}
+  #tab-lab .el-bar-fill{height:100%;border-radius:4px;
+    background:var(--accent);transition:.4s;}
+  #tab-lab .el-bar-pct{width:45px;font-weight:700;color:var(--accent);}
+  #tab-lab .el-semaf{display:inline-block;width:10px;height:10px;
+    border-radius:50%;margin-right:6px;}
+  #tab-lab .el-verde{background:#3ecf8e;}
+  #tab-lab .el-amarillo{background:#f5c842;}
+  #tab-lab .el-rojo{background:#f05454;}
+  #tab-lab .el-subtab{padding:8px 14px;font-size:.8rem;font-weight:600;
+    cursor:pointer;color:var(--text2);border:none;background:none;
+    border-bottom:2px solid transparent;margin-bottom:-2px;
+    transition:.15s;font-family:inherit;}
+  #tab-lab .el-subtab.active{color:var(--accent);
+    border-bottom-color:var(--accent);}
+  #tab-lab .el-subpanel{display:none;}
+  #tab-lab .el-subpanel.active{display:block;}
+  #tab-lab .el-chart-wrap{position:relative;height:220px;
+    width:100%;margin-bottom:8px;}
+  #tab-lab .el-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+  #tab-lab .el-table th{background:var(--bg3);color:var(--text2);
+    padding:7px 10px;text-align:left;font-weight:600;
+    border-bottom:1px solid var(--border);}
+  #tab-lab .el-table td{padding:7px 10px;
+    border-bottom:1px solid var(--border);}
+  #tab-lab .el-table tr:last-child td{border-bottom:none;}
+  #tab-lab .el-empty{text-align:center;color:var(--text2);
+    font-size:.84rem;padding:30px;}
+</style>
+
+  <!-- FILTROS -->
+  <div class="el-card">
+    <div class="el-body">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;
+        align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:.72rem;color:var(--text2);">Período</label>
+          <select id="el-periodo" onchange="ergoLabInit()"
+            style="padding:6px 10px;border-radius:6px;
+            border:1px solid var(--border);background:var(--bg3);
+            color:var(--text);font-size:.82rem;">
+            <option value="30">Último mes</option>
+            <option value="90">Últimos 3 meses</option>
+            <option value="180">Últimos 6 meses</option>
+            <option value="365" selected>Último año</option>
+            <option value="0">Todo el tiempo</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:.72rem;color:var(--text2);">Desde</label>
+          <input type="date" id="el-desde" onchange="ergoLabInit()"
+            style="padding:6px 10px;border-radius:6px;
+            border:1px solid var(--border);background:var(--bg3);
+            color:var(--text);font-size:.82rem;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:.72rem;color:var(--text2);">Hasta</label>
+          <input type="date" id="el-hasta" onchange="ergoLabInit()"
+            style="padding:6px 10px;border-radius:6px;
+            border:1px solid var(--border);background:var(--bg3);
+            color:var(--text);font-size:.82rem;">
+        </div>
+        <button onclick="ergoLabCSV()"
+          style="padding:6px 14px;border-radius:6px;
+          border:1px solid var(--border);background:var(--bg3);
+          color:var(--text2);font-size:.82rem;cursor:pointer;
+          margin-bottom:1px;">
+          📊 Exportar CSV
+        </button>
+      </div>
+      <div id="el-resumen" style="font-size:.78rem;color:var(--text2);
+        margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- SUBTABS -->
+  <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid
+    var(--border);margin-bottom:16px;">
+    <button class="el-subtab active"
+      onclick="ergoLabSubTab('general',this)">📈 General</button>
+    <button class="el-subtab"
+      onclick="ergoLabSubTab('poblacion',this)">👥 Población</button>
+    <button class="el-subtab"
+      onclick="ergoLabSubTab('calidad',this)">✅ Calidad</button>
+    <button class="el-subtab"
+      onclick="ergoLabSubTab('comparar',this)">🔀 Comparar</button>
+  </div>
+
+  <!-- PANEL GENERAL -->
+  <div id="el-sub-general" class="el-subpanel active">
+    <div class="el-card">
+      <div class="el-hdr">📈 Actividad del Laboratorio</div>
+      <div class="el-body">
+        <div class="el-grid">
+          <div>
+            <div class="el-stat">
+              <span class="el-lbl">Total de estudios</span>
+              <span class="el-val" id="el-total">—</span>
+            </div>
+            <div class="el-stat">
+              <span class="el-lbl">Ergometrías positivas</span>
+              <span class="el-val" id="el-positivas">—</span>
+            </div>
+            <div class="el-stat">
+              <span class="el-lbl">Ergometrías negativas</span>
+              <span class="el-val" id="el-negativas">—</span>
+            </div>
+            <div class="el-stat">
+              <span class="el-lbl">Indeterminadas</span>
+              <span class="el-val" id="el-indet">—</span>
+            </div>
+            <div class="el-stat">
+              <span class="el-lbl">METs promedio</span>
+              <span class="el-val" id="el-mets-prom">—</span>
+            </div>
+            <div class="el-stat">
+              <span class="el-lbl">Duke Score promedio</span>
+              <span class="el-val" id="el-duke-prom">—</span>
+            </div>
+            <div class="el-stat">
+              <span class="el-lbl">Tiempo solicitud → estudio</span>
+              <span class="el-val" id="el-tiempo-sol">—</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;font-weight:700;
+              color:var(--text2);margin-bottom:8px;
+              text-transform:uppercase;letter-spacing:.4px;">
+              Estudios por mes
+            </div>
+            <div class="el-chart-wrap">
+              <canvas id="el-chart-meses"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="el-card">
+      <div class="el-hdr">⚡ Indicadores automáticos</div>
+      <div class="el-body">
+        <table class="el-table">
+          <thead>
+            <tr>
+              <th>Indicador</th>
+              <th>N°</th>
+              <th>%</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="el-indicadores"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL POBLACIÓN -->
+  <div id="el-sub-poblacion" class="el-subpanel">
+    <div class="el-card">
+      <div class="el-hdr">👥 Perfil de la Población</div>
+      <div class="el-body">
+        <div class="el-grid">
+          <div>
+            <div style="font-size:.75rem;font-weight:700;
+              color:var(--text2);margin-bottom:8px;
+              text-transform:uppercase;letter-spacing:.4px;">
+              Distribución de METs
+            </div>
+            <div class="el-bar-wrap" id="el-mets-dist"></div>
+            <div style="margin-top:14px;font-size:.75rem;font-weight:700;
+              color:var(--text2);margin-bottom:8px;
+              text-transform:uppercase;letter-spacing:.4px;">
+              Duke Score — estratificación de riesgo
+            </div>
+            <div class="el-bar-wrap" id="el-duke-dist"></div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;font-weight:700;
+              color:var(--text2);margin-bottom:8px;
+              text-transform:uppercase;letter-spacing:.4px;">
+              Resultados
+            </div>
+            <div class="el-chart-wrap">
+              <canvas id="el-chart-resultados"></canvas>
+            </div>
+            <div style="margin-top:14px;">
+              <div class="el-stat">
+                <span class="el-lbl">Edad promedio</span>
+                <span class="el-val" id="el-edad-prom">—</span>
+              </div>
+              <div class="el-stat">
+                <span class="el-lbl">% con capacidad funcional IV</span>
+                <span class="el-val" id="el-cf4">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL CALIDAD -->
+  <div id="el-sub-calidad" class="el-subpanel">
+    <div class="el-card">
+      <div class="el-hdr">✅ Calidad del Laboratorio</div>
+      <div class="el-body">
+        <div style="font-size:.78rem;color:var(--text2);
+          margin-bottom:12px;">
+          % de estudios en que cada parámetro fue registrado.
+        </div>
+        <div class="el-bar-wrap" id="el-calidad-bars"></div>
+      </div>
+    </div>
+    <div class="el-card">
+      <div class="el-hdr">🎓 Docencia — Casos de interés</div>
+      <div class="el-body">
+        <div id="el-docencia"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL COMPARAR -->
+  <div id="el-sub-comparar" class="el-subpanel">
+    <div class="el-card">
+      <div class="el-hdr">🔀 Comparar Períodos</div>
+      <div class="el-body">
+        <div class="el-grid" style="margin-bottom:16px;">
+          <div>
+            <div style="font-size:.78rem;font-weight:700;
+              color:var(--accent);margin-bottom:8px;">Período A</div>
+            <div class="el-grid">
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:.72rem;color:var(--text2);">
+                  Desde</label>
+                <input type="date" id="el-cmp-a-desde"
+                  style="padding:6px;border-radius:6px;
+                  border:1px solid var(--border);
+                  background:var(--bg3);color:var(--text);">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:.72rem;color:var(--text2);">
+                  Hasta</label>
+                <input type="date" id="el-cmp-a-hasta"
+                  style="padding:6px;border-radius:6px;
+                  border:1px solid var(--border);
+                  background:var(--bg3);color:var(--text);">
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;
+              color:var(--accent);margin-bottom:8px;">Período B</div>
+            <div class="el-grid">
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:.72rem;color:var(--text2);">
+                  Desde</label>
+                <input type="date" id="el-cmp-b-desde"
+                  style="padding:6px;border-radius:6px;
+                  border:1px solid var(--border);
+                  background:var(--bg3);color:var(--text);">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:.72rem;color:var(--text2);">
+                  Hasta</label>
+                <input type="date" id="el-cmp-b-hasta"
+                  style="padding:6px;border-radius:6px;
+                  border:1px solid var(--border);
+                  background:var(--bg3);color:var(--text);">
+              </div>
+            </div>
+          </div>
+        </div>
+        <button onclick="ergoLabComparar()"
+          style="padding:8px 18px;border-radius:8px;
+          border:none;background:var(--accent);color:#0f1117;
+          font-weight:700;cursor:pointer;font-size:.84rem;">
+          🔀 Comparar
+        </button>
+        <div id="el-cmp-result" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </div>
+
+</div></div><!-- /tab-lab -->
 
 <!-- BARRA FLOTANTE -->
 <div class="fab-bar no-print">
@@ -1271,7 +1647,7 @@ function generarConclusion(){
   if(resTxt && resTxt!=='—') partes.push('Resultado de la prueba: '+resTxt+'.');
   const duke=clean(stxt('dval')), dukeL=clean(stxt('dlbl')).replace(/[✓⚠⛔]\s*/,'');
   if(duke) partes.push('Score de Duke: '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.');
-  const mets=parseFloat(sval('metat'));
+  const mets=parseFloat(sval('metat').replace(',','.'));
   if(mets>0){ const eqv=mets>10?'capacidad funcional alta':mets>=5?'capacidad funcional intermedia':'capacidad funcional baja'; partes.push('Capacidad funcional: '+mets+' METs — '+eqv+' — '+metsFrase(mets)+'.'); partes.push('Umbral anaeróbico estimado: '+(mets*0.6).toFixed(1)+' METs (~60% del máximo alcanzado).'); }
   let pasMax=0; document.querySelectorAll('#tetb tr td:nth-child(9) input').forEach(i=>{const v=parseInt(i.value)||0; if(v>pasMax)pasMax=v;});
   if(pasMax>0) partes.push('Respuesta presora: PAS máxima '+pasMax+' mmHg'+(pasMax>=210?' (respuesta hipertensiva)':pasMax<120?' (respuesta hipotensiva)':' (respuesta normal)')+'.');
@@ -1628,7 +2004,7 @@ function exportPDF(){
   const duke = clean(stxt('dval')), dukeL = clean(stxt('dlbl')).replace(/[✓⚠⛔]\s*/,'');
   if(duke) partes.push('Score de Duke: '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.');
   // capacidad funcional METs
-  const mets = parseFloat(sval('metat'));
+  const mets = parseFloat(sval('metat').replace(',','.'));
   if(mets>0){
     const eqv = mets>10?'capacidad funcional alta':mets>=5?'capacidad funcional intermedia':'capacidad funcional baja';
     partes.push('Capacidad funcional: '+mets+' METs — '+eqv+' — '+metsFrase(mets)+'.');
@@ -1829,7 +2205,7 @@ function renderAnalisisCharts(){
   const rows=tb?Array.from(tb.querySelectorAll('tr')):[];
   const cats=[],fc=[],pas=[],pad=[];
   rows.forEach(r=>{
-    const gv=(sel)=>{const el=r.querySelector(sel);if(!el)return null;const v=parseFloat(el.value);return isNaN(v)?null:v;};
+    const gv=(sel)=>{const el=r.querySelector(sel);if(!el)return null;const v=parseFloat(el.value.replace(',','.'));return isNaN(v)?null:v;};
     const elaEl=r.querySelector('.ela input');
     const lbl=elaEl?(elaEl.value||'').trim():'';
     cats.push(lbl);
@@ -1948,7 +2324,7 @@ function buildCompletitud(){const c=document.getElementById('cb-items');c.innerH
 function updComp(){let done=0;COMP_ITEMS.forEach(item=>{const ok=item.check();const el=document.getElementById(item.id);if(el){el.classList.toggle('done',ok);el.querySelector('.cbi').textContent=ok?'✓':'○';}if(ok)done++;});const p=document.getElementById('cb-progress');if(p)p.textContent=done+'/'+COMP_ITEMS.length;setTimeout(()=>{},0);}
 
 // ANTRO
-function cAntro(){const p=parseFloat(document.getElementById('pp').value),t=parseFloat(document.getElementById('pt').value)/100;if(p>0&&t>0){document.getElementById('pimc').value=(p/(t*t)).toFixed(1);document.getElementById('psc').value=(0.007184*Math.pow(p,0.425)*Math.pow(t*100,0.725)).toFixed(2);}}
+function cAntro(){const p=parseFloat(document.getElementById('pp').value.replace(',','.')),t=parseFloat(document.getElementById('pt').value.replace(',','.'))/100;if(p>0&&t>0){document.getElementById('pimc').value=(p/(t*t)).toFixed(1);document.getElementById('psc').value=(0.007184*Math.pow(p,0.425)*Math.pow(t*100,0.725)).toFixed(2);}}
 function cEdad(){const dn=document.getElementById('pnac').value;if(!dn)return;const hoy=new Date(),nac=new Date(dn);let e=hoy.getFullYear()-nac.getFullYear();if(hoy.getMonth()-nac.getMonth()<0||(hoy.getMonth()===nac.getMonth()&&hoy.getDate()<nac.getDate()))e--;document.getElementById('ped').value=e;rFC();sEP();}
 
 // FC con BB
@@ -1976,7 +2352,7 @@ function renderPBar(){const bar=document.getElementById('pbar'),protos=PROTOCOLO
 function setProto(key,btn){protoActual=key;_protoIdx=0;_recIdx=0;document.querySelectorAll('.pb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('pinfo').textContent=PROTOCOLOS[ergActual][key].info;}
 function insProto(){if(!confirm('Esto reemplazará las etapas actuales. ¿Continuar?'))return;document.getElementById('tetb').innerHTML='';etapaCount=0;PROTOCOLOS[ergActual][protoActual].etapas.forEach(e=>aRow(e.tipo,e.label,e.vel,e.pend,e.tiempo,e.mets,e.carga,e.kgm));showToast('Etapas insertadas ✓');}
 
-function getMETSbici(kgm){const peso=parseFloat(document.getElementById('pp').value)||70;return kgm>0?((kgm*2+300)/(peso*3.5)).toFixed(1):null;}
+function getMETSbici(kgm){const peso=parseFloat(document.getElementById('pp').value.replace(',','.'))||70;return kgm>0?((kgm*2+300)/(peso*3.5)).toFixed(1):null;}
 
 // TABLA — vel y pendiente separados para cinta
 function aRow(tipo,labelOv,velOv,pendOv,tiempoOv,metsOv,cargaOv,kgmOv){etapaCount++;const tbody=document.getElementById('tetb'),tr=document.createElement('tr'),rowId='row-'+etapaCount;tr.id=rowId;const labels={reposo:'Basal/Reposo',inter:'Etapa '+etapaCount,rec:'Recuperación'};const label=labelOv||(labels[tipo]||('Etapa '+etapaCount));tr.className=tipo==='reposo'?'rr':tipo==='rec'?'rrec':'';const isBici=ergActual==='bici';const kgmVal=kgmOv!==undefined?kgmOv:(isBici&&cargaOv>0?cargaOv*6:'');let metsDisplay='';if(metsOv)metsDisplay=metsOv;else if(isBici&&kgmVal>0)metsDisplay=getMETSbici(kgmVal)||'';
@@ -2002,15 +2378,15 @@ tr.innerHTML=`
 <td class="no-print"><button class="del-btn" onclick="document.getElementById('${rowId}').remove()">✕</button></td>`;
 tbody.appendChild(tr);}
 
-function onCarga(inp){const tr=inp.closest('tr'),w=parseFloat(inp.value)||0,kgm=w*6;const tk=tr.querySelector('.td-kgm input');if(tk)tk.value=kgm>0?kgm:'';updateMETS(tr,kgm);}
-function onKgm(inp){const tr=inp.closest('tr'),kgm=parseFloat(inp.value)||0;const wi=tr.querySelector('.td-carga input');if(wi&&kgm>0)wi.value=Math.round(kgm/6);updateMETS(tr,kgm);}
-function updateMETS(tr,kgm){const cell=document.getElementById('mets-'+tr.id);if(!cell)return;const wEl=tr.querySelector('.td-carga input');const w=wEl?parseFloat(wEl.value)||0:0;const peso=parseFloat(document.getElementById('pp').value)||0;if(w>0&&peso>0){cell.textContent=(((10.8*w/peso)+7)/3.5).toFixed(1);}else cell.textContent='—';}
+function onCarga(inp){const tr=inp.closest('tr'),w=parseFloat(inp.value.replace(',','.'))||0,kgm=w*6;const tk=tr.querySelector('.td-kgm input');if(tk)tk.value=kgm>0?kgm:'';updateMETS(tr,kgm);}
+function onKgm(inp){const tr=inp.closest('tr'),kgm=parseFloat(inp.value.replace(',','.'))||0;const wi=tr.querySelector('.td-carga input');if(wi&&kgm>0)wi.value=Math.round(kgm/6);updateMETS(tr,kgm);}
+function updateMETS(tr,kgm){const cell=document.getElementById('mets-'+tr.id);if(!cell)return;const wEl=tr.querySelector('.td-carga input');const w=wEl?parseFloat(wEl.value.replace(',','.'))||0:0;const peso=parseFloat(document.getElementById('pp').value.replace(',','.'))||0;if(w>0&&peso>0){cell.textContent=(((10.8*w/peso)+7)/3.5).toFixed(1);}else cell.textContent='—';}
 function onFC(inp){calcDP(inp.closest('tr'));updFCAlc();}
-function calcDP(tr){const fc=parseFloat(tr.querySelector('td:nth-child(8) input')?.value),pas=parseFloat(tr.querySelector('td:nth-child(9) input')?.value),cell=document.getElementById('dp-'+tr.id);if(fc&&pas&&cell){const dp=Math.round(fc*pas);cell.textContent=dp.toLocaleString();trackDP();}else if(cell)cell.textContent='—';autoHemo();}
+function calcDP(tr){const fc=parseFloat((tr.querySelector('td:nth-child(8) input')?.value||'').replace(',','.')),pas=parseFloat((tr.querySelector('td:nth-child(9) input')?.value||'').replace(',','.')),cell=document.getElementById('dp-'+tr.id);if(fc&&pas&&cell){const dp=Math.round(fc*pas);cell.textContent=dp.toLocaleString();trackDP();}else if(cell)cell.textContent='—';autoHemo();}
 // Autocompleta el resumen hemodinámico leyendo la tabla de etapas
 function autoHemo(){
   const trs=[...document.querySelectorAll('#tetb tr')];
-  const num=(tr,n)=>{const e=tr.querySelector('td:nth-child('+n+') input'); return e?parseFloat(e.value)||0:0;};
+  const num=(tr,n)=>{const e=tr.querySelector('td:nth-child('+n+') input'); return e?parseFloat(e.value.replace(',','.'))||0:0;};
   const isRec=tr=> tr.classList.contains('rrec') || /rec/i.test((tr.querySelector('.ela input')||{}).value||'');
   let fcMax=0, dpMax=0, lastMets='', lastDur=0;
   trs.forEach(tr=>{
@@ -2089,7 +2465,7 @@ function verResumenPaciente(){
   const val=id=>g(id)?(g(id).value||'').trim():'';
   const fechaR=val('fe'); const fecha=fechaR?fechaR.split('-').reverse().join('/'):'—';
   const proto=(PROTOCOLOS[ergActual]&&PROTOCOLOS[ergActual][protoActual])?PROTOCOLOS[ergActual][protoActual].nombre:'—';
-  const mets=val('metat'); const metsN=parseFloat(mets)||0;
+  const mets=val('metat'); const metsN=parseFloat(mets.replace(',','.'))||0;
   const fcmax=val('fcmax');
   const resEl=g('res'); const res=(resEl&&resEl.selectedOptions[0]&&resEl.value)?resEl.selectedOptions[0].text:'—';
   const duke=((g('dval')&&g('dval').textContent)||'—').trim();
@@ -2118,7 +2494,7 @@ function updFCAlc(){let max=0;document.querySelectorAll('#tetb tr td:nth-child(8
 function colorST(sel){sel.style.color=sel.value==='normal'?'var(--positive)':sel.value.includes('supra')?'var(--warn)':'var(--danger)';}
 
 // DUKE
-function cDuke(){const dur=parseFloat(document.getElementById('durej').value)||0,st=parseFloat(document.getElementById('mst').value)||0,ang=parseInt(document.getElementById('angtp').value)||0;if(!dur){document.getElementById('dval').textContent='—';return;}const duke=dur-(5*st)-(4*ang);document.getElementById('dval').textContent=duke.toFixed(1);const box=document.getElementById('dbox');if(duke>=5){box.className='duke-box d-bajo';document.getElementById('dlbl').textContent='✓ Riesgo BAJO';document.getElementById('dmort').textContent='Mortalidad anual ~0.25% — Tratamiento médico';}else if(duke>=-10){box.className='duke-box d-int';document.getElementById('dlbl').textContent='⚠ Riesgo INTERMEDIO';document.getElementById('dmort').textContent='Mortalidad anual ~1.25% — Considerar imagen de estrés';}else{box.className='duke-box d-alto';document.getElementById('dlbl').textContent='⛔ Riesgo ALTO';document.getElementById('dmort').textContent='Mortalidad anual ~5% — Cinecoronariografía';}updResumen();}
+function cDuke(){const dur=parseFloat(document.getElementById('durej').value.replace(',','.'))||0,st=parseFloat(document.getElementById('mst').value.replace(',','.'))||0,ang=parseInt(document.getElementById('angtp').value)||0;if(!dur){document.getElementById('dval').textContent='—';return;}const duke=dur-(5*st)-(4*ang);document.getElementById('dval').textContent=duke.toFixed(1);const box=document.getElementById('dbox');if(duke>=5){box.className='duke-box d-bajo';document.getElementById('dlbl').textContent='✓ Riesgo BAJO';document.getElementById('dmort').textContent='Mortalidad anual ~0.25% — Tratamiento médico';}else if(duke>=-10){box.className='duke-box d-int';document.getElementById('dlbl').textContent='⚠ Riesgo INTERMEDIO';document.getElementById('dmort').textContent='Mortalidad anual ~1.25% — Considerar imagen de estrés';}else{box.className='duke-box d-alto';document.getElementById('dlbl').textContent='⛔ Riesgo ALTO';document.getElementById('dmort').textContent='Mortalidad anual ~5% — Cinecoronariografía';}updResumen();}
 function eRFC(){const rfc=parseInt(document.getElementById('rfc1').value)||0,el=document.getElementById('rfcbdg');if(!rfc){el.innerHTML='';return;}if(rfc<=12)el.innerHTML='<span class="badge bdanger">⚠ RFC ≤12 lpm — Disfunción autonómica — Predictor mortalidad (HR 2.0, Cole NEJM 2001)</span>';else if(rfc<=18)el.innerHTML='<span class="badge bwarn">RFC '+rfc+' lpm — Zona intermedia</span>';else el.innerHTML='<span class="badge bok">✓ RFC >18 lpm — Normal</span>';updResumen();}
 function tAR(item){item.classList.toggle('chk');item.querySelector('.adot').textContent=item.classList.contains('chk')?'✓':'';const n=document.querySelectorAll('.ari.chk').length,el=document.getElementById('arres');if(n>0){el.classList.add('show');el.innerHTML=`<strong style="color:var(--danger)">⚠ ${n} criterio${n>1?'s':''} de alto riesgo presente${n>1?'s':''}</strong>${n>=2?' — <strong>Pronóstico adverso. Considerar cinecoronariografía directa.</strong>':''}`;}else el.classList.remove('show');}
 
@@ -2147,7 +2523,7 @@ function updResumen(){
   let lineas=[];
   if(nombre&&edad&&sexo) lineas.push(`Paciente de <span>${edad} años, sexo ${sexo}</span>.`);
   if(proto) lineas.push(`Prueba ergométrica en <span>${erg}</span>, protocolo <span>${proto}</span>.`);
-  if(mets){ const _m=parseFloat(mets)||0; lineas.push(`Capacidad funcional alcanzada: <span>${mets} METs</span>${cf?' ('+cf+')':''} — ${metsFrase(_m)}.`); if(_m>0) lineas.push(`Umbral anaeróbico estimado: <span>${(_m*0.6).toFixed(1)} METs</span> (~60% del máximo alcanzado).`); }
+  if(mets){ const _m=parseFloat(mets.replace(',','.'))||0; lineas.push(`Capacidad funcional alcanzada: <span>${mets} METs</span>${cf?' ('+cf+')':''} — ${metsFrase(_m)}.`); if(_m>0) lineas.push(`Umbral anaeróbico estimado: <span>${(_m*0.6).toFixed(1)} METs</span> (~60% del máximo alcanzado).`); }
   if(fcAlc&&pct) lineas.push(`FC máxima alcanzada: <span>${fcAlc} lpm (${pct}% FCME)</span> — ${sufTxt.includes('✓')?'prueba máxima':'prueba submáxima'}.`);
   if(dp&&dp!=='—') lineas.push(`Doble producto máximo: <span>${dp}</span>.`);
   if(irc&&irc!=='—') lineas.push(`Índice de respuesta cronotrópica: <span>${irc}</span> (${parseFloat(irc)<0.80?'respuesta cronotrópica incompetente':'respuesta cronotrópica normal'}).`);
@@ -2291,7 +2667,10 @@ function guardar(){
     cf=document.getElementById('cf').selectedOptions[0]?.text||'—';
   const base={fecha,nombre,ci,mets,resultado,resultadoVal,duke:dukeV,dukeNivel,concl,
     protocolo:PROTOCOLOS[ergActual][protoActual]?.nombre,ergometro:ergActual,
-    fcmax,fcObj,cf,form:capturarForm()};
+    fcmax,fcObj,cf,
+    caso_interes:document.getElementById('caso_interes_ergo')?.checked?'1':'0',
+    fecha_solicitud:document.getElementById('fecha_solicitud_ergo')?.value||'',
+    form:capturarForm()};
   let lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]');
   if(editandoId){
     const idx=lista.findIndex(i=>i.id===editandoId);
@@ -2441,13 +2820,13 @@ function compararSel(){
 window.editarInforme=editarInforme;window.pdfInforme=pdfInforme;window.toggleCmp=toggleCmp;window.compararSel=compararSel;window.verInforme=verInforme;window.elimInforme=elimInforme;
 
 // CALCULADORAS
-function cConv(origen){const w=parseFloat(document.getElementById('cw').value)||0,kgm=parseFloat(document.getElementById('ckgm').value)||0,peso=parseFloat(document.getElementById('cpes').value)||0;let kgmC=origen==='w'?w*6:kgm;if(origen==='w'&&w>0)document.getElementById('ckgm').value=kgmC;if(origen==='k'&&kgm>0)document.getElementById('cw').value=(kgm/6).toFixed(1);const mets=peso>0&&kgmC>0?((kgmC*2+300)/(peso*3.5)).toFixed(2):null;document.getElementById('crconv').innerHTML=kgmC>0?`W: <strong>${(kgmC/6).toFixed(0)}</strong> &nbsp;|&nbsp; kgm/min: <strong>${kgmC}</strong> &nbsp;|&nbsp; METs: <strong>${mets||'(ingresá peso)'}</strong>`:'Ingresá W o kgm/min y el peso';}
-function cDukeC(){const d=parseFloat(document.getElementById('cdmin').value)||0,st=parseFloat(document.getElementById('cdst').value)||0,a=parseInt(document.getElementById('cdang').value)||0;if(!d){document.getElementById('crduke').textContent='Ingresá la duración';return;}const duke=d-(5*st)-(4*a);document.getElementById('crduke').innerHTML=`Score: <strong>${duke.toFixed(1)}</strong> → ${duke>=5?'✓ BAJO (~0.25%/año)':duke>=-10?'⚠ INTERMEDIO (~1.25%/año)':'⛔ ALTO (~5%/año)'}`;}
+function cConv(origen){const w=parseFloat(document.getElementById('cw').value.replace(',','.'))||0,kgm=parseFloat(document.getElementById('ckgm').value.replace(',','.'))||0,peso=parseFloat(document.getElementById('cpes').value.replace(',','.'))||0;let kgmC=origen==='w'?w*6:kgm;if(origen==='w'&&w>0)document.getElementById('ckgm').value=kgmC;if(origen==='k'&&kgm>0)document.getElementById('cw').value=(kgm/6).toFixed(1);const mets=peso>0&&kgmC>0?((kgmC*2+300)/(peso*3.5)).toFixed(2):null;document.getElementById('crconv').innerHTML=kgmC>0?`W: <strong>${(kgmC/6).toFixed(0)}</strong> &nbsp;|&nbsp; kgm/min: <strong>${kgmC}</strong> &nbsp;|&nbsp; METs: <strong>${mets||'(ingresá peso)'}</strong>`:'Ingresá W o kgm/min y el peso';}
+function cDukeC(){const d=parseFloat(document.getElementById('cdmin').value.replace(',','.'))||0,st=parseFloat(document.getElementById('cdst').value.replace(',','.'))||0,a=parseInt(document.getElementById('cdang').value)||0;if(!d){document.getElementById('crduke').textContent='Ingresá la duración';return;}const duke=d-(5*st)-(4*a);document.getElementById('crduke').innerHTML=`Score: <strong>${duke.toFixed(1)}</strong> → ${duke>=5?'✓ BAJO (~0.25%/año)':duke>=-10?'⚠ INTERMEDIO (~1.25%/año)':'⛔ ALTO (~5%/año)'}`;}
 function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,rep=parseInt(document.getElementById('cirep').value)||0,max=parseInt(document.getElementById('cimax').value)||0,bb=document.getElementById('cibb').value;if(!edad||!max){document.getElementById('crirc').textContent='Ingresá edad y FC máxima';return;}const fcme=220-edad,irc=rep>0&&fcme>rep?((max-rep)/(fcme-rep)).toFixed(2):'—';const umbral=bb==='si'?0.62:0.80,ok=parseFloat(irc)>=umbral;document.getElementById('crirc').innerHTML=`FCME: <strong>${fcme}</strong> | IRC: <strong>${irc}</strong> → <strong style="color:${ok?'var(--positive)':'var(--danger)'}">${ok?'✓ Normal':'⚠ Incompetencia cronotrópica'}</strong><br><small style="color:var(--text3)">Umbral: ${umbral*100}% ${bb==='si'?'(con BB, IRC ≥62%)':'(sin BB, IRC ≥80%)'}</small>`;}
 function cFCobj(){const edad=parseInt(document.getElementById('cfced').value)||0,rep=parseInt(document.getElementById('cfcrep').value)||0;if(!edad){document.getElementById('crfc').textContent='Ingresá la edad';return;}const fcme=220-edad,p85=Math.round(fcme*0.85),p62=Math.round(fcme*0.62),kv=rep>0?Math.round(rep+0.85*(fcme-rep)):null;document.getElementById('crfc').innerHTML=`FCME (220−edad): <strong>${fcme} lpm</strong><br>85% FCME — prueba máxima sin BB: <strong>${p85} lpm</strong><br>62% FCME — prueba suficiente con BB: <strong>${p62} lpm</strong>${kv?`<br>Karvonen 85% (reserva FC): <strong>${kv} lpm</strong>`:''}`;}
 
 // LIMPIAR
-function limpiar(){if(!confirm('¿Limpiar todos los datos del formulario?'))return;const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();
+function limpiar(){if(!confirm('¿Limpiar todos los datos del formulario?'))return;const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
 // Resetear campos calculados automáticamente (displays con textContent, no inputs)
 ['vfcme','v85','virc','fcr','fc85r','fc62r','fcar','ccsd','nyhad','ptpv','ptpl','ptprec'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
 // Suficiencia de la prueba y badge PTP
@@ -2472,13 +2851,13 @@ function toggleVelUnit(){
   const rows=document.querySelectorAll('#tetb tr .td-vel input');
   if(velUnit==='kmh'){
     // convertir cada valor de km/h a mph
-    rows.forEach(inp=>{const v=parseFloat(inp.value);if(v>0)inp.value=(v*KMH_TO_MPH).toFixed(1);});
+    rows.forEach(inp=>{const v=parseFloat(inp.value.replace(',','.'));if(v>0)inp.value=(v*KMH_TO_MPH).toFixed(1);});
     velUnit='mph';
     document.getElementById('vel-lbl').textContent='Vel. (mph)';
     document.getElementById('vel-toggle').textContent='km/h';
   } else {
     // convertir mph → km/h
-    rows.forEach(inp=>{const v=parseFloat(inp.value);if(v>0)inp.value=(v*MPH_TO_KMH).toFixed(1);});
+    rows.forEach(inp=>{const v=parseFloat(inp.value.replace(',','.'));if(v>0)inp.value=(v*MPH_TO_KMH).toFixed(1);});
     velUnit='kmh';
     document.getElementById('vel-lbl').textContent='Vel. (km/h)';
     document.getElementById('vel-toggle').textContent='mph';
@@ -3112,6 +3491,583 @@ function ecgcExportPorFase(){
   ecgcPdfCopyright(doc,105,292);
   doc.save(ecgcPdfFilename('_porfase'));
 }
+
+// ── Export / Import JSON ──
+function exportarErgoJSON() {
+  const lista = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+  if (!lista.length) { showToast('⚠️ No hay informes para exportar'); return; }
+  const fecha = new Date().toISOString().split('T')[0];
+  const blob = new Blob([JSON.stringify(lista, null, 2)],
+    { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ergosmart_backup_' + fecha + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✅ ' + lista.length + ' informes exportados');
+}
+
+function importarErgoJSON(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const nuevos = JSON.parse(e.target.result);
+      if (!Array.isArray(nuevos)) { showToast('❌ Archivo inválido'); return; }
+      const existentes = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+      const idsExist = new Set(existentes.map(i => i.id));
+      const sinDup = nuevos.filter(i => !idsExist.has(i.id));
+      const merged = [...existentes, ...sinDup];
+      localStorage.setItem('ergo_informes', JSON.stringify(merged));
+      showToast('✅ ' + sinDup.length + ' informes importados (' +
+        (nuevos.length - sinDup.length) + ' duplicados omitidos)');
+      if (typeof rGuard === 'function') rGuard();
+    } catch(err) {
+      showToast('❌ Error al leer el archivo JSON');
+    }
+  };
+  reader.readAsText(file);
+}
+
+window.exportarErgoJSON = exportarErgoJSON;
+window.importarErgoJSON = importarErgoJSON;
+
+// ── Filtros de Informes Guardados ──
+function ergoAplicarFiltros() {
+  const fRes   = document.getElementById('ef-resultado')?.value || '';
+  const fMets  = document.getElementById('ef-mets')?.value || '';
+  const fDuke  = document.getElementById('ef-duke')?.value || '';
+  const fInt   = document.getElementById('ef-interes')?.value || '';
+
+  const todos = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+
+  const filtrados = todos.filter(inf => {
+    // Resultado
+    if (fRes && inf.resultadoVal !== fRes) return false;
+
+    // METs
+    if (fMets) {
+      const mets = parseFloat(inf.mets);
+      if (isNaN(mets)) return false;
+      if (fMets === 'lt5'  && mets >= 5)  return false;
+      if (fMets === '5a10' && (mets < 5 || mets > 10)) return false;
+      if (fMets === 'gt10' && mets <= 10) return false;
+    }
+
+    // Duke Score
+    if (fDuke) {
+      const duke = parseFloat(inf.duke);
+      if (isNaN(duke)) return false;
+      if (fDuke === 'alto'  && duke >= -10) return false;
+      if (fDuke === 'inter' && (duke < -10 || duke > 4)) return false;
+      if (fDuke === 'bajo'  && duke <= 4)  return false;
+    }
+
+    // Caso de interés
+    if (fInt === 'si' && inf.caso_interes !== '1') return false;
+
+    return true;
+  });
+
+  const hayFiltros = fRes || fMets || fDuke || fInt;
+  const resEl = document.getElementById('ef-resultado-txt');
+  if (resEl) {
+    resEl.textContent = hayFiltros
+      ? `Mostrando ${filtrados.length} de ${todos.length} informes`
+      : '';
+  }
+
+  // Renderizar lista filtrada (rGuard no acepta lista → render directo, mismo markup)
+  window._ergoFiltrados = filtrados;
+  ergoRenderSvlist(filtrados, todos.length);
+}
+
+function ergoRenderSvlist(f, totalCount) {
+  const container = document.getElementById('svlist');
+  if (!container) return;
+  const _sel = (typeof cmpSel !== 'undefined') ? cmpSel : [];
+  if (!f.length) {
+    container.innerHTML = '<div class="sv-empty">' + (totalCount ? 'Sin resultados para los filtros aplicados.' : 'No hay informes guardados aún.') + '</div>';
+    if (typeof actualizarCmpBar === 'function') actualizarCmpBar();
+    return;
+  }
+  const rows = f.map(inf => {
+    const selCls = _sel.includes(inf.id) ? ' sv-selected' : '';
+    return `<tr class="${selCls}">
+<td class="sv-pn">${esc(inf.nombre)||'—'}</td>
+<td>${esc(inf.ci)||'—'}</td>
+<td>${esc(inf.fecha)||'—'}</td>
+<td>${esc(inf.protocolo)||'—'} <span style="color:var(--text3)">(${inf.ergometro==='cinta'?'cinta':'bici'})</span></td>
+<td>${esc(inf.mets)}</td>
+<td>${esc(inf.duke)}</td>
+<td>${esc(inf.resultado)}</td>
+<td><div class="sv-acts">
+<button class="btn btn-outline btn-sm" onclick="verInforme(${inf.id})" title="Ver">👁</button>
+<button class="btn btn-outline btn-sm" onclick="editarInforme(${inf.id})" title="Editar">✎</button>
+<button class="btn btn-outline btn-sm" onclick="pdfInforme(${inf.id})" title="PDF">📄</button>
+<button class="btn btn-sm ${_sel.includes(inf.id)?'btn-primary':'btn-outline'}" onclick="toggleCmp(${inf.id})" title="Comparar">⇄</button>
+<button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" onclick="elimInforme(${inf.id})" title="Eliminar">✕</button>
+</div></td></tr>`;
+  }).join('');
+  container.innerHTML = `<table class="sv-tbl"><thead><tr><th>Paciente</th><th>CI</th><th>Fecha</th><th>Protocolo</th><th>METs</th><th>Duke</th><th>Resultado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table>`;
+  if (typeof actualizarCmpBar === 'function') actualizarCmpBar();
+}
+
+function ergoLimpiarFiltros() {
+  ['ef-resultado','ef-mets','ef-duke','ef-interes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const resEl = document.getElementById('ef-resultado-txt');
+  if (resEl) resEl.textContent = '';
+  window._ergoFiltrados = null;
+  if (typeof rGuard === 'function') rGuard();
+}
+
+window.ergoAplicarFiltros = ergoAplicarFiltros;
+window.ergoLimpiarFiltros = ergoLimpiarFiltros;
+
+// ══ LABORATORIO ERGOSMART ══════════════════════════════════
+
+function ergoLabGetInfs() {
+  const todos = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+  const periodo = parseInt(document.getElementById('el-periodo')?.value||'365');
+  const desde = document.getElementById('el-desde')?.value;
+  const hasta = document.getElementById('el-hasta')?.value;
+  const hoy = new Date();
+  return todos.filter(inf => {
+    const f = inf.fecha ? new Date(inf.fecha) : null;
+    if (!f || isNaN(f)) return false;
+    if (desde && f < new Date(desde)) return false;
+    if (hasta && f > new Date(hasta + 'T23:59:59')) return false;
+    if (!desde && !hasta && periodo > 0) {
+      const lim = new Date(hoy);
+      lim.setDate(lim.getDate() - periodo);
+      if (f < lim) return false;
+    }
+    return true;
+  });
+}
+
+function ergoLabSubTab(id, el) {
+  document.querySelectorAll('#tab-lab .el-subtab')
+    .forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#tab-lab .el-subpanel')
+    .forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('el-sub-' + id).classList.add('active');
+  if (id === 'comparar') ergoLabCompararInit();
+}
+
+function ergoLabBarras(containerId, datos) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!datos.length) {
+    el.innerHTML = '<div class="el-empty">Sin datos</div>';
+    return;
+  }
+  const max = Math.max(...datos.map(d => d.n), 1);
+  el.innerHTML = datos.map(d => {
+    const pct = Math.round((d.n / max) * 100);
+    const pctReal = d.total > 0
+      ? Math.round((d.n / d.total) * 100) + '%'
+      : d.n;
+    return `<div class="el-bar-row">
+      <div class="el-bar-lbl">${d.lbl}</div>
+      <div class="el-bar-bg">
+        <div class="el-bar-fill"
+          style="width:${pct}%;background:${d.color||'var(--accent)'}">
+        </div>
+      </div>
+      <div class="el-bar-pct">${pctReal}</div>
+    </div>`;
+  }).join('');
+}
+
+function ergoLabDestroyChart(id) {
+  if (typeof Chart === 'undefined') return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  const c = Chart.getChart(el);
+  if (c) c.destroy();
+}
+
+function ergoLabInit() {
+  const infs = ergoLabGetInfs();
+  const n = infs.length;
+
+  document.getElementById('el-resumen').textContent = n === 0
+    ? 'Sin estudios en el período.'
+    : `${n} estudio${n !== 1 ? 's' : ''} en el período.`;
+
+  if (!n) {
+    ['el-total','el-positivas','el-negativas','el-indet',
+     'el-mets-prom','el-duke-prom','el-tiempo-sol',
+     'el-edad-prom','el-cf4'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    ['el-mets-dist','el-duke-dist','el-calidad-bars'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div class="el-empty">Sin datos</div>';
+    });
+    const tb = document.getElementById('el-indicadores');
+    if (tb) tb.innerHTML =
+      '<tr><td colspan="4" style="text-align:center;' +
+      'color:var(--text2);padding:20px;">Sin datos</td></tr>';
+    const doc = document.getElementById('el-docencia');
+    if (doc) doc.innerHTML =
+      '<div class="el-empty">Sin casos marcados</div>';
+    return;
+  }
+
+  // ── ACTIVIDAD ──
+  document.getElementById('el-total').textContent = n;
+
+  const pos = infs.filter(i => i.resultadoVal === 'pos').length;
+  const neg = infs.filter(i => i.resultadoVal === 'neg').length;
+  const ind = infs.filter(i =>
+    i.resultadoVal !== 'pos' && i.resultadoVal !== 'neg').length;
+  document.getElementById('el-positivas').textContent =
+    pos + ' (' + Math.round(pos/n*100) + '%)';
+  document.getElementById('el-negativas').textContent =
+    neg + ' (' + Math.round(neg/n*100) + '%)';
+  document.getElementById('el-indet').textContent =
+    ind + ' (' + Math.round(ind/n*100) + '%)';
+
+  const metsArr = infs.map(i => parseFloat(i.mets))
+    .filter(v => !isNaN(v) && v > 0);
+  if (metsArr.length)
+    document.getElementById('el-mets-prom').textContent =
+      (metsArr.reduce((a,b)=>a+b,0)/metsArr.length).toFixed(1) +
+      ' METs (n=' + metsArr.length + ')';
+
+  const dukeArr = infs.map(i => parseFloat(i.duke))
+    .filter(v => !isNaN(v));
+  if (dukeArr.length)
+    document.getElementById('el-duke-prom').textContent =
+      (dukeArr.reduce((a,b)=>a+b,0)/dukeArr.length).toFixed(1) +
+      ' (n=' + dukeArr.length + ')';
+
+  // Tiempo solicitud → estudio
+  const tiempos = infs
+    .filter(i => i.fecha && i.fecha_solicitud)
+    .map(i => (new Date(i.fecha) -
+      new Date(i.fecha_solicitud)) / 86400000)
+    .filter(d => d >= 0 && d < 365);
+  if (tiempos.length)
+    document.getElementById('el-tiempo-sol').textContent =
+      (tiempos.reduce((a,b)=>a+b,0)/tiempos.length).toFixed(1) +
+      ' días (n=' + tiempos.length + ')';
+  else
+    document.getElementById('el-tiempo-sol').textContent =
+      '— (sin fecha solicitud)';
+
+  // Gráfica por mes
+  const porMes = {};
+  infs.forEach(i => {
+    if (!i.fecha) return;
+    const mes = i.fecha.substring(0,7);
+    porMes[mes] = (porMes[mes]||0) + 1;
+  });
+  const meses = Object.keys(porMes).sort().slice(-12);
+  ergoLabDestroyChart('el-chart-meses');
+  if (typeof Chart !== 'undefined') {
+    const el = document.getElementById('el-chart-meses');
+    if (el) new Chart(el, {
+      type: 'bar',
+      data: {
+        labels: meses.map(m => m.replace('-','/')),
+        datasets: [{
+          data: meses.map(m => porMes[m]),
+          backgroundColor: 'rgba(99,179,237,0.7)',
+          borderColor: 'rgba(99,179,237,1)',
+          borderWidth: 1, borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+  }
+
+  // ── INDICADORES AUTOMÁTICOS ──
+  const indicadores = [
+    {
+      lbl: 'METs < 5 con resultado negativo',
+      casos: infs.filter(i =>
+        parseFloat(i.mets) < 5 && i.resultadoVal === 'neg')
+    },
+    {
+      lbl: 'Duke Score alto riesgo (< -10)',
+      casos: infs.filter(i => parseFloat(i.duke) < -10)
+    },
+    {
+      lbl: 'Positivos sin Duke Score registrado',
+      casos: infs.filter(i =>
+        i.resultadoVal === 'pos' && !i.duke)
+    },
+    {
+      lbl: 'Sin METs registrados',
+      casos: infs.filter(i => !i.mets || isNaN(parseFloat(i.mets)))
+    },
+    {
+      lbl: 'Sin conclusión documentada',
+      casos: infs.filter(i => !(i.concl||'').trim())
+    },
+  ];
+
+  const tbody = document.getElementById('el-indicadores');
+  if (tbody) tbody.innerHTML = indicadores.map(ind => {
+    const pct = Math.round(ind.casos.length/n*100);
+    const cls = pct === 0 ? 'el-verde' :
+      pct < 20 ? 'el-amarillo' : 'el-rojo';
+    const detalle = ind.casos.length > 0
+      ? ind.casos.slice(0,3).map(i=>i.nombre).join(', ') +
+        (ind.casos.length > 3
+          ? ' y ' + (ind.casos.length-3) + ' más' : '')
+      : '✅ Sin casos';
+    return `<tr>
+      <td><span class="el-semaf ${cls}"></span>${ind.lbl}</td>
+      <td style="font-weight:700;">${ind.casos.length}</td>
+      <td>${pct}%</td>
+      <td style="color:var(--text2);font-size:.78rem;">${detalle}</td>
+    </tr>`;
+  }).join('');
+
+  // ── POBLACIÓN ──
+  const mDist = [
+    { lbl:'< 5 METs', n: metsArr.filter(v=>v<5).length,
+      total: metsArr.length, color:'#f05454' },
+    { lbl:'5–7 METs', n: metsArr.filter(v=>v>=5&&v<=7).length,
+      total: metsArr.length, color:'#f5c842' },
+    { lbl:'8–10 METs', n: metsArr.filter(v=>v>7&&v<=10).length,
+      total: metsArr.length, color:'#3ecf8e' },
+    { lbl:'> 10 METs', n: metsArr.filter(v=>v>10).length,
+      total: metsArr.length, color:'#63b3ed' },
+  ].filter(d => d.n > 0);
+  ergoLabBarras('el-mets-dist', mDist);
+
+  const dukeDist = [
+    { lbl:'Alto riesgo (< -10)',
+      n: dukeArr.filter(v=>v<-10).length,
+      total: dukeArr.length, color:'#f05454' },
+    { lbl:'Intermedio (-10 a 4)',
+      n: dukeArr.filter(v=>v>=-10&&v<=4).length,
+      total: dukeArr.length, color:'#f5c842' },
+    { lbl:'Bajo riesgo (> 4)',
+      n: dukeArr.filter(v=>v>4).length,
+      total: dukeArr.length, color:'#3ecf8e' },
+  ].filter(d => d.n > 0);
+  ergoLabBarras('el-duke-dist', dukeDist);
+
+  // Gráfica dona resultados
+  ergoLabDestroyChart('el-chart-resultados');
+  if (typeof Chart !== 'undefined') {
+    const el = document.getElementById('el-chart-resultados');
+    if (el && (pos || neg || ind)) new Chart(el, {
+      type: 'doughnut',
+      data: {
+        labels: ['Negativo','Positivo','Indeterminado'],
+        datasets: [{
+          data: [neg, pos, ind],
+          backgroundColor: ['#3ecf8e','#f05454','#f5c842'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom',
+          labels: { font: { size: 11 } } } }
+      }
+    });
+  }
+
+  // Edad promedio
+  const edades = infs.map(i => {
+    const fn = i.form?.fn || i.fn || '';
+    if (!fn || !i.fecha) return null;
+    const edad = (new Date(i.fecha) - new Date(fn)) /
+      (365.25 * 24 * 3600 * 1000);
+    return edad > 0 && edad < 120 ? Math.round(edad) : null;
+  }).filter(v => v !== null);
+  if (edades.length)
+    document.getElementById('el-edad-prom').textContent =
+      Math.round(edades.reduce((a,b)=>a+b,0)/edades.length) +
+      ' años (n=' + edades.length + ')';
+
+  // CF IV
+  const cfIV = infs.filter(i =>
+    (i.cf||'').toLowerCase().includes('iv')).length;
+  document.getElementById('el-cf4').textContent =
+    Math.round(cfIV/n*100) + '% (n=' + cfIV + ')';
+
+  // ── CALIDAD ──
+  const calidadItems = [
+    { lbl: 'METs registrados', fn: i => !!i.mets },
+    { lbl: 'Resultado registrado', fn: i => !!i.resultadoVal },
+    { lbl: 'Duke Score calculado', fn: i => !!i.duke },
+    { lbl: 'Conclusión documentada',
+      fn: i => !!(i.concl||'').trim() },
+    { lbl: 'FC máxima registrada', fn: i => !!i.fcmax },
+    { lbl: 'Protocolo registrado', fn: i => !!i.protocolo },
+    { lbl: 'Capacidad funcional', fn: i => !!i.cf },
+    { lbl: 'Fecha de solicitud',
+      fn: i => !!i.fecha_solicitud },
+  ];
+  const calDatos = calidadItems.map(item => {
+    const con = infs.filter(item.fn).length;
+    const pct = n > 0 ? con/n : 0;
+    return {
+      lbl: item.lbl, n: con, total: n,
+      color: pct >= 0.8 ? '#3ecf8e' :
+        pct >= 0.5 ? '#f5c842' : '#f05454'
+    };
+  }).sort((a,b) => b.n - a.n);
+  ergoLabBarras('el-calidad-bars', calDatos);
+
+  // Docencia
+  const docentes = infs.filter(i =>
+    i.caso_interes === '1' ||
+    /caso.*inter[eé]s|ateneo|residente/i.test(i.concl||''));
+  const docEl = document.getElementById('el-docencia');
+  if (docEl) {
+    if (!docentes.length) {
+      docEl.innerHTML =
+        '<div class="el-empty">Sin casos marcados</div>';
+    } else {
+      docEl.innerHTML = `<table class="el-table">
+        <thead><tr>
+          <th>Paciente</th><th>Fecha</th>
+          <th>METs</th><th>Resultado</th>
+        </tr></thead>
+        <tbody>${docentes.map(i => `<tr>
+          <td>${i.nombre}</td>
+          <td>${i.fecha||'—'}</td>
+          <td>${i.mets||'—'}</td>
+          <td>${i.resultado||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+  }
+}
+
+function ergoLabCompararInit() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const h6 = new Date();
+  h6.setMonth(h6.getMonth() - 6);
+  const h12 = new Date();
+  h12.setMonth(h12.getMonth() - 12);
+  document.getElementById('el-cmp-a-desde').value =
+    h12.toISOString().split('T')[0];
+  document.getElementById('el-cmp-a-hasta').value =
+    h6.toISOString().split('T')[0];
+  document.getElementById('el-cmp-b-desde').value =
+    h6.toISOString().split('T')[0];
+  document.getElementById('el-cmp-b-hasta').value = hoy;
+}
+
+function ergoLabComparar() {
+  const todos =
+    JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+  const aD = document.getElementById('el-cmp-a-desde').value;
+  const aH = document.getElementById('el-cmp-a-hasta').value;
+  const bD = document.getElementById('el-cmp-b-desde').value;
+  const bH = document.getElementById('el-cmp-b-hasta').value;
+  if (!aD||!aH||!bD||!bH) {
+    document.getElementById('el-cmp-result').innerHTML =
+      '<div style="color:var(--text2);font-size:.84rem;">' +
+      'Completá los cuatro campos.</div>';
+    return;
+  }
+  const fil = (desde, hasta) => todos.filter(i => {
+    if (!i.fecha) return false;
+    const f = new Date(i.fecha);
+    return f >= new Date(desde) &&
+      f <= new Date(hasta + 'T23:59:59');
+  });
+  const A = fil(aD, aH), B = fil(bD, bH);
+  const prom = (arr, fn) => {
+    const v = arr.map(fn).filter(v => !isNaN(v) && v !== null);
+    return v.length
+      ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(1) : '—';
+  };
+  const pct = (arr, fn) => arr.length
+    ? Math.round(arr.filter(fn).length/arr.length*100)+'%' : '—';
+  const d = (a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    if (isNaN(na)||isNaN(nb)) return '';
+    const diff = nb - na;
+    const c = diff > 0 ? '#3ecf8e' :
+      diff < 0 ? '#f05454' : 'var(--text2)';
+    return `<span style="color:${c};font-weight:700;">
+      ${diff>0?'+':''}${diff.toFixed(1)}</span>`;
+  };
+  const filas = [
+    { lbl:'Total estudios',
+      a: A.length, b: B.length, u:'' },
+    { lbl:'% Positivos',
+      a: pct(A,i=>i.resultadoVal==='pos'),
+      b: pct(B,i=>i.resultadoVal==='pos'), u:'' },
+    { lbl:'METs promedio',
+      a: prom(A,i=>parseFloat(i.mets)),
+      b: prom(B,i=>parseFloat(i.mets)), u:' METs' },
+    { lbl:'Duke Score promedio',
+      a: prom(A,i=>parseFloat(i.duke)),
+      b: prom(B,i=>parseFloat(i.duke)), u:'' },
+  ];
+  document.getElementById('el-cmp-result').innerHTML =
+    `<table class="el-table">
+      <thead><tr>
+        <th>Indicador</th>
+        <th>Período A<br><small style="font-weight:400;
+          color:var(--text2);">${aD}→${aH}</small></th>
+        <th>Período B<br><small style="font-weight:400;
+          color:var(--text2);">${bD}→${bH}</small></th>
+        <th>Δ</th>
+      </tr></thead>
+      <tbody>${filas.map(f=>`<tr>
+        <td>${f.lbl}</td>
+        <td style="font-weight:700;">${f.a}${f.u}</td>
+        <td style="font-weight:700;">${f.b}${f.u}</td>
+        <td>${d(f.a,f.b)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+function ergoLabCSV() {
+  const infs = ergoLabGetInfs();
+  if (!infs.length) { showToast('⚠️ Sin estudios'); return; }
+  const cols = ['nombre','ci','fecha','mets','resultado',
+    'duke','dukeNivel','fcmax','protocolo','cf','concl',
+    'caso_interes','fecha_solicitud'];
+  const header = cols.join(';');
+  const rows = infs.map(i =>
+    cols.map(c =>
+      String(i[c]||'').replace(/;/g,' ').replace(/\n/g,' ')
+    ).join(';')
+  );
+  const csv = [header,...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv],
+    { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ergosmart_lab_' +
+    new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✅ CSV exportado');
+}
+
+window.ergoLabInit = ergoLabInit;
+window.ergoLabSubTab = ergoLabSubTab;
+window.ergoLabComparar = ergoLabComparar;
+window.ergoLabCompararInit = ergoLabCompararInit;
+window.ergoLabCSV = ergoLabCSV;
+
+// ══ FIN LABORATORIO ERGOSMART ══════════════════════════════
 </script>
 <div class="modal-overlay" id="modal-logo-gallery" style="display:none" onclick="if(event.target===this)closeLogoGallery()">
   <div class="modal-box" style="max-width:460px">
