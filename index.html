@@ -665,6 +665,10 @@ body.printing-clean #clean-controls{display:none!important}
 <!-- ═══ TAB PACIENTE ═══ -->
 <div class="tab-panel active" id="tab-paciente"><div class="main">
 
+<div class="no-print" style="margin-bottom:12px;display:flex">
+  <button type="button" class="btn btn-primary" onclick="nrvOpen()" title="Importar datos desde un informe de Norav">📥 Importar desde Norav</button>
+</div>
+
 <div class="sc" id="sp"><div class="sh" onclick="tg('sp')"><span class="st">👤 Datos del Paciente</span><span class="ci">▼</span></div><div class="sb">
   <div class="fg fg4" style="margin-bottom:10px">
     <div><label>Nombre completo</label><input type="text" id="pn" placeholder="Apellidos, Nombre" oninput="updComp()"></div>
@@ -4083,4 +4087,162 @@ window.ergoLabCSV = ergoLabCSV;
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeLogoGallery()">Cerrar</button></div>
   </div>
 </div>
+
+<!-- ═══ MODAL IMPORTAR DESDE NORAV ═══ -->
+<style>
+#modal-norav .nrv-sec{font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+#modal-norav .nrv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+#modal-norav .nrv-f label{display:block;font-size:10px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+#modal-norav .nrv-f .fi{width:100%}
+#modal-norav .nrv-full{grid-column:1/-1}
+#modal-norav textarea.fi{border:1px solid var(--border);border-radius:6px;min-height:90px;padding:8px;resize:vertical}
+</style>
+<div class="modal-overlay" id="modal-norav" style="display:none" onclick="if(event.target===this)nrvClose()">
+  <div class="modal-box" style="max-width:660px;max-height:88vh;overflow:auto">
+    <h2 style="color:var(--accent)">📥 Importar desde Norav</h2>
+    <p style="color:var(--text2);font-size:12px;line-height:1.55;margin-bottom:6px">Cargá los datos del informe de Norav en el mismo orden que el PDF. Podés revisar y editar la conclusión antes de confirmar. Los campos sin equivalente en ErgoSmart se ignoran automáticamente.</p>
+
+    <div class="nrv-sec">Datos del paciente</div>
+    <div class="nrv-grid">
+      <div class="nrv-f nrv-full"><label>Nombre completo</label><input class="fi" type="text" id="nrv-nombre" placeholder="Apellidos, Nombre"></div>
+      <div class="nrv-f"><label>CI / Nro. Historia</label><input class="fi" type="text" id="nrv-ci"></div>
+      <div class="nrv-f"><label>Fecha de nacimiento</label><input class="fi" type="date" id="nrv-nac"></div>
+      <div class="nrv-f"><label>Edad (años)</label><input class="fi" type="number" id="nrv-edad"></div>
+      <div class="nrv-f"><label>Sexo</label><select class="fi" id="nrv-sexo"><option value="">—</option><option value="Masculino">Masculino</option><option value="Femenino">Femenino</option></select></div>
+      <div class="nrv-f"><label>Peso (kg)</label><input class="fi" type="number" step="0.1" id="nrv-peso"></div>
+      <div class="nrv-f"><label>Talla (cm)</label><input class="fi" type="number" step="1" id="nrv-talla"></div>
+    </div>
+
+    <div class="nrv-sec">Datos del estudio</div>
+    <div class="nrv-grid">
+      <div class="nrv-f"><label>Fecha del test</label><input class="fi" type="date" id="nrv-fecha"></div>
+      <div class="nrv-f"><label>Protocolo (ej: Bruce)</label><input class="fi" type="text" id="nrv-protocolo"></div>
+      <div class="nrv-f"><label>Ergómetro (ej: Treadmill)</label><input class="fi" type="text" id="nrv-ergometro"></div>
+      <div class="nrv-f"><label>Médico supervisor</label><input class="fi" type="text" id="nrv-supervisor"></div>
+      <div class="nrv-f"><label>Médico referente</label><input class="fi" type="text" id="nrv-referente"></div>
+      <div class="nrv-f"><label>Motivo de la prueba</label><input class="fi" type="text" id="nrv-motivo"></div>
+      <div class="nrv-f nrv-full"><label>Motivo de finalización</label><input class="fi" type="text" id="nrv-finalizacion" placeholder="Fatiga, disnea, angina, cambios ST, completó protocolo..."></div>
+    </div>
+
+    <div class="nrv-sec">Resultados</div>
+    <div class="nrv-grid">
+      <div class="nrv-f"><label>FC reposo (lpm)</label><input class="fi" type="number" id="nrv-fcrep"></div>
+      <div class="nrv-f"><label>FC máxima alcanzada (lpm)</label><input class="fi" type="number" id="nrv-fcmax"></div>
+      <div class="nrv-f"><label>% FC máxima alcanzada</label><input class="fi" type="text" id="nrv-fcmaxpct"></div>
+      <div class="nrv-f"><label>PAS máxima (mmHg)</label><input class="fi" type="number" id="nrv-pasmax"></div>
+      <div class="nrv-f"><label>PAD máxima (mmHg)</label><input class="fi" type="number" id="nrv-padmax"></div>
+      <div class="nrv-f"><label>METS máximos</label><input class="fi" type="number" step="0.1" id="nrv-mets"></div>
+      <div class="nrv-f"><label>VO2 máx (ml/kg/min)</label><input class="fi" type="number" step="0.1" id="nrv-vo2"></div>
+      <div class="nrv-f"><label>Duración total ejercicio</label><input class="fi" type="text" id="nrv-duracion" placeholder="min o mm:ss"></div>
+      <div class="nrv-f"><label>Distancia (km)</label><input class="fi" type="number" step="0.01" id="nrv-distancia"></div>
+      <div class="nrv-f"><label>HRR (RFC 1er min)</label><input class="fi" type="number" id="nrv-hrr"></div>
+      <div class="nrv-f"><label>Índice ST/FC</label><input class="fi" type="text" id="nrv-stfc"></div>
+    </div>
+
+    <div class="nrv-sec">Interpretación Norav</div>
+    <div class="nrv-grid">
+      <div class="nrv-f nrv-full"><label>Conclusión automática Norav (editable)</label><textarea class="fi" id="nrv-concl" placeholder="Conclusión generada por Norav. El médico puede editarla antes de confirmar."></textarea></div>
+    </div>
+
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
+      <button type="button" class="btn btn-outline" onclick="nrvClose()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="nrvConfirm()">✓ Confirmar importación</button>
+    </div>
+  </div>
+</div>
+<script>
+/* ═══ Importación desde Norav — mapea al formulario de ErgoSmart sin tocar la lógica existente ═══ */
+(function(){
+  // Norav (id del modal) → ErgoSmart (id del campo). Los que no figuran no tienen equivalente y se ignoran.
+  var NRV_MAP = {
+    'nrv-nombre':'pn', 'nrv-ci':'pci', 'nrv-nac':'pnac', 'nrv-edad':'ped',
+    'nrv-sexo':'psex', 'nrv-peso':'pp', 'nrv-talla':'pt',
+    'nrv-fecha':'fe',
+    'nrv-fcrep':'fcrep', 'nrv-fcmax':'fcmax', 'nrv-mets':'metat',
+    'nrv-duracion':'durej', 'nrv-hrr':'rfc1',
+    'nrv-finalizacion':'motint',
+    'nrv-concl':'concltxt'
+  };
+  var NRV_LABELS = { pn:'Nombre completo', pci:'CI / Nro. Historia', pnac:'Fecha de nacimiento', ped:'Edad', psex:'Sexo', pp:'Peso', pt:'Talla', fe:'Fecha del test', fcrep:'FC reposo', fcmax:'FC máxima', metat:'METS máximos', durej:'Duración ejercicio', rfc1:'HRR / RFC 1er min', motint:'Motivo de finalización', concltxt:'Conclusión' };
+
+  function gv(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; }
+
+  function normSexo(v){ v=v.toLowerCase(); if(/^m|masc|hombre|male/.test(v))return 'M'; if(/^f|fem|mujer|female/.test(v))return 'F'; return ''; }
+  function parseDur(v){ // "8:30" -> 8.5 ; "8,5"/"8.5" -> 8.5
+    v=v.replace(',','.').trim();
+    var m=v.match(/^(\d+):(\d{1,2})$/); if(m){ return (parseInt(m[1],10)+parseInt(m[2],10)/60).toFixed(2).replace(/\.?0+$/,''); }
+    var n=v.match(/-?\d+(\.\d+)?/); return n?n[0]:'';
+  }
+  function mapMotint(v){ v=v.toLowerCase();
+    if(/complet|protocolo|objetivo|fcme|edad/.test(v))return 'prot';
+    if(/fatiga|agotam|cansanc/.test(v))return 'fatiga';
+    if(/disnea|falta de aire/.test(v))return 'disnea';
+    if(/angor|angina|dolor/.test(v))return 'angor';
+    if(/\bst\b|segmento|infra|supra|isquem/.test(v))return 'st';
+    if(/arritm|\btv\b|\bev\b|extras/.test(v))return 'arr';
+    if(/hipotens|ca[ií]da|presi[oó]n|\bta\b|\bpa\b/.test(v))return 'pa';
+    if(/pacient|solicit|volunt|reh[uú]s/.test(v))return 'pac';
+    return '';
+  }
+
+  function fireEvent(el){ var ev=(el.tagName==='SELECT')?'change':'input'; el.dispatchEvent(new Event(ev,{bubbles:true})); }
+
+  window.nrvOpen = function(){ document.getElementById('modal-norav').style.display='flex'; setTimeout(function(){var f=document.getElementById('nrv-nombre'); if(f)f.focus();},30); };
+  window.nrvClose = function(){ document.getElementById('modal-norav').style.display='none'; };
+
+  window.nrvConfirm = function(){
+    // 1) construir valores resueltos hacia campos existentes de ErgoSmart
+    var resolved=[];
+    Object.keys(NRV_MAP).forEach(function(src){
+      var dst=NRV_MAP[src]; var val=gv(src);
+      if(val==='') return;
+      if(dst==='psex'){ val=normSexo(val); if(!val) return; }
+      else if(dst==='motint'){ val=mapMotint(val); if(!val) return; }
+      else if(dst==='durej'){ val=parseDur(val); if(val==='') return; }
+      var el=document.getElementById(dst);
+      if(!el) return; // campo de ErgoSmart no existe → ignorar
+      resolved.push({dst:dst, el:el, val:val});
+    });
+
+    // 2) conflictos: campos que ya tienen dato
+    var conflicts=resolved.filter(function(r){ return String(r.el.value||'').trim()!==''; });
+    var overwrite=true;
+    if(conflicts.length){
+      var labels=conflicts.map(function(r){ return '• '+(NRV_LABELS[r.dst]||r.dst); }).join('\n');
+      overwrite=confirm('Estos campos ya tienen datos cargados:\n'+labels+'\n\nAceptar = reemplazar con los datos de Norav\nCancelar = conservar los actuales (solo se completan los campos vacíos)');
+    }
+
+    // 3) aplicar valores (sin disparar eventos aún, para evitar que la fecha de nacimiento recalcule la edad)
+    var applied=[];
+    resolved.forEach(function(r){
+      var has=String(r.el.value||'').trim()!=='';
+      if(has && !overwrite) return; // conservar el actual
+      r.el.value=r.val; applied.push(r);
+    });
+
+    // 4) recalcular vía la lógica existente. Se omite el evento de 'pnac' si también se cargó 'ped'
+    var pedApplied=applied.some(function(r){return r.dst==='ped';});
+    applied.forEach(function(r){ if(r.dst==='pnac' && pedApplied) return; fireEvent(r.el); });
+    if(!pedApplied){ var nac=document.getElementById('pnac'); if(nac && nac.value) fireEvent(nac); }
+
+    nrvClose();
+    nrvToast('Datos importados desde Norav. Revisá y completá los campos restantes.');
+  };
+
+  // Cerrar con ESC
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape'){ var m=document.getElementById('modal-norav'); if(m && m.style.display!=='none') nrvClose(); }
+  });
+
+  // Toast liviano y autónomo (no depende de nada de la app)
+  function nrvToast(msg){
+    var t=document.createElement('div');
+    t.textContent=msg;
+    t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--accent,#0ea5e9);color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;font-weight:600;box-shadow:0 8px 26px rgba(0,0,0,.4);z-index:2000;opacity:0;transition:opacity .25s';
+    document.body.appendChild(t);
+    requestAnimationFrame(function(){ t.style.opacity='1'; });
+    setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); }, 300); }, 3800);
+  }
+})();
+</script>
 </body></html>
