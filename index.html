@@ -1250,6 +1250,8 @@ body.printing-clean #clean-controls{display:none!important}
       onclick="ergoLabSubTab('calidad',this)">✅ Calidad</button>
     <button class="el-subtab"
       onclick="ergoLabSubTab('comparar',this)">🔀 Comparar</button>
+    <button class="el-subtab"
+      onclick="ergoLabSubTab('informe',this)">📄 Informe PDF</button>
   </div>
 
   <!-- PANEL GENERAL -->
@@ -1443,6 +1445,46 @@ body.printing-clean #clean-controls{display:none!important}
           🔀 Comparar
         </button>
         <div id="el-cmp-result" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL INFORME PDF -->
+  <div id="el-sub-informe" class="el-subpanel">
+    <div class="el-card">
+      <div class="el-hdr">📄 Informe de Auditoría — Export PDF</div>
+      <div class="el-body">
+        <div class="el-grid" style="margin-bottom:16px;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:.72rem;color:var(--text2);">Título del informe</label>
+            <input type="text" id="el-pdf-titulo" value="Informe de Auditoría — Laboratorio de Ergometría" style="padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:.82rem;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:.72rem;color:var(--text2);">Institución</label>
+            <input type="text" id="el-pdf-inst" placeholder="Hospital / Centro médico" style="padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:.82rem;">
+          </div>
+        </div>
+        <div class="el-grid" style="margin-bottom:16px;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:.72rem;color:var(--text2);">Período cubierto</label>
+            <input type="text" id="el-pdf-periodo" placeholder="Enero–Diciembre 2025" style="padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:.82rem;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:.72rem;color:var(--text2);">Responsable / Jefe de servicio</label>
+            <input type="text" id="el-pdf-responsable" placeholder="Dr./Dra. Nombre Apellido" style="padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:.82rem;">
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="font-size:.75rem;font-weight:700;color:var(--text2);">Secciones a incluir</label>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-actividad" checked> Actividad</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-indicadores" checked> Indicadores automáticos</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-poblacion" checked> Perfil de la población</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-calidad" checked> Calidad</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-docencia" checked> Docencia — casos de interés</label>
+          </div>
+        </div>
+        <button onclick="ergoLabGenerarPDF()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--accent);color:#0f1117;font-weight:700;cursor:pointer;font-size:.86rem;">📄 Generar PDF de Auditoría</button>
       </div>
     </div>
   </div>
@@ -3652,6 +3694,95 @@ function ergoLabGetInfs() {
     return true;
   });
 }
+
+function ergoLabGenerarPDF() {
+  const infs = ergoLabGetInfs();
+  if (!infs.length) { if(typeof showToast==='function')showToast('⚠ Sin estudios en el período'); return; }
+  if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) { if(typeof showToast==='function')showToast('⚠ La biblioteca PDF está cargando'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'a4' });
+  function S(x){ return String(x==null?'':x).replace(/[–—]/g,'-').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/→/g,'->').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/…/g,'...').replace(/[^\x20-\xFF\t\n\r]/g,''); }
+  const _t = doc.text.bind(doc);
+  doc.text = function(t,x,y,o){ if(typeof t==='string')t=S(t); else if(Array.isArray(t))t=t.map(v=>typeof v==='string'?S(v):v); return _t(t,x,y,o); };
+  const titulo = (document.getElementById('el-pdf-titulo')?.value||'').trim() || 'Informe de Auditoría';
+  const inst = (document.getElementById('el-pdf-inst')?.value||'').trim();
+  const periodo = (document.getElementById('el-pdf-periodo')?.value||'').trim();
+  const resp = (document.getElementById('el-pdf-responsable')?.value||'').trim();
+  const W=210, M=15; let y=20;
+  doc.setFillColor(30,30,46); doc.rect(0,0,W,40,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text(titulo,M,16);
+  doc.setFontSize(10); doc.setFont(undefined,'normal');
+  if(inst)doc.text(inst,M,24); if(periodo)doc.text('Período: '+periodo,M,31);
+  doc.setTextColor(0,0,0); y=50;
+  const n = infs.length;
+  const chk = id => document.getElementById(id)?.checked;
+  const addSection = t => { if(y>260){doc.addPage();y=20;} doc.setFillColor(240,240,250); doc.rect(M,y,W-M*2,8,'F'); doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(50,50,120); doc.text(t,M+3,y+5.5); doc.setTextColor(0,0,0); doc.setFont(undefined,'normal'); y+=12; };
+  const addFila = (lbl,val) => { if(y>270){doc.addPage();y=20;} doc.setFontSize(9); doc.text(String(lbl),M+3,y); doc.setFont(undefined,'bold'); doc.text(String(val),M+95,y); doc.setFont(undefined,'normal'); y+=6; };
+  const metsArr = infs.map(i=>parseFloat(i.mets)).filter(v=>!isNaN(v)&&v>0);
+  const dukeArr = infs.map(i=>parseFloat(i.duke)).filter(v=>!isNaN(v));
+  const pos=infs.filter(i=>i.resultadoVal==='pos').length, neg=infs.filter(i=>i.resultadoVal==='neg').length, ind=n-pos-neg;
+  const pctOf=x=>Math.round(x/n*100);
+  if(chk('el-pdf-actividad')){
+    addSection('Actividad del Laboratorio');
+    addFila('Total de estudios', n);
+    addFila('Ergometrías positivas', pos+' ('+pctOf(pos)+'%)');
+    addFila('Ergometrías negativas', neg+' ('+pctOf(neg)+'%)');
+    addFila('Indeterminadas', ind+' ('+pctOf(ind)+'%)');
+    addFila('METs promedio', metsArr.length?(metsArr.reduce((a,b)=>a+b,0)/metsArr.length).toFixed(1)+' (n='+metsArr.length+')':'-');
+    addFila('Duke Score promedio', dukeArr.length?(dukeArr.reduce((a,b)=>a+b,0)/dukeArr.length).toFixed(1)+' (n='+dukeArr.length+')':'-');
+    const tiempos = infs.filter(i=>i.fecha&&i.fecha_solicitud).map(i=>(new Date(i.fecha)-new Date(i.fecha_solicitud))/86400000).filter(d=>d>=0&&d<365);
+    addFila('Tiempo solicitud -> estudio', tiempos.length?(tiempos.reduce((a,b)=>a+b,0)/tiempos.length).toFixed(1)+' dias (n='+tiempos.length+')':'-');
+    y+=3;
+  }
+  if(chk('el-pdf-indicadores')){
+    addSection('Indicadores automáticos');
+    [['METs < 5 con resultado negativo', infs.filter(i=>parseFloat(i.mets)<5&&i.resultadoVal==='neg').length],
+     ['Duke Score alto riesgo (< -10)', infs.filter(i=>parseFloat(i.duke)<-10).length],
+     ['Positivos sin Duke Score', infs.filter(i=>i.resultadoVal==='pos'&&!i.duke).length],
+     ['Sin METs registrados', infs.filter(i=>!i.mets||isNaN(parseFloat(i.mets))).length],
+     ['Sin conclusión documentada', infs.filter(i=>!(i.concl||'').trim()).length]
+    ].forEach(x=>addFila(x[0], x[1]+' ('+pctOf(x[1])+'%)'));
+    y+=3;
+  }
+  if(chk('el-pdf-poblacion')){
+    addSection('Perfil de la población');
+    const edades=infs.map(i=>{const fn=(i.form&&i.form.fn)||i.fn||''; if(!fn||!i.fecha)return null; const e=(new Date(i.fecha)-new Date(fn))/(365.25*24*3600*1000); return e>0&&e<120?Math.round(e):null;}).filter(v=>v!=null);
+    addFila('Edad promedio', edades.length?Math.round(edades.reduce((a,b)=>a+b,0)/edades.length)+' años (n='+edades.length+')':'-');
+    const cfIV=infs.filter(i=>(i.cf||'').toLowerCase().includes('iv')).length;
+    addFila('% capacidad funcional IV', pctOf(cfIV)+'% (n='+cfIV+')');
+    addFila('METs < 5', metsArr.filter(v=>v<5).length);
+    addFila('METs 5-7', metsArr.filter(v=>v>=5&&v<=7).length);
+    addFila('METs 8-10', metsArr.filter(v=>v>7&&v<=10).length);
+    addFila('METs > 10', metsArr.filter(v=>v>10).length);
+    addFila('Duke alto riesgo (< -10)', dukeArr.filter(v=>v<-10).length);
+    addFila('Duke intermedio (-10 a 4)', dukeArr.filter(v=>v>=-10&&v<=4).length);
+    addFila('Duke bajo riesgo (> 4)', dukeArr.filter(v=>v>4).length);
+    y+=3;
+  }
+  if(chk('el-pdf-calidad')){
+    addSection('Calidad del Laboratorio');
+    [['METs registrados', i=>!!i.mets],['Resultado registrado', i=>!!i.resultadoVal],['Duke Score calculado', i=>!!i.duke],
+     ['Conclusión documentada', i=>!!(i.concl||'').trim()],['FC máxima registrada', i=>!!i.fcmax],['Protocolo registrado', i=>!!i.protocolo],
+     ['Capacidad funcional', i=>!!i.cf],['Fecha de solicitud', i=>!!i.fecha_solicitud]
+    ].forEach(x=>{const con=infs.filter(x[1]).length; addFila(x[0], pctOf(con)+'% ('+con+'/'+n+')');});
+    y+=3;
+  }
+  if(chk('el-pdf-docencia')){
+    addSection('Docencia — Casos de interés');
+    const docentes=infs.filter(i=>i.caso_interes==='1'||/caso.*inter[eé]s|ateneo|residente/i.test(i.concl||''));
+    addFila('Casos marcados', docentes.length+' ('+pctOf(docentes.length)+'%)');
+    docentes.slice(0,12).forEach(i=>addFila('  - '+(i.nombre||'—'), i.fecha||'—'));
+    y+=3;
+  }
+  if(y>250){doc.addPage();y=20;}
+  y=Math.max(y+10,240);
+  doc.setFontSize(9);
+  doc.text('Responsable: '+(resp||'___________________________'), M, y);
+  doc.text('Fecha de emisión: '+new Date().toLocaleDateString('es-UY'), M, y+6);
+  doc.save('auditoria_ergometria_'+new Date().toISOString().split('T')[0]+'.pdf');
+  if(typeof showToast==='function')showToast('✅ PDF de auditoría generado');
+}
+window.ergoLabGenerarPDF = ergoLabGenerarPDF;
 
 function ergoLabSubTab(id, el) {
   document.querySelectorAll('#tab-lab .el-subtab')
