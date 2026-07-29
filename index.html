@@ -666,7 +666,7 @@ body.printing-clean #clean-controls{display:none!important}
 <div class="tab-panel active" id="tab-paciente"><div class="main">
 
 <div class="no-print" style="margin-bottom:12px;display:flex">
-  <button type="button" class="btn btn-primary" onclick="nrvOpen()" title="Importar datos desde un informe de Norav">📥 Importar desde Norav</button>
+  <button type="button" class="btn btn-primary" onclick="nrvOpen()" title="Compatible con sistemas de ergometría que exportan PDF en formato estándar">📥 Importar desde sistema de ergometría digital</button>
 </div>
 
 <div class="sc" id="sp"><div class="sh" onclick="tg('sp')"><span class="st">👤 Datos del Paciente</span><span class="ci">▼</span></div><div class="sb">
@@ -4219,7 +4219,7 @@ window.ergoLabCSV = ergoLabCSV;
   </div>
 </div>
 
-<!-- ═══ MODAL IMPORTAR DESDE NORAV ═══ -->
+<!-- ═══ MODAL IMPORTAR DESDE SISTEMA DE ERGOMETRÍA ═══ -->
 <style>
 #modal-norav .nrv-sec{font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px}
 #modal-norav .nrv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
@@ -4230,8 +4230,8 @@ window.ergoLabCSV = ergoLabCSV;
 </style>
 <div class="modal-overlay" id="modal-norav" style="display:none" onclick="if(event.target===this)nrvClose()">
   <div class="modal-box" style="max-width:660px;max-height:88vh;overflow:auto">
-    <h2 style="color:var(--accent)">📥 Importar desde Norav</h2>
-    <p style="color:var(--text2);font-size:12px;line-height:1.55;margin-bottom:6px">Cargá los datos del informe de Norav en el mismo orden que el PDF. Podés revisar y editar la conclusión antes de confirmar. Los campos sin equivalente en ErgoSmart se ignoran automáticamente.</p>
+    <h2 style="color:var(--accent)">📥 Importar desde sistema de ergometría digital</h2>
+    <p style="color:var(--text2);font-size:12px;line-height:1.55;margin-bottom:6px">Cargá los datos del informe de ergometría en el mismo orden que el PDF. Podés revisar y editar la conclusión antes de confirmar. Los campos sin equivalente en ErgoSmart se ignoran automáticamente.</p>
 
     <div class="nrv-sec">Datos del paciente</div>
     <div class="nrv-grid">
@@ -4270,9 +4270,9 @@ window.ergoLabCSV = ergoLabCSV;
       <div class="nrv-f"><label>Índice ST/FC</label><input class="fi" type="text" id="nrv-stfc"></div>
     </div>
 
-    <div class="nrv-sec">Interpretación Norav</div>
+    <div class="nrv-sec">Interpretación del software de ergometría</div>
     <div class="nrv-grid">
-      <div class="nrv-f nrv-full"><label>Conclusión automática Norav (editable)</label><textarea class="fi" id="nrv-concl" placeholder="Conclusión generada por Norav. El médico puede editarla antes de confirmar."></textarea></div>
+      <div class="nrv-f nrv-full"><label>Conclusión automática del software de ergometría (editable)</label><textarea class="fi" id="nrv-concl" placeholder="Conclusión generada por el software de ergometría. El médico puede editarla antes de confirmar."></textarea></div>
     </div>
 
     <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
@@ -4282,9 +4282,9 @@ window.ergoLabCSV = ergoLabCSV;
   </div>
 </div>
 <script>
-/* ═══ Importación desde Norav — mapea al formulario de ErgoSmart sin tocar la lógica existente ═══ */
+/* ═══ Importación desde software de ergometría — mapea al formulario de ErgoSmart sin tocar la lógica existente ═══ */
 (function(){
-  // Norav (id del modal) → ErgoSmart (id del campo). Los que no figuran no tienen equivalente y se ignoran.
+  // Software de ergometría (id del modal) → ErgoSmart (id del campo). Los que no figuran no tienen equivalente y se ignoran.
   var NRV_MAP = {
     'nrv-nombre':'pn', 'nrv-ci':'pci', 'nrv-nac':'pnac', 'nrv-edad':'ped',
     'nrv-sexo':'psex', 'nrv-peso':'pp', 'nrv-talla':'pt',
@@ -4340,7 +4340,7 @@ window.ergoLabCSV = ergoLabCSV;
     var overwrite=true;
     if(conflicts.length){
       var labels=conflicts.map(function(r){ return '• '+(NRV_LABELS[r.dst]||r.dst); }).join('\n');
-      overwrite=confirm('Estos campos ya tienen datos cargados:\n'+labels+'\n\nAceptar = reemplazar con los datos de Norav\nCancelar = conservar los actuales (solo se completan los campos vacíos)');
+      overwrite=confirm('Estos campos ya tienen datos cargados:\n'+labels+'\n\nAceptar = reemplazar con los datos importados\nCancelar = conservar los actuales (solo se completan los campos vacíos)');
     }
 
     // 3) aplicar valores (sin disparar eventos aún, para evitar que la fecha de nacimiento recalcule la edad)
@@ -4357,7 +4357,7 @@ window.ergoLabCSV = ergoLabCSV;
     if(!pedApplied){ var nac=document.getElementById('pnac'); if(nac && nac.value) fireEvent(nac); }
 
     nrvClose();
-    nrvToast('Datos importados desde Norav. Revisá y completá los campos restantes.');
+    nrvToast('Datos importados desde el sistema de ergometría. Revisá y completá los campos restantes.');
   };
 
   // Cerrar con ESC
