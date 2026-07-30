@@ -664,10 +664,50 @@ body.printing-clean #clean-controls{display:none!important}
 <div class="tab-bar no-print">
   <button class="tab-btn" onclick="swTab('calc',this)">🧮 Calculadoras</button>
   <button class="tab-btn" onclick="swTab('ref',this)">📚 Referencias</button>
+  <button class="tab-btn" onclick="swTab('config',this)">⚙️ Config</button>
 </div>
 <button class="no-print" onclick="swTab('lab',this);if(window.ergoLabInit)ergoLabInit()" style="position:fixed;right:0;top:50%;border-radius:8px 0 0 8px;background:var(--accent2);color:#fff;padding:12px 10px;font-size:11px;font-weight:700;box-shadow:-3px 2px 10px rgba(0,0,0,0.35);border:none;cursor:pointer;z-index:200">🔬 Laboratorio</button>
 
 <!-- ═══ TAB PACIENTE ═══ -->
+<div class="tab-panel" id="tab-config"><div class="main">
+  <h2 style="font-size:16px;color:var(--accent);margin:0 0 14px">⚙️ Configuración</h2>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🏥 Institución y firma</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Estos datos se sincronizan con el encabezado y la firma del informe, y se guardan en este dispositivo.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+      <label style="display:block"><span style="font-size:11px;color:var(--text2)">Nombre del médico</span><input id="cfg-fn" type="text" oninput="ergoCfgField('fn',this.value)" placeholder="Dr./Dra. Nombre Apellido" style="width:100%;margin-top:3px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit"></label>
+      <label style="display:block"><span style="font-size:11px;color:var(--text2)">Especialidad</span><input id="cfg-fesp" type="text" oninput="ergoCfgField('fesp',this.value)" placeholder="Especialidad" style="width:100%;margin-top:3px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit"></label>
+      <label style="display:block"><span style="font-size:11px;color:var(--text2)">Matrícula / Registro</span><input id="cfg-fmat" type="text" oninput="ergoCfgField('fmat',this.value)" placeholder="Matrícula / Registro" style="width:100%;margin-top:3px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit"></label>
+      <label style="display:block"><span style="font-size:11px;color:var(--text2)">Institución / Centro</span><input id="cfg-finst" type="text" oninput="ergoCfgField('finst',this.value)" placeholder="Institución / Centro" style="width:100%;margin-top:3px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit"></label>
+      <label style="display:block"><span style="font-size:11px;color:var(--text2)">Ciudad, País</span><input id="cfg-fciu" type="text" oninput="ergoCfgField('fciu',this.value)" placeholder="Ciudad, País" style="width:100%;margin-top:3px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit"></label>
+      <label style="display:block"><span style="font-size:11px;color:var(--text2)">Servicio</span><input id="cfg-is" type="text" oninput="ergoCfgField('is',this.value)" placeholder="Servicio" style="width:100%;margin-top:3px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit"></label>
+    </div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔬 Laboratorio</div>
+    <div style="font-size:11px;color:var(--text2);margin:6px 0 0" style="margin:0 0 10px">Módulo de análisis y estadística de los estudios guardados.</div>
+    <button class="btn btn-primary" onclick="swTab('lab',null);if(window.ergoLabInit)ergoLabInit()">🔬 Abrir Laboratorio</button>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📄 PDF</div>
+    <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" id="ergo-qr-enabled" onchange="ergoQrToggle()" style="width:16px;height:16px;flex:0 0 auto"> Incluir QR en PDF</label>
+    <div style="font-size:11px;color:var(--text2);margin:6px 0 0">Agrega un QR pequeño (40×40 px) a <b>ceibomed.com</b> en la esquina inferior derecha de cada página del informe.</div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">💾 Exportar / Importar</div>
+    <div style="font-size:11px;color:var(--text2);margin:6px 0 0" style="margin:0 0 10px">Respaldo de los informes guardados en formato JSON.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" onclick="exportarErgoJSON()">📤 Exportar JSON</button>
+      <input type="file" id="ergo-import-file-cfg" accept=".json" style="display:none" onchange="importarErgoJSON(this.files[0]);this.value='';">
+      <button class="btn" onclick="document.getElementById('ergo-import-file-cfg').click()">📥 Importar JSON</button>
+    </div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">♻️ Restablecer</div>
+    <div style="font-size:11px;color:var(--text2);margin:6px 0 0" style="margin:0 0 10px">Limpia el formulario actual para comenzar un nuevo estudio. Los datos de institución y firma se conservan.</div>
+    <button class="btn btn-outline" onclick="limpiar()">🆕 Nuevo estudio</button>
+  </div>
+</div></div>
 <div class="tab-panel active" id="tab-paciente"><div class="main">
 
 <div class="no-print" style="margin-bottom:12px;display:flex">
@@ -1641,6 +1681,7 @@ window.onload=()=>{
   initLogin();
   document.getElementById('fe').valueAsDate=new Date();
   buildPTP();sErg('cinta');sEcgQ(4,document.querySelectorAll('.qb')[1]);loadFirma();rGuard();
+  if(window.ergoConfigInit)ergoConfigInit();
   buildCompletitud();updComp();updResumen();
   document.getElementById('psex').addEventListener('change',e=>{if(e.target.value)sPsex(e.target.value);});
   document.getElementById('ped').addEventListener('input',sEP);
@@ -2250,7 +2291,7 @@ function toggleTheme(){const h=document.documentElement,d=h.getAttribute('data-t
 (()=>{const t=localStorage.getItem('ergo_theme');if(t){document.documentElement.setAttribute('data-theme',t);document.getElementById('tbtn').textContent=t==='light'?'🌙':'☀️';}})();
 
 // TABS
-function swTab(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');if(btn){btn.classList.add('active');}else{document.querySelectorAll('.tab-btn').forEach(b=>{const oc=b.getAttribute('onclick')||'';if(oc.indexOf("'"+id+"'")!==-1)b.classList.add('active');});}if(id==='guard')rGuard();if(id==='analisis')renderAnalisisCharts();if(id==='img')ecgcRefreshPhases();}
+function swTab(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');if(btn){btn.classList.add('active');}else{document.querySelectorAll('.tab-btn').forEach(b=>{const oc=b.getAttribute('onclick')||'';if(oc.indexOf("'"+id+"'")!==-1)b.classList.add('active');});}if(id==='guard')rGuard();if(id==='analisis')renderAnalisisCharts();if(id==='img')ecgcRefreshPhases();if(id==='config'&&window.ergoCfgOpen)ergoCfgOpen();}
 function renderAnalisisCharts(){
   const tb=document.getElementById('tetb');
   const rows=tb?Array.from(tb.querySelectorAll('tr')):[];
@@ -2325,6 +2366,43 @@ function setLogo(input,imgId,phId,printId){const f=input.files[0];if(!f)return;c
 
 // FIRMA
 function loadFirma(){FIRMA_KEYS.forEach(k=>{const v=localStorage.getItem('ergo_'+k);if(v!==null)document.getElementById(k).value=v;document.getElementById(k).addEventListener('input',()=>{localStorage.setItem('ergo_'+k,document.getElementById(k).value);updPrintFirma();ergoHdrSync(k);});ergoHdrSync(k);});const _f=firmaRead();if(_f)firmaSyncToHeader(_f);}
+
+/* ═══ Config: QR nativo (canvas, sin librerías) — matriz precalculada de https://ceibomed.com ═══ */
+var ERGO_QR_MATRIX="1111111001011110001111111,1000001001110100001000001,1011101001001100001011101,1011101010101111001011101,1011101001000010101011101,1000001010110110001000001,1111111010101010101111111,0000000010110010100000000,0110001000111001101101000,1101010000110101101101011,0111001100001101001001101,0100100110010010110001000,1111111111000111101100001,0010110110001001101100011,1101101110000111010001101,0010010010011100110111000,1111001001011010111110010,0000000010111010100010001,1111111000001010101010001,1000001001000101100010000,1011101000110001111110001,1011101001110011110010110,1011101011010100010111011,1000001011110100100110000,1111111000001100110001001";
+var _ergoQrCache=null;
+function ergoQrDataURL(){
+  if(_ergoQrCache)return _ergoQrCache;
+  try{
+    var rows=ERGO_QR_MATRIX.split(','), n=rows.length, qz=2, scale=8, size=(n+qz*2)*scale;
+    var cv=document.createElement('canvas'); cv.width=size; cv.height=size;
+    var ctx=cv.getContext('2d'); if(!ctx)return '';
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,size,size); ctx.fillStyle='#000000';
+    for(var r=0;r<n;r++){ var row=rows[r]; for(var c=0;c<n;c++){ if(row.charAt(c)==='1') ctx.fillRect((c+qz)*scale,(r+qz)*scale,scale,scale); } }
+    _ergoQrCache=cv.toDataURL('image/png'); return _ergoQrCache;
+  }catch(e){ return ''; }
+}
+window.ergoQrDataURL=ergoQrDataURL;
+/* Config: sincronizar institución/firma con el header */
+function ergoCfgField(key,val){
+  var h=document.getElementById(key); if(h)h.value=val;
+  try{ localStorage.setItem('ergo_'+key,val); }catch(e){}
+  if(typeof ergoHdrSync==='function')ergoHdrSync(key);
+  if(typeof updPrintFirma==='function')updPrintFirma();
+}
+window.ergoCfgField=ergoCfgField;
+function ergoCfgOpen(){
+  ['fn','fesp','fmat','finst','fciu','is'].forEach(function(k){ var c=document.getElementById('cfg-'+k), h=document.getElementById(k); if(c&&h)c.value=h.value||''; });
+  var q=document.getElementById('ergo-qr-enabled'); if(q){ try{ q.checked=(localStorage.getItem('ergo_qr_enabled')!=='0'); }catch(e){ q.checked=true; } }
+}
+window.ergoCfgOpen=ergoCfgOpen;
+function ergoQrToggle(){ var q=document.getElementById('ergo-qr-enabled'); try{ localStorage.setItem('ergo_qr_enabled',(q&&q.checked)?'1':'0'); }catch(e){} if(typeof showToast==='function')showToast((q&&q.checked)?'✅ QR activado en el PDF':'QR desactivado en el PDF'); }
+window.ergoQrToggle=ergoQrToggle;
+function ergoConfigInit(){
+  try{ var _is=localStorage.getItem('ergo_is'); if(_is!==null){ var h=document.getElementById('is'); if(h)h.value=_is; if(typeof ergoHdrSync==='function')ergoHdrSync('is'); } }catch(e){}
+  var hi=document.getElementById('is'); if(hi&&!hi._cfgBound){ hi._cfgBound=true; hi.addEventListener('input',function(){ try{ localStorage.setItem('ergo_is',hi.value); }catch(e){} }); }
+  var q=document.getElementById('ergo-qr-enabled'); if(q){ try{ q.checked=(localStorage.getItem('ergo_qr_enabled')!=='0'); }catch(e){ q.checked=true; } }
+}
+window.ergoConfigInit=ergoConfigInit;
 
 // ══ FIRMA DEL PROFESIONAL (modal, estilo index.html · clave localStorage: ergo_firma) ══
 function firmaRead(){try{return JSON.parse(localStorage.getItem('ergo_firma')||'null');}catch(e){return null;}}
@@ -3141,6 +3219,19 @@ ${obs?`<div class="field"><label>Observaciones</label><span>${obs}</span></div>`
   styleEl.textContent = styleMatch ? styleMatch[1] : '';
 
   contentDiv.innerHTML = bodyMatch[1];
+  try{
+    var _qrOn=(localStorage.getItem('ergo_qr_enabled')!=='0');   // toggle Config (ergo_qr_enabled), ON por defecto
+    if(_qrOn){
+      var _u=(typeof ergoQrDataURL==='function')?ergoQrDataURL():'';
+      if(_u){
+        var _q=document.createElement('div');
+        _q.id='ceibo-qr-print';
+        _q.style.cssText='position:fixed;right:10px;bottom:8px;text-align:center;z-index:9999';
+        _q.innerHTML='<img src="'+_u+'" width="40" height="40" alt="QR ceibomed.com" style="display:block"><div style="font-size:6pt;color:#b0b0b0;margin-top:1px;font-family:Arial,sans-serif">ceibomed.com</div>';
+        contentDiv.appendChild(_q);
+      }
+    }
+  }catch(e){}
   overlay.style.display = 'block';
   document.body.style.overflow = 'hidden';
 }
