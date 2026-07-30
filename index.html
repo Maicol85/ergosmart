@@ -4472,4 +4472,66 @@ window.ergoLabCSV = ergoLabCSV;
   }
 })();
 </script>
+<script>
+/* ══ Accesibilidad (Impeccable P1/P2): clickables por teclado + ARIA/foco en modales ══ */
+(function(){
+  var NATIVE='A,BUTTON,INPUT,SELECT,TEXTAREA,LABEL,SUMMARY';
+  function isNative(el){ return el.tagName && NATIVE.indexOf(el.tagName)!==-1; }
+  function hasInteractiveChild(el){ return !!el.querySelector('a[href],button,input,select,textarea,[onclick],[tabindex]'); }
+  function enhance(root){
+    if(!root.querySelectorAll) return;
+    root.querySelectorAll('[onclick]').forEach(function(el){
+      if(isNative(el) || el.hasAttribute('data-a11y') || el.isContentEditable) return;
+      var oc=el.getAttribute('onclick')||'';
+      if(oc.indexOf('event.target===this')!==-1 || el.classList.contains('modal-overlay')) return;
+      if(hasInteractiveChild(el)){ el.setAttribute('data-a11y','skip'); return; }
+      el.setAttribute('data-a11y','1');
+      if(el.tabIndex<0) el.setAttribute('tabindex','0');
+      if(!/^H[1-6]$/.test(el.tagName) && !el.hasAttribute('role')) el.setAttribute('role','button');
+    });
+  }
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+    var el=document.activeElement;
+    if(!el || isNative(el) || !el.hasAttribute('onclick') || el.getAttribute('data-a11y')!=='1') return;
+    if((e.key===' '||e.key==='Spacebar') && el.getAttribute('role')!=='button') return;
+    e.preventDefault(); el.click();
+  });
+  // ── Modales (.modal-overlay) ──
+  var FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  var lastFocus=new WeakMap();
+  function hash(s){ s=String(s); var h=0; for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0; return Math.abs(h); }
+  function labelModal(m){
+    m.setAttribute('role','dialog'); m.removeAttribute('tabindex'); m.setAttribute('aria-modal','true');
+    if(!m.getAttribute('aria-labelledby') && !m.getAttribute('aria-label')){
+      var t=m.querySelector('h1,h2,h3,h4');
+      if(t){ if(!t.id) t.id='eg-mt-'+hash((m.id||'')+t.textContent); m.setAttribute('aria-labelledby',t.id); }
+      else m.setAttribute('aria-label',(m.id||'Dialogo').replace(/-/g,' '));
+    }
+  }
+  function isVisible(m){ if(!m.isConnected) return false; var s=getComputedStyle(m); return s.display!=='none' && s.visibility!=='hidden'; }
+  function openM(m){ lastFocus.set(m,document.activeElement); var f=m.querySelector(FOCUSABLE); if(f) setTimeout(function(){ try{f.focus();}catch(e){} },40); }
+  function closeM(m){ var p=lastFocus.get(m); if(p && document.contains(p)){ try{p.focus();}catch(e){} } }
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Tab' && e.key!=='Escape') return;
+    var open=[].slice.call(document.querySelectorAll('.modal-overlay')).filter(isVisible);
+    if(!open.length) return; var m=open[open.length-1];
+    if(e.key==='Escape'){ var btn=m.querySelector('[onclick*="close"],[onclick*="cerrar"],[onclick*="Close"],.modal-close,.close'); if(btn){ e.preventDefault(); btn.click(); } return; }
+    var f=[].slice.call(m.querySelectorAll(FOCUSABLE)).filter(function(x){return x.offsetParent!==null;});
+    if(!f.length) return; var first=f[0], last=f[f.length-1];
+    if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  });
+  function initModals(){
+    document.querySelectorAll('.modal-overlay').forEach(function(m){
+      labelModal(m); var was=isVisible(m);
+      new MutationObserver(function(){ var v=isVisible(m); if(v&&!was)openM(m); else if(!v&&was)closeM(m); was=v; })
+        .observe(m,{attributes:true,attributeFilter:['style','class']});
+    });
+  }
+  var bodyObs=new MutationObserver(function(muts){ muts.forEach(function(mu){ for(var i=0;i<mu.addedNodes.length;i++){ var n=mu.addedNodes[i]; if(n.nodeType===1) enhance(n); } }); });
+  function init(){ enhance(document); initModals(); bodyObs.observe(document.body,{childList:true,subtree:true}); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
 </body></html>
