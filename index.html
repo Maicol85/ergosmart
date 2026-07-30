@@ -44,8 +44,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .icon-btn{background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:15px;transition:all .15s}
 .icon-btn:hover{border-color:var(--accent2);color:var(--accent2)}
 /* FIRMA */
-.firma-strip{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.firma-logo{width:52px;height:52px;background:var(--bg3);border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;flex-shrink:0}
+.firma-strip{background:var(--card2);border-bottom:1px solid var(--border);padding:6px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.firma-logo{width:30px;height:30px;background:var(--bg3);border:1px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;flex-shrink:0}
 .firma-logo img{width:100%;height:100%;object-fit:contain}
 .firma-logo input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .lgal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px;padding:4px 0;max-height:260px;overflow-y:auto}
@@ -57,24 +57,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .lgal-del{position:absolute;top:-7px;right:-7px;width:17px;height:17px;border-radius:50%;border:none;background:#ef4444;color:#fff;font-size:10px;line-height:17px;cursor:pointer;padding:0;text-align:center}
 .lgal-upload{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:var(--text2);font-size:12px;margin-bottom:12px;transition:border-color .15s,color .15s}
 .lgal-upload:hover{border-color:var(--accent);color:var(--accent)}
-.firma-fields{display:flex;gap:8px;flex-wrap:wrap;flex:1}
-.fi{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:4px 2px;font-size:12px;outline:none;min-width:110px;transition:border-color .15s}
+.firma-fields{display:flex;gap:6px;flex-wrap:wrap;flex:1;align-items:center;font-size:11px}
+.fi{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:2px 2px;font-size:11px;outline:none;min-width:90px;transition:border-color .15s}
 .fi:focus{border-color:var(--accent)}
 .fi::placeholder{color:var(--text3)}
-.hdr-ew{display:inline-flex;align-items:center;gap:3px}
-.hdr-dt{cursor:pointer;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);padding:4px 2px;transition:color .15s,border-color .15s}
-.hdr-dt:hover{color:var(--accent);border-color:var(--accent)}
+.hdr-ew{display:inline-flex;align-items:center;gap:2px}
+.hdr-dt{cursor:pointer;font-size:11px;color:var(--text);padding:1px 2px;transition:color .15s}
+.hdr-dt:hover{color:var(--accent)}
 .hdr-dt.hdr-ph{color:var(--text3);font-style:italic}
-.hdr-pe{background:none;border:none;cursor:pointer;padding:0 1px;font-size:11px;opacity:.5;line-height:1;transition:opacity .15s,color .15s;color:var(--text2)}
+.hdr-pe{background:none;border:none;cursor:pointer;padding:0 1px;font-size:10px;opacity:.45;line-height:1;transition:opacity .15s,color .15s;color:var(--text2)}
+.hdr-sep{color:var(--text3);opacity:.5;font-size:11px}
+.hdr-lbl{font-size:10.5px;color:var(--text3)}
 .hdr-pe:hover{opacity:1;color:var(--accent)}
-/* COMPLETITUD */
-.completitud-bar{background:var(--card2);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.cb-label{font-size:11px;color:var(--text2);font-weight:600;white-space:nowrap}
-.cb-items{display:flex;gap:5px;flex-wrap:wrap;flex:1}
-.cb-item{display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--border);color:var(--text3);transition:all .2s;white-space:nowrap}
-.cb-item.done{border-color:var(--accent3);color:var(--positive);background:rgba(34,197,94,.08)}
-.cb-item .cbi{font-size:10px}
-.cb-progress{font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap}
 /* TABS */
 .tab-bar{background:var(--card2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;overflow-x:auto}
 .tab-btn{padding:11px 18px;border:none;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s}
@@ -297,7 +291,7 @@ table.ecgc-grid td.ecgc-cell .ecgc-empty{color:#c99;font-size:12px}
 
 /* ═══ PRINT STYLES ═══ */
 @media print{
-  .topbar,.tab-bar,.qty-bar,.no-print,.fab-bar,.completitud-bar,.firma-strip{display:none!important}
+  .topbar,.tab-bar,.qty-bar,.no-print,.fab-bar,.firma-strip{display:none!important}
   body{background:white!important;color:#1a1a1a!important;font-size:11pt}
   .tab-panel{display:block!important}
   /* Ocultar secciones no deseadas en print */
@@ -579,51 +573,24 @@ body.printing-clean #clean-controls{display:none!important}
 
 <!-- FIRMA -->
 <div class="firma-strip no-print">
-  <div class="firma-logo"><span id="flph" style="font-size:20px;color:var(--text3)">🖋️</span><img id="flimg" alt="Logo de la firma" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'flimg','flph',null)"></div>
+  <div class="firma-logo"><span id="flph" style="font-size:14px;color:var(--text3)">🖋️</span><img id="flimg" alt="Logo de la firma" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'flimg','flph',null)"></div>
   <button type="button" class="btn btn-ghost" onclick="firmaOpen()" title="Editar firma del profesional" style="padding:5px 10px;font-size:12px;flex-shrink:0">✏️ Firma</button>
-  <div class="firma-fields" style="flex-direction:column;align-items:flex-start;gap:4px;">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <span class="hdr-ew">
-        <span id="fn-disp" class="hdr-dt hdr-ph" data-ph="Dr./Dra. Nombre Apellido" onclick="ergoHdrEdit('fn')">Dr./Dra. Nombre Apellido</span>
-        <input class="fi" type="text" id="fn" placeholder="Dr./Dra. Nombre Apellido" style="display:none;min-width:190px">
-        <button type="button" class="hdr-pe" onclick="ergoHdrEdit('fn')" title="Editar nombre" aria-label="Editar nombre">✏️</button>
-      </span>
-      <span class="hdr-ew">
-        <span id="fesp-disp" class="hdr-dt hdr-ph" data-ph="Especialidad" onclick="ergoHdrEdit('fesp')">Especialidad</span>
-        <input class="fi" type="text" id="fesp" placeholder="Especialidad" style="display:none">
-        <button type="button" class="hdr-pe" onclick="ergoHdrEdit('fesp')" title="Editar especialidad" aria-label="Editar especialidad">✏️</button>
-      </span>
-      <span class="hdr-ew">
-        <span id="fmat-disp" class="hdr-dt hdr-ph" data-ph="Matrícula / Registro" onclick="ergoHdrEdit('fmat')">Matrícula / Registro</span>
-        <input class="fi" type="text" id="fmat" placeholder="Matrícula / Registro" style="display:none">
-        <button type="button" class="hdr-pe" onclick="ergoHdrEdit('fmat')" title="Editar matrícula" aria-label="Editar matrícula">✏️</button>
-      </span>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <span class="hdr-ew">
-        <span id="finst-disp" class="hdr-dt hdr-ph" data-ph="Institución / Centro" onclick="ergoHdrEdit('finst')">Institución / Centro</span>
-        <input class="fi" type="text" id="finst" placeholder="Institución / Centro" style="display:none">
-        <button type="button" class="hdr-pe" onclick="ergoHdrEdit('finst')" title="Editar institución" aria-label="Editar institución">✏️</button>
-      </span>
-      <span class="hdr-ew">
-        <span id="fciu-disp" class="hdr-dt hdr-ph" data-ph="Ciudad, País" onclick="ergoHdrEdit('fciu')">Ciudad, País</span>
-        <input class="fi" type="text" id="fciu" placeholder="Ciudad, País" style="display:none">
-        <button type="button" class="hdr-pe" onclick="ergoHdrEdit('fciu')" title="Editar localidad" aria-label="Editar localidad">✏️</button>
-      </span>
-      <span class="hdr-ew">
-        <span id="is-disp" class="hdr-dt hdr-ph" data-ph="Servicio" onclick="ergoHdrEdit('is')">Servicio</span>
-        <input class="fi" type="text" id="is" placeholder="Servicio" style="display:none">
-        <button type="button" class="hdr-pe" onclick="ergoHdrEdit('is')" title="Editar servicio" aria-label="Editar servicio">✏️</button>
-      </span>
-      <span class="hdr-ew" style="gap:5px">
-        <span style="font-size:11px;color:var(--text3)">Estudio:</span>
-        <input class="fi" type="date" id="fe" title="Fecha del estudio" oninput="updComp()" style="min-width:125px">
-      </span>
-      <span class="hdr-ew" style="gap:5px">
-        <span style="font-size:11px;color:var(--text3)">Solicitud:</span>
-        <input class="fi" type="date" id="fecha_solicitud_ergo" title="Fecha de solicitud" style="min-width:125px">
-      </span>
-    </div>
+  <div class="firma-fields">
+    <span class="hdr-ew"><span id="fn-disp" class="hdr-dt hdr-ph" data-ph="Dr./Dra. Nombre Apellido" onclick="ergoHdrEdit('fn')">Dr./Dra. Nombre Apellido</span><input class="fi" type="text" id="fn" placeholder="Dr./Dra. Nombre Apellido" style="display:none;min-width:150px"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fn')" title="Editar nombre" aria-label="Editar nombre">✏️</button></span>
+    <span class="hdr-sep">·</span>
+    <span class="hdr-ew"><span id="fesp-disp" class="hdr-dt hdr-ph" data-ph="Especialidad" onclick="ergoHdrEdit('fesp')">Especialidad</span><input class="fi" type="text" id="fesp" placeholder="Especialidad" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fesp')" title="Editar especialidad" aria-label="Editar especialidad">✏️</button></span>
+    <span class="hdr-sep">·</span>
+    <span class="hdr-ew"><span id="fmat-disp" class="hdr-dt hdr-ph" data-ph="Matrícula / Registro" onclick="ergoHdrEdit('fmat')">Matrícula / Registro</span><input class="fi" type="text" id="fmat" placeholder="Matrícula / Registro" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fmat')" title="Editar matrícula" aria-label="Editar matrícula">✏️</button></span>
+    <span class="hdr-sep">·</span>
+    <span class="hdr-ew"><span id="finst-disp" class="hdr-dt hdr-ph" data-ph="Institución / Centro" onclick="ergoHdrEdit('finst')">Institución / Centro</span><input class="fi" type="text" id="finst" placeholder="Institución / Centro" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('finst')" title="Editar institución" aria-label="Editar institución">✏️</button></span>
+    <span class="hdr-sep">·</span>
+    <span class="hdr-ew"><span id="fciu-disp" class="hdr-dt hdr-ph" data-ph="Ciudad, País" onclick="ergoHdrEdit('fciu')">Ciudad, País</span><input class="fi" type="text" id="fciu" placeholder="Ciudad, País" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fciu')" title="Editar localidad" aria-label="Editar localidad">✏️</button></span>
+    <span class="hdr-sep">·</span>
+    <span class="hdr-ew"><span id="is-disp" class="hdr-dt hdr-ph" data-ph="Servicio" onclick="ergoHdrEdit('is')">Servicio</span><input class="fi" type="text" id="is" placeholder="Servicio" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('is')" title="Editar servicio" aria-label="Editar servicio">✏️</button></span>
+    <span class="hdr-sep">·</span>
+    <span class="hdr-ew" style="gap:4px"><span class="hdr-lbl">Estudio:</span><input class="fi" type="date" id="fe" title="Fecha del estudio" oninput="updComp()" style="min-width:120px"></span>
+    <span class="hdr-sep">·</span>
+    <span class="hdr-ew" style="gap:4px"><span class="hdr-lbl">Solicitud:</span><input class="fi" type="date" id="fecha_solicitud_ergo" title="Fecha de solicitud" style="min-width:120px"></span>
   </div>
 </div>
 
@@ -643,13 +610,6 @@ body.printing-clean #clean-controls{display:none!important}
       <button type="button" class="btn btn-primary" onclick="firmaGuardar()">Guardar</button>
     </div>
   </div>
-</div>
-
-<!-- BARRA DE COMPLETITUD -->
-<div class="completitud-bar no-print" id="completitud-bar">
-  <span class="cb-label">Completitud:</span>
-  <div class="cb-items" id="cb-items"></div>
-  <span class="cb-progress" id="cb-progress">0/7</span>
 </div>
 
 <!-- TAB BAR -->
@@ -1655,16 +1615,6 @@ const PROTOCOLOS={
 
 const ECG_LABELS=['Basal/Reposo','Etapa I','Etapa II','Etapa III','Esfuerzo máx.','Rec. 1 min','Rec. 3 min','Rec. 6 min','Etapa IV','Etapa V'];
 const FIRMA_KEYS=['fn','fesp','fmat','finst','fciu'];
-const COMP_ITEMS=[
-  {id:'comp-fecha',label:'Fecha/Inst.',check:()=>!!document.getElementById('fe').value&&!!document.getElementById('finst').value},
-  {id:'comp-pac',label:'Paciente',check:()=>!!document.getElementById('pn').value&&!!document.getElementById('psex').value},
-  {id:'comp-ant',label:'Antecedentes',check:()=>!!document.getElementById('acv').value},
-  {id:'comp-ind',label:'Indicación',check:()=>!!document.querySelector('.indic-opt.selected')},
-  {id:'comp-mets',label:'METs',check:()=>!!document.getElementById('metat').value},
-  {id:'comp-fcmax',label:'FC máx',check:()=>!!document.getElementById('fcmax').value},
-  {id:'comp-res',label:'Resultado',check:()=>!!document.getElementById('res').value&&document.getElementById('res').value!==''},
-  {id:'comp-concl',label:'Conclusión',check:()=>document.getElementById('concltxt').value.length>30}
-];
 
 let ergActual='cinta',protoActual='bruce',etapaCount=0,ecgCount=0,ptpSexo='',ecgPasteTarget=null,_protoIdx=0,_recIdx=0;
 // Equivalente metabólico en lenguaje cotidiano según METs
@@ -1682,7 +1632,7 @@ window.onload=()=>{
   document.getElementById('fe').valueAsDate=new Date();
   buildPTP();sErg('cinta');sEcgQ(4,document.querySelectorAll('.qb')[1]);loadFirma();rGuard();
   if(window.ergoConfigInit)ergoConfigInit();
-  buildCompletitud();updComp();updResumen();
+  updResumen();
   document.getElementById('psex').addEventListener('change',e=>{if(e.target.value)sPsex(e.target.value);});
   document.getElementById('ped').addEventListener('input',sEP);
   document.getElementById('bbs').addEventListener('change',actualizarBBinfo);
@@ -2449,8 +2399,7 @@ function ergoHdrSync(id){const inp=document.getElementById(id),disp=document.get
 function updPrintFirma(){const map={fn:'ph-nombre',fesp:'ph-esp',fmat:'ph-mat',finst:'ph-inst',fciu:'ph-ciu'};Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.textContent=document.getElementById(k)?.value||'';});const map2={fn:'pf-nombre',fesp:'pf-esp',fmat:'pf-mat',finst:'pf-inst',fciu:'pf-ciu'};Object.entries(map2).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.textContent=document.getElementById(k)?.value||'';});const pf=document.getElementById('pf-fecha');if(pf)pf.textContent=new Date().toLocaleDateString('es-UY');}
 
 // COMPLETITUD
-function buildCompletitud(){const c=document.getElementById('cb-items');c.innerHTML=COMP_ITEMS.map(i=>`<div class="cb-item" id="${i.id}"><span class="cbi">○</span> ${i.label}</div>`).join('');}
-function updComp(){let done=0;COMP_ITEMS.forEach(item=>{const ok=item.check();const el=document.getElementById(item.id);if(el){el.classList.toggle('done',ok);el.querySelector('.cbi').textContent=ok?'✓':'○';}if(ok)done++;});const p=document.getElementById('cb-progress');if(p)p.textContent=done+'/'+COMP_ITEMS.length;setTimeout(()=>{},0);}
+function updComp(){/* barra de completitud eliminada — no-op para call sites */}
 
 // ANTRO
 function cAntro(){const p=parseFloat(document.getElementById('pp').value.replace(',','.')),t=parseFloat(document.getElementById('pt').value.replace(',','.'))/100;if(p>0&&t>0){document.getElementById('pimc').value=(p/(t*t)).toFixed(1);document.getElementById('psc').value=(0.007184*Math.pow(p,0.425)*Math.pow(t*100,0.725)).toFixed(2);}}
