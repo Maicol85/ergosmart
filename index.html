@@ -2520,7 +2520,7 @@ function verResumenPaciente(){
   const nombre=val('pn')||'—';
   let m=g('modal-resumen');
   if(!m){ m=document.createElement('div'); m.id='modal-resumen'; m.className='modal-overlay'; document.body.appendChild(m); }
-  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   const item=(lbl,v,big)=>`<div style="padding:11px 4px;border-bottom:1px solid rgba(255,255,255,.08)"><div style="font-size:12px;color:#7f9bc0;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">${lbl}</div><div style="font-size:${big||22}px;font-weight:800;color:#fff;line-height:1.2">${esc(v)||'—'}</div></div>`;
   m.innerHTML=`<div class="modal-box" style="background:#0f1623;border:1px solid var(--accent);max-width:560px">
     <div style="text-align:center;margin-bottom:14px"><div style="font-size:26px;font-weight:900;color:#fff">Resumen del estudio</div><div style="font-size:14px;color:#7f9bc0">Prueba Ergométrica Graduada</div></div>
@@ -2600,8 +2600,6 @@ let editandoId=null;               // id del informe en edición (null = nuevo)
 let cmpSel=[];                     // ids seleccionados para comparar (máx 2)
 const ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>ESC_MAP[c]);}
-// Lectura segura de la lista de informes: evita romper la app si el JSON esta corrupto.
-function lsInformes(){try{const v=lsInformes();return Array.isArray(v)?v:[];}catch(e){console.warn('ergo_informes corrupto, se ignora',e);return[];}}
 // Campos restaurables (id -> valor)
 const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','acv','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu'];
 
@@ -2719,7 +2717,7 @@ function guardar(){
     caso_interes:document.getElementById('caso_interes_ergo')?.checked?'1':'0',
     fecha_solicitud:document.getElementById('fecha_solicitud_ergo')?.value||'',
     form:capturarForm()};
-  let lista=lsInformes();
+  let lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]');
   if(editandoId){
     const idx=lista.findIndex(i=>i.id===editandoId);
     if(idx>=0){lista[idx]={...lista[idx],...base,id:editandoId};}
@@ -2735,7 +2733,7 @@ function guardar(){
 }
 
 function rGuard(){
-  const lista=lsInformes(),
+  const lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]'),
     busq=(document.getElementById('bnom')?.value||'').toLowerCase(),
     desde=document.getElementById('bdes')?.value,
     hasta=document.getElementById('bhas')?.value,
@@ -2773,7 +2771,7 @@ function rGuard(){
 }
 
 function verInforme(id){
-  const inf=lsInformes().find(i=>i.id===id);if(!inf)return;
+  const inf=JSON.parse(localStorage.getItem('ergo_informes')||'[]').find(i=>i.id===id);if(!inf)return;
   const fo=inf.form||{};
   const edad=fo.ped?esc(fo.ped)+' años':'—';
   const sexo=fo.psex==='M'?'M':fo.psex==='F'?'F':'—';
@@ -2796,7 +2794,7 @@ function verInforme(id){
 }
 
 function editarInforme(id){
-  const inf=lsInformes().find(i=>i.id===id);if(!inf||!inf.form)return;
+  const inf=JSON.parse(localStorage.getItem('ergo_informes')||'[]').find(i=>i.id===id);if(!inf||!inf.form)return;
   editandoId=id;
   restoreForm(inf.form);
   swTab('paciente',null);
@@ -2804,7 +2802,7 @@ function editarInforme(id){
 }
 
 function pdfInforme(id){
-  const inf=lsInformes().find(i=>i.id===id);if(!inf||!inf.form){showToast('⚠ Informe sin datos completos');return;}
+  const inf=JSON.parse(localStorage.getItem('ergo_informes')||'[]').find(i=>i.id===id);if(!inf||!inf.form){showToast('⚠ Informe sin datos completos');return;}
   const snap=capturarForm();      // guardar formulario actual
   const prevEdit=editandoId;editandoId=null;
   try{
@@ -2819,7 +2817,7 @@ function pdfInforme(id){
 
 function elimInforme(id){
   if(!confirm('¿Eliminar este informe?'))return;
-  let lista=lsInformes();
+  let lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]');
   localStorage.setItem('ergo_informes',JSON.stringify(lista.filter(i=>i.id!==id)));
   cmpSel=cmpSel.filter(x=>x!==id);
   rGuard();showToast('Informe eliminado');
@@ -2841,7 +2839,7 @@ function actualizarCmpBar(){
 }
 function compararSel(){
   if(cmpSel.length!==2)return;
-  const lista=lsInformes();
+  const lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]');
   const a=lista.find(i=>i.id===cmpSel[0]),b=lista.find(i=>i.id===cmpSel[1]);
   if(!a||!b){showToast('No se encontraron los estudios');return;}
   if((a.nombre||'')!==(b.nombre||'')||(a.ci||'')!==(b.ci||''))showToast('⚠ Los estudios son de pacientes distintos');
@@ -3041,8 +3039,8 @@ function imprimirLimpio(){
 
 <h2>Datos del Paciente</h2>
 <div class="grid3">
-  <div class="field"><label>Nombre completo</label><span><strong>${esc(nombre)}</strong></span></div>
-  <div class="field"><label>CI / Nro. Historia</label><span>${ci?esc(ci):'—'}</span></div>
+  <div class="field"><label>Nombre completo</label><span><strong>${nombre}</strong></span></div>
+  <div class="field"><label>CI / Nro. Historia</label><span>${ci||'—'}</span></div>
   <div class="field"><label>Fecha del estudio</label><span>${fecha||'—'}</span></div>
   <div class="field"><label>Edad</label><span>${edad||'—'} años</span></div>
   <div class="field"><label>Sexo</label><span>${sexo}</span></div>
@@ -3104,9 +3102,9 @@ ${arItems.length?`<h3>⚠ Criterios de alto riesgo presentes (${arItems.length})
   <div class="field"><label>Clase funcional</label><span>${cf}</span></div>
   <div class="field"><label>Categoría de riesgo</label><span>${riesgo}</span></div>
 </div>
-${concl?`<div class="concl">${esc(concl)}</div>`:'<div style="color:#94a3b8;font-style:italic;padding:8pt">Sin conclusión redactada.</div>'}
+${concl?`<div class="concl">${concl}</div>`:'<div style="color:#94a3b8;font-style:italic;padding:8pt">Sin conclusión redactada.</div>'}
 ${cond&&cond!=='—'?`<div class="field" style="margin-top:8pt"><label>Conducta sugerida</label><span><strong>${cond}</strong></span></div>`:''}
-${obs?`<div class="field"><label>Observaciones</label><span>${esc(obs)}</span></div>`:''}
+${obs?`<div class="field"><label>Observaciones</label><span>${obs}</span></div>`:''}
 
 <div class="firma-box">
   ${firmaLogoSrc?`<img src="${firmaLogoSrc}">`:''}
@@ -3542,7 +3540,7 @@ function ecgcExportPorFase(){
 
 // ── Export / Import JSON ──
 function exportarErgoJSON() {
-  const lista = lsInformes();
+  const lista = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
   if (!lista.length) { showToast('⚠️ No hay informes para exportar'); return; }
   const fecha = new Date().toISOString().split('T')[0];
   const blob = new Blob([JSON.stringify(lista, null, 2)],
@@ -3562,11 +3560,7 @@ function importarErgoJSON(file) {
     try {
       const nuevos = JSON.parse(e.target.result);
       if (!Array.isArray(nuevos)) { showToast('❌ Archivo inválido'); return; }
-      // Validacion de esquema: cada informe debe ser un objeto plano con un id valido
-      const informeValido = x => x && typeof x === 'object' && !Array.isArray(x) &&
-        (typeof x.id === 'string' || typeof x.id === 'number');
-      if (!nuevos.every(informeValido)) { showToast('❌ Archivo inválido: estructura de informes incorrecta'); return; }
-      const existentes = lsInformes();
+      const existentes = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
       const idsExist = new Set(existentes.map(i => i.id));
       const sinDup = nuevos.filter(i => !idsExist.has(i.id));
       const merged = [...existentes, ...sinDup];
@@ -3591,7 +3585,7 @@ function ergoAplicarFiltros() {
   const fDuke  = document.getElementById('ef-duke')?.value || '';
   const fInt   = document.getElementById('ef-interes')?.value || '';
 
-  const todos = lsInformes();
+  const todos = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
 
   const filtrados = todos.filter(inf => {
     // Resultado
@@ -3682,7 +3676,7 @@ window.ergoLimpiarFiltros = ergoLimpiarFiltros;
 // ══ LABORATORIO ERGOSMART ══════════════════════════════════
 
 function ergoLabGetInfs() {
-  const todos = lsInformes();
+  const todos = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
   const periodo = parseInt(document.getElementById('el-periodo')?.value||'365');
   const desde = document.getElementById('el-desde')?.value;
   const hasta = document.getElementById('el-hasta')?.value;
@@ -4112,7 +4106,7 @@ function ergoLabCompararInit() {
 
 function ergoLabComparar() {
   const todos =
-    lsInformes();
+    JSON.parse(localStorage.getItem('ergo_informes') || '[]');
   const aD = document.getElementById('el-cmp-a-desde').value;
   const aH = document.getElementById('el-cmp-a-hasta').value;
   const bD = document.getElementById('el-cmp-b-desde').value;
@@ -4184,15 +4178,11 @@ function ergoLabCSV() {
   const cols = ['nombre','ci','fecha','mets','resultado',
     'duke','dukeNivel','fcmax','protocolo','cf','concl',
     'caso_interes','fecha_solicitud'];
-  // Prevencion de CSV/formula injection: neutraliza celdas que empiezan con = + - @ TAB CR
-  const csvSafe = v => {
-    let s = String(v||'').replace(/;/g,' ').replace(/\n/g,' ').replace(/\r/g,' ');
-    if (/^[=+\-@\t]/.test(s)) s = "'" + s;
-    return s;
-  };
   const header = cols.join(';');
   const rows = infs.map(i =>
-    cols.map(c => csvSafe(i[c])).join(';')
+    cols.map(c =>
+      String(i[c]||'').replace(/;/g,' ').replace(/\n/g,' ')
+    ).join(';')
   );
   const csv = [header,...rows].join('\n');
   const blob = new Blob(['\uFEFF'+csv],
