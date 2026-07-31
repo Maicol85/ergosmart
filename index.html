@@ -925,7 +925,7 @@ body.printing-clean #clean-controls{display:none!important}
     <label style="margin:0;white-space:nowrap">🔑 API Key de Claude</label>
     <input type="password" id="ecgc-apikey" class="fi" placeholder="sk-ant-..." style="flex:1;min-width:200px" autocomplete="off">
     <button type="button" class="btn btn-primary btn-sm" onclick="ecgcSaveKey()">Guardar</button>
-    <span style="font-size:10px;color:var(--text3)">Se guarda localmente (clave <code>ecg_api_key</code>).</span>
+    <span style="font-size:10px;color:var(--text3)">La clave se mantiene solo durante esta sesión y se borra al cerrar la pestaña.</span>
   </div>
 
   <!-- CONTROLES -->
@@ -3247,12 +3247,12 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
    · Una zona de carga por fase (clic/arrastrar/Ctrl+V)
    · Análisis con Claude Vision → recorte de 12 derivaciones por fase
    · Grilla comparativa en pantalla + 2 PDF (comparativo / por fase)
-   · localStorage: API key `ecg_api_key` (compartida con ECG Comparativo)
+   · sessionStorage: API key `ecg_api_key` (solo durante la sesión; compartida con ECG Comparativo)
    ════════════════════════════════════════════════════════════════ */
 const ECGC_LEADS=['I','II','III','aVR','aVL','aVF','V1','V2','V3','V4','V5','V6'];
 const ECGC_ROWS=[['I','II','III'],['aVR','aVL','aVF'],['V1','V2','V3'],['V4','V5','V6']];
 // Estado en memoria: una entrada por fase {label, base64, blob, mime, crops}
-const ECGC={apiKey:localStorage.getItem('ecg_api_key')||'',phases:[],analyzed:false,pasteTarget:null,seq:0};
+const ECGC={apiKey:sessionStorage.getItem('ecg_api_key')||'',phases:[],analyzed:false,pasteTarget:null,seq:0};
 
 function ecgcInit(){
   const inp=document.getElementById('ecgc-apikey');
@@ -3279,7 +3279,7 @@ function ecgcSaveKey(){
   const inp=document.getElementById('ecgc-apikey');
   const v=(inp&&inp.value||'').trim();
   ECGC.apiKey=v;
-  try{localStorage.setItem('ecg_api_key',v);}catch(e){}
+  try{sessionStorage.setItem('ecg_api_key',v);}catch(e){}
   showToast(v?'🔑 API Key guardada':'API Key vaciada');
 }
 
