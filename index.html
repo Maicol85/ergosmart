@@ -865,7 +865,7 @@ body.printing-clean #clean-controls{display:none!important}
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Infradesnivel ST &gt;5 mm</span></div>
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Supradesnivel ST &gt;2 mm sin onda Q previa</span></div>
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Taquicardia ventricular sostenida</span></div>
-    <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Caída de TA &gt;20 mmHg con aumento de carga</span></div>
+    <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Caída de PAS &gt;10 mmHg pese al aumento de carga</span></div>
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Angina rápidamente progresiva (10/10)</span></div>
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>ST en &gt;5 derivaciones simultáneas</span></div>
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>ST persistente &gt;6 min en recuperación</span></div>
@@ -1667,6 +1667,15 @@ function initEstiloConcl(){
 }
 window.setEstiloConcl=setEstiloConcl;
 // Autocompleta el texto de #concltxt según el estilo seleccionado (mismo criterio que la conclusión del PDF)
+// Helper FIX 7: respuesta presora por ΔPAS vs basal (sin criterio absoluto <120)
+function ergoPresoraTxt(pasMax){
+  var pasBas=0; var _r=document.querySelector('#tetb tr td:nth-child(9) input'); if(_r) pasBas=parseInt(_r.value)||0;
+  if(pasMax>=210) return ' (respuesta hipertensiva)';
+  if(pasBas>0 && pasMax < pasBas-10) return ' (caída de PAS durante ejercicio — ver criterios de respuesta presora)';
+  if(pasBas>0 && pasMax<=pasBas) return ' (sin incremento de PAS con el ejercicio — evaluar en contexto clínico)';
+  return pasBas>0 ? ' (respuesta normal)' : '';
+}
+function ergoIrcCut(){ var e=document.getElementById('cibb'); return (e && e.value==='si') ? 0.62 : 0.80; }
 function generarConclusion(){
   const g=id=>document.getElementById(id);
   const sval=id=>g(id)?(g(id).value||'').trim():'';
@@ -1692,13 +1701,13 @@ function generarConclusion(){
   const mets=parseFloat(sval('metat').replace(',','.'));
   if(mets>0){ const eqv=mets>10?'capacidad funcional alta':mets>=5?'capacidad funcional intermedia':'capacidad funcional baja'; partes.push('Capacidad funcional: '+mets+' METs — '+eqv+' — '+metsFrase(mets)+'.'); partes.push('Umbral anaeróbico estimado: '+(mets*0.6).toFixed(1)+' METs (~60% del máximo alcanzado).'); }
   let pasMax=0; document.querySelectorAll('#tetb tr td:nth-child(9) input').forEach(i=>{const v=parseInt(i.value)||0; if(v>pasMax)pasMax=v;});
-  if(pasMax>0) partes.push('Respuesta presora: PAS máxima '+pasMax+' mmHg'+(pasMax>=210?' (respuesta hipertensiva)':pasMax<120?' (respuesta hipotensiva)':' (respuesta normal)')+'.');
+  if(pasMax>0) partes.push('Respuesta presora: PAS máxima '+pasMax+' mmHg'+ergoPresoraTxt(pasMax)+'.');
   const dpm=clean(sval('dpmax'));
   if(dpm) partes.push('Doble producto máximo: '+dpm+'.');
   const irc=clean(stxt('virc'));
-  if(irc){ const ircInt=parseFloat(irc)<0.80?'respuesta cronotrópica incompetente':'respuesta cronotrópica normal'; partes.push('Índice de respuesta cronotrópica: '+irc+' ('+ircInt+').'); }
+  if(irc){ const _cut=ergoIrcCut(); const ircInt=parseFloat(irc)<_cut?'respuesta cronotrópica incompetente':'respuesta cronotrópica normal'; partes.push('Índice de respuesta cronotrópica: '+irc+' ('+ircInt+', cutoff '+(_cut===0.62?'0.62 con betabloqueante':'0.80 sin betabloqueante')+').'); }
   const rfc=parseInt(sval('rfc1'))||0;
-  if(rfc) partes.push('Recuperación de FC al 1er minuto: '+rfc+' lpm'+(rfc>=12?' (normal, ≥12 lpm)':' (anormal, <12 lpm — predictor pronóstico)')+'.');
+  if(rfc) partes.push('Recuperación de FC al 1er minuto: '+rfc+' lpm'+(rfc>18?' (normal, >18 lpm)':rfc>=13?' (zona intermedia / reducida leve, 13–18 lpm)':' (anormal / alto riesgo, ≤12 lpm — predictor pronóstico)')+'. Cutoff para recuperación pasiva; la recuperación activa puede requerir valores diferentes.');
   const arN=document.querySelectorAll('.ari.chk').length;
   const arrTabla=Array.from(document.querySelectorAll('#tetb tr td:nth-child(14) input')).map(i=>(i.value||'').trim()).filter(t=>t && !/sin arritmias/i.test(t));
   if(arrTabla.length) partes.push('Arritmias registradas durante el esfuerzo: '+arrTabla.join('; ')+'.');
@@ -1725,9 +1734,9 @@ function generarConclusion(){
     if(resTxt && resTxt!=='—'){ frase2='El estudio resultó '+resTxt.toLowerCase(); if(duke) frase2+=', con un Score de Duke de '+duke+(dukeL?' ('+dukeL.trim()+')':''); frase2+='.'; }
     else if(duke){ frase2='El Score de Duke fue de '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.'; }
     const extra=[];
-    if(pasMax>0) extra.push('La respuesta presora mostró una PAS máxima de '+pasMax+' mmHg'+(pasMax>=210?' (respuesta hipertensiva)':pasMax<120?' (respuesta hipotensiva)':' (respuesta normal)'));
-    if(rfc) extra.push('la recuperación de FC al primer minuto fue de '+rfc+' lpm'+(rfc>=12?' (normal)':' (anormal)'));
-    if(irc){ const ircInt=parseFloat(irc)<0.80?'incompetente':'normal'; extra.push('con un índice de respuesta cronotrópica de '+irc+' ('+ircInt+')'); }
+    if(pasMax>0) extra.push('La respuesta presora mostró una PAS máxima de '+pasMax+' mmHg'+ergoPresoraTxt(pasMax));
+    if(rfc) extra.push('la recuperación de FC al primer minuto fue de '+rfc+' lpm'+(rfc>18?' (normal)':rfc>=13?' (zona intermedia)':' (anormal / alto riesgo)'));
+    if(irc){ const _cut=ergoIrcCut(); const ircInt=parseFloat(irc)<_cut?'incompetente':'normal'; extra.push('con un índice de respuesta cronotrópica de '+irc+' ('+ircInt+', cutoff '+(_cut===0.62?'0.62 con BB':'0.80 sin BB')+')'); }
     if(arrTabla.length) extra.push('se registraron arritmias durante el esfuerzo ('+arrTabla.join('; ')+')');
     else if(rowsCount) extra.push('sin arritmias significativas');
     let frase3=''; if(extra.length) frase3=extra.join('; ').replace(/^./,c=>c.toUpperCase())+'.';
@@ -2055,7 +2064,7 @@ function exportPDF(){
   // respuesta presora (PAS máx en tabla)
   let pasMax = 0;
   document.querySelectorAll('#tetb tr td:nth-child(9) input').forEach(i=>{ const v=parseInt(i.value)||0; if(v>pasMax)pasMax=v; });
-  if(pasMax>0) partes.push('Respuesta presora: PAS máxima '+pasMax+' mmHg'+(pasMax>=210?' (respuesta hipertensiva)':pasMax<120?' (respuesta hipotensiva)':' (respuesta normal)')+'.');
+  if(pasMax>0) partes.push('Respuesta presora: PAS máxima '+pasMax+' mmHg'+ergoPresoraTxt(pasMax)+'.');
   // doble producto
   const dpm = clean(sval('dpmax'));
   if(dpm) partes.push('Doble producto máximo: '+dpm+'.');
@@ -2064,7 +2073,7 @@ function exportPDF(){
   if(irc){ const ircInt = parseFloat(irc)<0.80 ? 'respuesta cronotrópica incompetente' : 'respuesta cronotrópica normal'; partes.push('Índice de respuesta cronotrópica: '+irc+' ('+ircInt+').'); }
   // recuperación de FC (RFC)
   const rfc = parseInt(sval('rfc1'))||0;
-  if(rfc) partes.push('Recuperación de FC al 1er minuto: '+rfc+' lpm'+(rfc>=12?' (normal, ≥12 lpm)':' (anormal, <12 lpm — predictor pronóstico)')+'.');
+  if(rfc) partes.push('Recuperación de FC al 1er minuto: '+rfc+' lpm'+(rfc>18?' (normal, >18 lpm)':rfc>=13?' (zona intermedia / reducida leve, 13–18 lpm)':' (anormal / alto riesgo, ≤12 lpm — predictor pronóstico)')+'. Cutoff para recuperación pasiva; la recuperación activa puede requerir valores diferentes.');
   // arritmias / criterios de alto riesgo
   const arN = document.querySelectorAll('.ari.chk').length;
   const arrTabla = Array.from(document.querySelectorAll('#tetb tr td:nth-child(14) input')).map(i=>(i.value||'').trim()).filter(t=>t && !/sin arritmias/i.test(t));
@@ -2108,8 +2117,8 @@ function exportPDF(){
         frase2='El Score de Duke fue de '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.';
       }
       const extra=[];
-      if(pasMax>0) extra.push('La respuesta presora mostró una PAS máxima de '+pasMax+' mmHg'+(pasMax>=210?' (respuesta hipertensiva)':pasMax<120?' (respuesta hipotensiva)':' (respuesta normal)'));
-      if(rfc) extra.push('la recuperación de FC al primer minuto fue de '+rfc+' lpm'+(rfc>=12?' (normal)':' (anormal)'));
+      if(pasMax>0) extra.push('La respuesta presora mostró una PAS máxima de '+pasMax+' mmHg'+ergoPresoraTxt(pasMax));
+      if(rfc) extra.push('la recuperación de FC al primer minuto fue de '+rfc+' lpm'+(rfc>18?' (normal)':rfc>=13?' (zona intermedia)':' (anormal / alto riesgo)'));
       if(irc){ const ircInt = parseFloat(irc)<0.80 ? 'incompetente' : 'normal'; extra.push('con un índice de respuesta cronotrópica de '+irc+' ('+ircInt+')'); }
       if(arrTabla.length) extra.push('se registraron arritmias durante el esfuerzo ('+arrTabla.join('; ')+')');
       else if(rows.length) extra.push('sin arritmias significativas');
@@ -2420,7 +2429,7 @@ function buildPTP(){const tbody=document.getElementById('ptpb'),ages=[['30','30�
 function sPsex(s){ptpSexo=s;document.getElementById('ptpm').className='cls-btn'+(s==='M'?' sI':'');document.getElementById('ptpf').className='cls-btn'+(s==='F'?' sI':'');cPTP();}
 function sPTP(){const s=document.getElementById('psex').value;if(s)sPsex(s);}
 function sEP(){const e=parseInt(document.getElementById('ped').value)||0;if(e>=30){document.getElementById('ptpe').value=e>=70?'70':e>=60?'60':e>=50?'50':e>=40?'40':'30';cPTP();}}
-function cPTP(){const dolor=document.getElementById('tdol').value,edadSel=document.getElementById('ptpe').value;document.querySelectorAll('.ptpc').forEach(c=>c.classList.remove('ptp-sel'));if(!dolor||!ptpSexo||!edadSel){document.getElementById('ptpr').classList.remove('show');return;}let colIdx=-1;PTP_COLS.forEach((col,i)=>{if(col===dolor&&PTP_SEX[i]===ptpSexo)colIdx=i;});if(colIdx<0)return;const val=PTP_DATA[edadSel]?.[colIdx];if(val===undefined)return;document.getElementById(`ptpc-${edadSel}-${colIdx}`)?.classList.add('ptp-sel');const el=document.getElementById('ptpr');el.classList.add('show');document.getElementById('ptpv').textContent=val+'%';let lbl,rec,bcls;if(val<5){lbl='PTP muy baja — EAC improbable';bcls='bok';rec='PTP <5%: No se requiere prueba rutinaria. ESC 2019.';}else if(val<=15){lbl='PTP baja — TAC coronario preferido';bcls='bok';rec='PTP 5–15%: Preferir TAC coronario.';}else if(val<=85){lbl='PTP intermedia — Ergometría o TAC indicados';bcls='bwarn';rec='PTP 15–85%: Ergometría o TAC. Equívoco → imagen de estrés.';}else{lbl='PTP alta — Coronariografía directa';bcls='bdanger';rec='PTP >85%: Coronariografía directa.';}document.getElementById('ptpl').textContent=lbl;document.getElementById('ptprec').textContent=rec;document.getElementById('ptpbdg').className='badge '+bcls;document.getElementById('ptpbdg').textContent=val+'%';document.getElementById('ptpv').style.color={bok:'var(--positive)',bwarn:'var(--warn)',bdanger:'var(--danger)'}[bcls];}
+function cPTP(){const dolor=document.getElementById('tdol').value,edadSel=document.getElementById('ptpe').value;document.querySelectorAll('.ptpc').forEach(c=>c.classList.remove('ptp-sel'));if(!dolor||!ptpSexo||!edadSel){document.getElementById('ptpr').classList.remove('show');return;}let colIdx=-1;PTP_COLS.forEach((col,i)=>{if(col===dolor&&PTP_SEX[i]===ptpSexo)colIdx=i;});if(colIdx<0)return;const val=PTP_DATA[edadSel]?.[colIdx];if(val===undefined)return;document.getElementById(`ptpc-${edadSel}-${colIdx}`)?.classList.add('ptp-sel');const el=document.getElementById('ptpr');el.classList.add('show');document.getElementById('ptpv').textContent=val+'%';let lbl,rec,bcls;if(val<5){lbl='PTP muy baja';bcls='bok';rec='Probabilidad clínica muy baja. Considerar causas no coronarias de síntomas. Pruebas adicionales según criterio clínico. (ESC Chronic Coronary Syndromes 2024)';}else if(val<=15){lbl='PTP baja';bcls='bok';rec='Probabilidad clínica baja. CCTA como primera opción diagnóstica (ESC CCS 2024). Ergometría útil para evaluación funcional/capacidad. (ESC Chronic Coronary Syndromes 2024)';}else if(val<=85){lbl='PTP intermedia';bcls='bwarn';rec='Probabilidad clínica moderada. CCTA o imagen de estrés funcional según disponibilidad y características del paciente (ESC CCS 2024). Ergometría ECG: valor limitado como test diagnóstico aislado cuando imagen disponible. (ESC Chronic Coronary Syndromes 2024)';}else{lbl='PTP alta';bcls='bdanger';rec='Probabilidad clínica alta. Evaluación cardiológica especializada. Considerar imagen funcional de estrés o estrategia invasiva según síntomas, riesgo y contexto clínico (ESC CCS 2024). Coronariografía no automática. (ESC Chronic Coronary Syndromes 2024)';}document.getElementById('ptpl').textContent=lbl;document.getElementById('ptprec').textContent=rec;document.getElementById('ptpbdg').className='badge '+bcls;document.getElementById('ptpbdg').textContent=val+'%';document.getElementById('ptpv').style.color={bok:'var(--positive)',bwarn:'var(--warn)',bdanger:'var(--danger)'}[bcls];}
 
 // ERGÓMETRO — COLUMNAS SEPARADAS
 function sErg(tipo){ergActual=tipo;document.getElementById('ec').classList.toggle('active',tipo==='cinta');document.getElementById('eb2').classList.toggle('active',tipo==='bici');// Columnas cinta
@@ -2572,9 +2581,9 @@ function updFCAlc(){let max=0;document.querySelectorAll('#tetb tr td:nth-child(8
 function colorST(sel){sel.style.color=sel.value==='normal'?'var(--positive)':sel.value.includes('supra')?'var(--warn)':'var(--danger)';}
 
 // DUKE
-function cDuke(){const dur=parseFloat(document.getElementById('durej').value.replace(',','.'))||0,st=parseFloat(document.getElementById('mst').value.replace(',','.'))||0,ang=parseInt(document.getElementById('angtp').value)||0;if(!dur){document.getElementById('dval').textContent='—';return;}const duke=dur-(5*st)-(4*ang);document.getElementById('dval').textContent=duke.toFixed(1);const box=document.getElementById('dbox');if(duke>=5){box.className='duke-box d-bajo';document.getElementById('dlbl').textContent='✓ Riesgo BAJO';document.getElementById('dmort').textContent='Mortalidad anual ~0.25% — Tratamiento médico';}else if(duke>=-10){box.className='duke-box d-int';document.getElementById('dlbl').textContent='⚠ Riesgo INTERMEDIO';document.getElementById('dmort').textContent='Mortalidad anual ~1.25% — Considerar imagen de estrés';}else{box.className='duke-box d-alto';document.getElementById('dlbl').textContent='⛔ Riesgo ALTO';document.getElementById('dmort').textContent='Mortalidad anual ~5% — Cinecoronariografía';}updResumen();}
-function eRFC(){const rfc=parseInt(document.getElementById('rfc1').value)||0,el=document.getElementById('rfcbdg');if(!rfc){el.innerHTML='';return;}if(rfc<=12)el.innerHTML='<span class="badge bdanger">⚠ RFC ≤12 lpm — Disfunción autonómica — Predictor mortalidad (HR 2.0, Cole NEJM 2001)</span>';else if(rfc<=18)el.innerHTML='<span class="badge bwarn">RFC '+rfc+' lpm — Zona intermedia</span>';else el.innerHTML='<span class="badge bok">✓ RFC >18 lpm — Normal</span>';updResumen();}
-function tAR(item){item.classList.toggle('chk');item.querySelector('.adot').textContent=item.classList.contains('chk')?'✓':'';const n=document.querySelectorAll('.ari.chk').length,el=document.getElementById('arres');if(n>0){el.classList.add('show');el.innerHTML=`<strong style="color:var(--danger)">⚠ ${n} criterio${n>1?'s':''} de alto riesgo presente${n>1?'s':''}</strong>${n>=2?' — <strong>Pronóstico adverso. Considerar cinecoronariografía directa.</strong>':''}`;}else el.classList.remove('show');}
+function cDuke(){const dur=parseFloat(document.getElementById('durej').value.replace(',','.'))||0,st=parseFloat(document.getElementById('mst').value.replace(',','.'))||0,ang=parseInt(document.getElementById('angtp').value)||0;if(!dur){document.getElementById('dval').textContent='—';return;}const duke=dur-(5*st)-(4*ang);document.getElementById('dval').textContent=duke.toFixed(1);const box=document.getElementById('dbox');if(duke>=5){box.className='duke-box d-bajo';document.getElementById('dlbl').textContent='✓ Riesgo BAJO';document.getElementById('dmort').textContent='Mortalidad anual ~0.25% — Tratamiento médico';}else if(duke>=-10){box.className='duke-box d-int';document.getElementById('dlbl').textContent='⚠ Riesgo INTERMEDIO';document.getElementById('dmort').textContent='Mortalidad anual ~1.25% — Considerar imagen de estrés';}else{box.className='duke-box d-alto';document.getElementById('dlbl').textContent='⛔ Riesgo ALTO';document.getElementById('dmort').textContent='Mortalidad anual ~5%. Requiere evaluación cardiológica urgente. Considerar imagen anatómica/funcional o angiografía invasiva según síntomas, carga alcanzada y contexto clínico (ESC CCS 2024).';}updResumen();}
+function eRFC(){const rfc=parseInt(document.getElementById('rfc1').value)||0,el=document.getElementById('rfcbdg');if(!rfc){el.innerHTML='';return;}if(rfc<=12)el.innerHTML='<span class="badge bdanger">⚠ RFC ≤12 lpm — Disfunción autonómica — Predictor mortalidad (HR 2.0, Cole NEJM 2001)</span>';else if(rfc<=18)el.innerHTML='<span class="badge bwarn">RFC '+rfc+' lpm — Zona intermedia</span>';else el.innerHTML='<span class="badge bok">✓ RFC >18 lpm — Normal</span>';el.innerHTML+='<div style="font-size:10px;color:var(--text3);margin-top:3px">Cutoff para recuperación pasiva; la recuperación activa puede requerir valores diferentes.</div>';updResumen();}
+function tAR(item){item.classList.toggle('chk');item.querySelector('.adot').textContent=item.classList.contains('chk')?'✓':'';const n=document.querySelectorAll('.ari.chk').length,el=document.getElementById('arres');if(n>0){el.classList.add('show');el.innerHTML=`<strong style="color:var(--danger)">⚠ ${n} marcador${n>1?'es':''} de alto riesgo presente${n>1?'s':''}</strong><div style="font-size:12px;margin-top:4px;color:var(--text2)">Marcadores presentes: ${Array.from(document.querySelectorAll('.ari.chk span')).map(x=>x.textContent).join('; ')}. Evaluación cardiológica integral recomendada. La decisión de angiografía depende del tipo de hallazgo, síntomas y riesgo clínico global.</div>`;}else el.classList.remove('show');}
 
 // RESUMEN AUTOMÁTICO
 function updResumen(){
@@ -2728,7 +2737,7 @@ function restoreForm(form){
   document.querySelectorAll('#tetb tr').forEach(tr=>{try{calcDP(tr);}catch(e){}});
   updComp();updResumen();
 }
-function reArres(){const n=document.querySelectorAll('.ari.chk').length,el=document.getElementById('arres');if(!el)return;if(n>0){el.classList.add('show');el.innerHTML=`<strong style="color:var(--danger)">⚠ ${n} criterio${n>1?'s':''} de alto riesgo presente${n>1?'s':''}</strong>${n>=2?' — <strong>Pronóstico adverso. Considerar cinecoronariografía directa.</strong>':''}`;}else el.classList.remove('show');}
+function reArres(){const n=document.querySelectorAll('.ari.chk').length,el=document.getElementById('arres');if(!el)return;if(n>0){el.classList.add('show');el.innerHTML=`<strong style="color:var(--danger)">⚠ ${n} marcador${n>1?'es':''} de alto riesgo presente${n>1?'s':''}</strong><div style="font-size:12px;margin-top:4px;color:var(--text2)">Marcadores presentes: ${Array.from(document.querySelectorAll('.ari.chk span')).map(x=>x.textContent).join('; ')}. Evaluación cardiológica integral recomendada. La decisión de angiografía depende del tipo de hallazgo, síntomas y riesgo clínico global.</div>`;}else el.classList.remove('show');}
 
 function guardar(){
   const nombre=document.getElementById('pn').value,ci=document.getElementById('pci').value;
@@ -2749,7 +2758,7 @@ function guardar(){
     caso_interes:document.getElementById('caso_interes_ergo')?.checked?'1':'0',
     fecha_solicitud:document.getElementById('fecha_solicitud_ergo')?.value||'',
     form:capturarForm()};
-  let lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]');
+  let lista=safeLoadReports();
   if(editandoId){
     const idx=lista.findIndex(i=>i.id===editandoId);
     if(idx>=0){lista[idx]={...lista[idx],...base,id:editandoId};}
@@ -2764,8 +2773,19 @@ function guardar(){
   rGuard();
 }
 
+function safeLoadReports(){
+  try { const data = safeLoadReports(); return Array.isArray(data) ? data : []; }
+  catch(e){ console.warn('ergo_informes corrupto:', e); return []; }
+}
+// FIX 8B: delegación de acciones del listado (sin handlers inline con datos externos)
+document.addEventListener('click', function(e){
+  var b = e.target && e.target.closest ? e.target.closest('#svlist [data-act][data-id]') : null; if(!b) return;
+  var id = parseInt(b.getAttribute('data-id'), 10); if(!Number.isInteger(id) || id <= 0) return;
+  var fn = window[{ver:'verInforme',editar:'editarInforme',pdf:'pdfInforme',cmp:'toggleCmp',elim:'elimInforme'}[b.getAttribute('data-act')]];
+  if(typeof fn === 'function') fn(id);
+});
 function rGuard(){
-  const lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]'),
+  const lista=safeLoadReports(),
     busq=(document.getElementById('bnom')?.value||'').toLowerCase(),
     desde=document.getElementById('bdes')?.value,
     hasta=document.getElementById('bhas')?.value,
@@ -2791,11 +2811,11 @@ function rGuard(){
 <td>${esc(inf.duke)}</td>
 <td>${esc(inf.resultado)}</td>
 <td><div class="sv-acts">
-<button class="btn btn-outline btn-sm" onclick="verInforme(${inf.id})" title="Ver">👁</button>
-<button class="btn btn-outline btn-sm" onclick="editarInforme(${inf.id})" title="Editar">✎</button>
-<button class="btn btn-outline btn-sm" onclick="pdfInforme(${inf.id})" title="PDF">📄</button>
-<button class="btn btn-sm ${cmpSel.includes(inf.id)?'btn-primary':'btn-outline'}" onclick="toggleCmp(${inf.id})" title="Comparar">⇄</button>
-<button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" onclick="elimInforme(${inf.id})" title="Eliminar">✕</button>
+<button class="btn btn-outline btn-sm" data-act="ver" data-id="${inf.id}" title="Ver">👁</button>
+<button class="btn btn-outline btn-sm" data-act="editar" data-id="${inf.id}" title="Editar">✎</button>
+<button class="btn btn-outline btn-sm" data-act="pdf" data-id="${inf.id}" title="PDF">📄</button>
+<button class="btn btn-sm ${cmpSel.includes(inf.id)?'btn-primary':'btn-outline'}" data-act="cmp" data-id="${inf.id}" title="Comparar">⇄</button>
+<button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" data-act="elim" data-id="${inf.id}" title="Eliminar">✕</button>
 </div></td></tr>`;
   }).join('');
   container.innerHTML=`<table class="sv-tbl"><thead><tr><th>Paciente</th><th>CI</th><th>Fecha</th><th>Protocolo</th><th>METs</th><th>Duke</th><th>Resultado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -2803,7 +2823,7 @@ function rGuard(){
 }
 
 function verInforme(id){
-  const inf=JSON.parse(localStorage.getItem('ergo_informes')||'[]').find(i=>i.id===id);if(!inf)return;
+  const inf=safeLoadReports().find(i=>i.id===id);if(!inf)return;
   const fo=inf.form||{};
   const edad=fo.ped?esc(fo.ped)+' años':'—';
   const sexo=fo.psex==='M'?'M':fo.psex==='F'?'F':'—';
@@ -2826,7 +2846,7 @@ function verInforme(id){
 }
 
 function editarInforme(id){
-  const inf=JSON.parse(localStorage.getItem('ergo_informes')||'[]').find(i=>i.id===id);if(!inf||!inf.form)return;
+  const inf=safeLoadReports().find(i=>i.id===id);if(!inf||!inf.form)return;
   editandoId=id;
   restoreForm(inf.form);
   swTab('paciente',null);
@@ -2834,7 +2854,7 @@ function editarInforme(id){
 }
 
 function pdfInforme(id){
-  const inf=JSON.parse(localStorage.getItem('ergo_informes')||'[]').find(i=>i.id===id);if(!inf||!inf.form){showToast('⚠ Informe sin datos completos');return;}
+  const inf=safeLoadReports().find(i=>i.id===id);if(!inf||!inf.form){showToast('⚠ Informe sin datos completos');return;}
   const snap=capturarForm();      // guardar formulario actual
   const prevEdit=editandoId;editandoId=null;
   try{
@@ -2849,7 +2869,7 @@ function pdfInforme(id){
 
 function elimInforme(id){
   if(!confirm('¿Eliminar este informe?'))return;
-  let lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]');
+  let lista=safeLoadReports();
   localStorage.setItem('ergo_informes',JSON.stringify(lista.filter(i=>i.id!==id)));
   cmpSel=cmpSel.filter(x=>x!==id);
   rGuard();showToast('Informe eliminado');
@@ -2871,7 +2891,7 @@ function actualizarCmpBar(){
 }
 function compararSel(){
   if(cmpSel.length!==2)return;
-  const lista=JSON.parse(localStorage.getItem('ergo_informes')||'[]');
+  const lista=safeLoadReports();
   const a=lista.find(i=>i.id===cmpSel[0]),b=lista.find(i=>i.id===cmpSel[1]);
   if(!a||!b){showToast('No se encontraron los estudios');return;}
   if((a.nombre||'')!==(b.nombre||'')||(a.ci||'')!==(b.ci||''))showToast('⚠ Los estudios son de pacientes distintos');
@@ -2900,7 +2920,7 @@ window.editarInforme=editarInforme;window.pdfInforme=pdfInforme;window.toggleCmp
 // CALCULADORAS
 function cConv(origen){const w=parseFloat(document.getElementById('cw').value.replace(',','.'))||0,kgm=parseFloat(document.getElementById('ckgm').value.replace(',','.'))||0,peso=parseFloat(document.getElementById('cpes').value.replace(',','.'))||0;let kgmC=origen==='w'?w*6:kgm;if(origen==='w'&&w>0)document.getElementById('ckgm').value=kgmC;if(origen==='k'&&kgm>0)document.getElementById('cw').value=(kgm/6).toFixed(1);const mets=peso>0&&kgmC>0?((kgmC*2+300)/(peso*3.5)).toFixed(2):null;document.getElementById('crconv').innerHTML=kgmC>0?`W: <strong>${(kgmC/6).toFixed(0)}</strong> &nbsp;|&nbsp; kgm/min: <strong>${kgmC}</strong> &nbsp;|&nbsp; METs: <strong>${mets||'(ingresá peso)'}</strong>`:'Ingresá W o kgm/min y el peso';}
 function cDukeC(){const d=parseFloat(document.getElementById('cdmin').value.replace(',','.'))||0,st=parseFloat(document.getElementById('cdst').value.replace(',','.'))||0,a=parseInt(document.getElementById('cdang').value)||0;if(!d){document.getElementById('crduke').textContent='Ingresá la duración';return;}const duke=d-(5*st)-(4*a);document.getElementById('crduke').innerHTML=`Score: <strong>${duke.toFixed(1)}</strong> → ${duke>=5?'✓ BAJO (~0.25%/año)':duke>=-10?'⚠ INTERMEDIO (~1.25%/año)':'⛔ ALTO (~5%/año)'}`;}
-function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,rep=parseInt(document.getElementById('cirep').value)||0,max=parseInt(document.getElementById('cimax').value)||0,bb=document.getElementById('cibb').value;if(!edad||!max){document.getElementById('crirc').textContent='Ingresá edad y FC máxima';return;}const fcme=220-edad,irc=rep>0&&fcme>rep?((max-rep)/(fcme-rep)).toFixed(2):'—';const umbral=bb==='si'?0.62:0.80,ok=parseFloat(irc)>=umbral;document.getElementById('crirc').innerHTML=`FCME: <strong>${fcme}</strong> | IRC: <strong>${irc}</strong> → <strong style="color:${ok?'var(--positive)':'var(--danger)'}">${ok?'✓ Normal':'⚠ Incompetencia cronotrópica'}</strong><br><small style="color:var(--text3)">Umbral: ${umbral*100}% ${bb==='si'?'(con BB, IRC ≥62%)':'(sin BB, IRC ≥80%)'}</small>`;}
+function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,rep=parseInt(document.getElementById('cirep').value)||0,max=parseInt(document.getElementById('cimax').value)||0,bb=document.getElementById('cibb').value;if(!edad||!max){document.getElementById('crirc').textContent='Ingresá edad y FC máxima';return;}const fcme=220-edad,irc=rep>0&&fcme>rep?((max-rep)/(fcme-rep)).toFixed(2):'—';const umbral=bb==='si'?0.62:0.80,ok=parseFloat(irc)>=umbral;document.getElementById('crirc').innerHTML=`FCME: <strong>${fcme}</strong> | IRC: <strong>${irc}</strong> → <strong style="color:${ok?'var(--positive)':'var(--danger)'}">${ok?'✓ Normal':'⚠ Incompetencia cronotrópica'}</strong><br><small style="color:var(--text3)">Umbral: ${umbral*100}% ${bb==='si'?'(con BB, IRC ≥62%)':'(sin BB, IRC ≥80%)'} · IRC: cutoff ajustado por tratamiento betabloqueante</small>`;}
 function cFCobj(){const edad=parseInt(document.getElementById('cfced').value)||0,rep=parseInt(document.getElementById('cfcrep').value)||0;if(!edad){document.getElementById('crfc').textContent='Ingresá la edad';return;}const fcme=220-edad,p85=Math.round(fcme*0.85),p62=Math.round(fcme*0.62),kv=rep>0?Math.round(rep+0.85*(fcme-rep)):null;document.getElementById('crfc').innerHTML=`FCME (220−edad): <strong>${fcme} lpm</strong><br>85% FCME — prueba máxima sin BB: <strong>${p85} lpm</strong><br>62% FCME — prueba suficiente con BB: <strong>${p62} lpm</strong>${kv?`<br>Karvonen 85% (reserva FC): <strong>${kv} lpm</strong>`:''}`;}
 
 // LIMPIAR
@@ -3592,7 +3612,7 @@ function ecgcExportPorFase(){
 
 // ── Export / Import JSON ──
 function exportarErgoJSON() {
-  const lista = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+  const lista = safeLoadReports();
   if (!lista.length) { showToast('⚠️ No hay informes para exportar'); return; }
   const fecha = new Date().toISOString().split('T')[0];
   const blob = new Blob([JSON.stringify(lista, null, 2)],
@@ -3612,7 +3632,8 @@ function importarErgoJSON(file) {
     try {
       const nuevos = JSON.parse(e.target.result);
       if (!Array.isArray(nuevos)) { showToast('❌ Archivo inválido'); return; }
-      const existentes = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+      nuevos.forEach(function(inf,i){ if(!inf||typeof inf!=='object'){ nuevos[i]=inf={}; } var idn=Number(inf.id); inf.id=(Number.isInteger(idn)&&idn>0)?idn:(Date.now()+i); });
+      const existentes = safeLoadReports();
       const idsExist = new Set(existentes.map(i => i.id));
       const sinDup = nuevos.filter(i => !idsExist.has(i.id));
       const merged = [...existentes, ...sinDup];
@@ -3637,7 +3658,7 @@ function ergoAplicarFiltros() {
   const fDuke  = document.getElementById('ef-duke')?.value || '';
   const fInt   = document.getElementById('ef-interes')?.value || '';
 
-  const todos = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+  const todos = safeLoadReports();
 
   const filtrados = todos.filter(inf => {
     // Resultado
@@ -3700,11 +3721,11 @@ function ergoRenderSvlist(f, totalCount) {
 <td>${esc(inf.duke)}</td>
 <td>${esc(inf.resultado)}</td>
 <td><div class="sv-acts">
-<button class="btn btn-outline btn-sm" onclick="verInforme(${inf.id})" title="Ver">👁</button>
-<button class="btn btn-outline btn-sm" onclick="editarInforme(${inf.id})" title="Editar">✎</button>
-<button class="btn btn-outline btn-sm" onclick="pdfInforme(${inf.id})" title="PDF">📄</button>
-<button class="btn btn-sm ${_sel.includes(inf.id)?'btn-primary':'btn-outline'}" onclick="toggleCmp(${inf.id})" title="Comparar">⇄</button>
-<button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" onclick="elimInforme(${inf.id})" title="Eliminar">✕</button>
+<button class="btn btn-outline btn-sm" data-act="ver" data-id="${inf.id}" title="Ver">👁</button>
+<button class="btn btn-outline btn-sm" data-act="editar" data-id="${inf.id}" title="Editar">✎</button>
+<button class="btn btn-outline btn-sm" data-act="pdf" data-id="${inf.id}" title="PDF">📄</button>
+<button class="btn btn-sm ${_sel.includes(inf.id)?'btn-primary':'btn-outline'}" data-act="cmp" data-id="${inf.id}" title="Comparar">⇄</button>
+<button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" data-act="elim" data-id="${inf.id}" title="Eliminar">✕</button>
 </div></td></tr>`;
   }).join('');
   container.innerHTML = `<table class="sv-tbl"><thead><tr><th>Paciente</th><th>CI</th><th>Fecha</th><th>Protocolo</th><th>METs</th><th>Duke</th><th>Resultado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -3728,7 +3749,7 @@ window.ergoLimpiarFiltros = ergoLimpiarFiltros;
 // ══ LABORATORIO ERGOSMART ══════════════════════════════════
 
 function ergoLabGetInfs() {
-  const todos = JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+  const todos = safeLoadReports();
   const periodo = parseInt(document.getElementById('el-periodo')?.value||'365');
   const desde = document.getElementById('el-desde')?.value;
   const hasta = document.getElementById('el-hasta')?.value;
@@ -4158,7 +4179,7 @@ function ergoLabCompararInit() {
 
 function ergoLabComparar() {
   const todos =
-    JSON.parse(localStorage.getItem('ergo_informes') || '[]');
+    safeLoadReports();
   const aD = document.getElementById('el-cmp-a-desde').value;
   const aH = document.getElementById('el-cmp-a-hasta').value;
   const bD = document.getElementById('el-cmp-b-desde').value;
