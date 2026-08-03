@@ -459,6 +459,14 @@ body.printing-clean #clean-controls{display:none!important}
     </div>
     <button class="icon-btn" onclick="toggleTheme()" id="tbtn" title="Alternar tema" aria-label="Alternar tema claro u oscuro">🌙</button>
     <button class="btn btn-outline" onclick="limpiar()">🗑 Limpiar</button>
+    <button onclick="exportarErgoJSON()" title="Exportar estudios a JSON"
+      style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text2,#94A3B8);cursor:pointer;display:flex;align-items:center;gap:4px;">
+      📤 Exportar
+    </button>
+    <button onclick="document.getElementById('ergo-import-file-cfg').click()" title="Importar estudios desde JSON"
+      style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text2,#94A3B8);cursor:pointer;display:flex;align-items:center;gap:4px;">
+      📥 Importar
+    </button>
     <button class="btn btn-success" onclick="guardar()">💾 Guardar</button>
     <span style="display:inline-flex;flex-direction:column;align-items:center;gap:4px;">
       <button class="btn btn-primary" onclick="exportPDF()">📄 PDF</button>
@@ -558,11 +566,6 @@ body.printing-clean #clean-controls{display:none!important}
     <button class="btn btn-primary" onclick="swTab('lab',null);if(window.ergoLabInit)ergoLabInit()">🔬 Abrir Laboratorio</button>
   </div>
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
-    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📄 PDF</div>
-    <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" id="ergo-qr-enabled" onchange="ergoQrToggle()" style="width:16px;height:16px;flex:0 0 auto"> Incluir QR en PDF</label>
-    <div style="font-size:11px;color:var(--text2);margin:6px 0 0">Agrega un QR pequeño (40×40 px) a <b>ergosmart.ceibomed.com</b> en la esquina inferior derecha de cada página del informe.</div>
-  </div>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
     <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">💾 Exportar / Importar</div>
     <div style="font-size:11px;color:var(--text2);margin:6px 0 0" style="margin:0 0 10px">Respaldo de los informes guardados en formato JSON.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -595,6 +598,20 @@ body.printing-clean #clean-controls{display:none!important}
     <div><label>Talla (cm)</label><input type="number" id="pt" placeholder="cm" step="1" oninput="cAntro()"></div>
     <div><label>IMC (kg/m²)</label><input type="text" id="pimc" class="computed" readonly></div>
     <div><label>SC Dubois (m²)</label><input type="text" id="psc" class="computed" readonly></div>
+  </div>
+  <div class="fg fg4" style="margin-bottom:12px">
+    <div><label>Motivo de la prueba</label>
+      <select id="pac-motivo-prueba">
+        <option value="">Seleccionar motivo...</option>
+        <option value="Dolor torácico">Dolor torácico</option>
+        <option value="Disnea de esfuerzo">Disnea de esfuerzo</option>
+        <option value="Ambos">Ambos</option>
+        <option value="Control / seguimiento">Control / seguimiento</option>
+        <option value="Preoperatorio">Preoperatorio</option>
+        <option value="Diagnóstico de isquemia">Diagnóstico de isquemia</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
   </div>
   <div class="fg fg4" style="margin-bottom:12px">
     <div><label>Edad (años)</label><input type="number" id="ped" placeholder="años" oninput="rFC();sEP()"></div>
@@ -1820,6 +1837,7 @@ function exportPDF(){
   drawInfoBox([
     [{lbl:'FC basal (reposo)', val:sval('fcrep')?sval('fcrep')+' lpm':''}, {lbl:'Betabloqueante', val:g('bbs')?selTxt('bbs'):''}],
     [{lbl:'Probabilidad pre-test', val:ptp}, {lbl:'Medicación', val:meds.join(', ')}],
+    [{lbl:'Motivo de la prueba', val:sval('pac-motivo-prueba')}],
     [{lbl:'Ergómetro', val:ergTxt}, {lbl:'Protocolo', val:protoNom}],
     [{lbl:'FCME teórica', val:clean(stxt('vfcme'))?clean(stxt('vfcme'))+' lpm':''}, {lbl:'85% FCME', val:clean(stxt('v85')||stxt('fc85r'))?clean(stxt('v85')||stxt('fc85r'))+' lpm':''}, {lbl:'62% FCME', val:clean(stxt('fc62r'))?clean(stxt('fc62r'))+' lpm':''}, {lbl:'FC máx. alcanzada', val:sval('fcmax')?sval('fcmax')+' lpm':''}],
   ]);
@@ -3075,7 +3093,7 @@ ${obs?`<div class="field"><label>Observaciones</label><span>${obs}</span></div>`
     contentDiv.appendChild(_dc);
   }catch(e){}
   try{
-    var _qrOn=(localStorage.getItem('ergo_qr_enabled')!=='0');   // toggle Config (ergo_qr_enabled), ON por defecto
+    var _qrOn=false;   // QR desactivado (opción eliminada de Config). ergoQrDataURL queda en el código, sin usarse.
     if(_qrOn){
       var _u=(typeof ergoQrDataURL==='function')?ergoQrDataURL():'';
       if(_u){
