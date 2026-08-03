@@ -291,8 +291,9 @@ table.ecgc-grid td.ecgc-cell .ecgc-empty{color:#c99;font-size:12px}
 
 /* ═══ PRINT STYLES ═══ */
 @media print{
-  .topbar,.tab-bar,.qty-bar,.no-print,.fab-bar,.firma-strip{display:none!important}
+  .topbar,.tab-bar,.qty-bar,.no-print,.fab-bar,.firma-strip,.rail,.subtab-bar{display:none!important}
   body{background:white!important;color:#1a1a1a!important;font-size:11pt}
+  .app-shell{display:block!important}
   .tab-panel{display:block!important}
   /* Ocultar secciones no deseadas en print */
   #tab-calc,#tab-ref,#tab-guard{display:none!important}
@@ -376,6 +377,37 @@ body.printing-clean #clean-controls{display:none!important}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
+/* ═══ REDISEÑO LAYOUT: header + rail lateral izquierdo + subtabs (estilo EcoEstrés) ═══ */
+:root{--rail:180px;--topbar-h:92px}
+.topbar{min-height:var(--topbar-h)}
+.hdr-titlecol{display:flex;flex-direction:column;gap:4px;min-width:0}
+.hdr-doctor{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.hdr-doctor .firma-fields{flex:1 1 auto}
+.app-shell{display:flex;align-items:flex-start;min-height:calc(100vh - var(--topbar-h))}
+.rail{position:sticky;top:var(--topbar-h);align-self:flex-start;flex:0 0 var(--rail);width:var(--rail);
+  height:calc(100vh - var(--topbar-h));overflow-y:auto;background:var(--card2);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;padding:10px 0;gap:2px;z-index:70}
+.rail .tab-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:11px 16px;border:none;border-left:3px solid transparent;
+  color:var(--text2);font-size:13px;font-weight:600;background:transparent;cursor:pointer;transition:all .15s}
+.rail .tab-btn:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.rail .tab-btn.active{color:var(--accent);border-left-color:var(--accent);background:rgba(14,165,233,.08)}
+.app-content{flex:1 1 auto;min-width:0}
+.app-content .main{max-width:1180px}
+.subtab-bar{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;
+  padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.subtab-bar .tab-btn{border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:11px}
+.subtab-bar .tab-btn:hover{color:var(--text);border-color:var(--text2)}
+.subtab-bar .tab-btn.active{color:var(--accent);border-color:var(--accent);background:transparent}
+@media(max-width:768px){
+  :root{--rail:0px}
+  .app-shell{flex-direction:column}
+  .rail{position:static;flex-basis:auto;width:100%;height:auto;flex-direction:row;overflow-x:auto;
+    border-right:none;border-bottom:1px solid var(--border)}
+  .rail .tab-btn{width:auto;border-left:none;border-bottom:3px solid transparent}
+  .rail .tab-btn.active{border-left-color:transparent;border-bottom-color:var(--accent)}
+  .subtab-bar{justify-content:flex-start}
+}
 </style></head><body>
 <!-- CABECERA SOLO IMPRESIÓN -->
 <div id="print-header" style="display:none;margin-bottom:16pt;padding-bottom:12pt;border-bottom:2pt solid #0ea5e9">
@@ -446,7 +478,30 @@ body.printing-clean #clean-controls{display:none!important}
 <div class="topbar no-print">
   <div class="topbar-left">
     <div class="logo-wrap"><span id="lph" style="display:flex;align-items:center;justify-content:center;font-size:2.5rem;line-height:1">🏃</span><img id="limg" alt="Logo institucional" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'limg','lph','print-logo')"></div>
-    <div class="title-block"><h1>Ergo<span>Smart</span></h1><p>Prueba Ergométrica Graduada</p></div>
+    <div class="hdr-titlecol">
+      <div class="title-block"><h1>Ergo<span>Smart</span></h1><p>Prueba Ergométrica Graduada</p></div>
+      <div class="hdr-doctor">
+        <div class="firma-logo"><span id="flph" style="font-size:14px;color:var(--text3)">🖋️</span><img id="flimg" alt="Logo de la firma" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'flimg','flph',null)"></div>
+        <button type="button" class="btn btn-ghost" onclick="firmaOpen()" title="Editar firma del profesional" style="padding:5px 10px;font-size:12px;flex-shrink:0">✏️ Firma</button>
+        <div class="firma-fields">
+          <span class="hdr-ew"><span id="fn-disp" class="hdr-dt hdr-ph" data-ph="Dr./Dra. Nombre Apellido" onclick="ergoHdrEdit('fn')">Dr./Dra. Nombre Apellido</span><input class="fi" type="text" id="fn" placeholder="Dr./Dra. Nombre Apellido" style="display:none;min-width:150px"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fn')" title="Editar nombre" aria-label="Editar nombre">✏️</button></span>
+          <span class="hdr-sep">·</span>
+          <span class="hdr-ew"><span id="fesp-disp" class="hdr-dt hdr-ph" data-ph="Especialidad" onclick="ergoHdrEdit('fesp')">Especialidad</span><input class="fi" type="text" id="fesp" placeholder="Especialidad" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fesp')" title="Editar especialidad" aria-label="Editar especialidad">✏️</button></span>
+          <span class="hdr-sep">·</span>
+          <span class="hdr-ew"><span id="fmat-disp" class="hdr-dt hdr-ph" data-ph="Matrícula / Registro" onclick="ergoHdrEdit('fmat')">Matrícula / Registro</span><input class="fi" type="text" id="fmat" placeholder="Matrícula / Registro" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fmat')" title="Editar matrícula" aria-label="Editar matrícula">✏️</button></span>
+          <span class="hdr-sep">·</span>
+          <span class="hdr-ew"><span id="finst-disp" class="hdr-dt hdr-ph" data-ph="Institución / Centro" onclick="ergoHdrEdit('finst')">Institución / Centro</span><input class="fi" type="text" id="finst" placeholder="Institución / Centro" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('finst')" title="Editar institución" aria-label="Editar institución">✏️</button></span>
+          <span class="hdr-sep">·</span>
+          <span class="hdr-ew"><span id="fciu-disp" class="hdr-dt hdr-ph" data-ph="Ciudad, País" onclick="ergoHdrEdit('fciu')">Ciudad, País</span><input class="fi" type="text" id="fciu" placeholder="Ciudad, País" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fciu')" title="Editar localidad" aria-label="Editar localidad">✏️</button></span>
+          <span class="hdr-sep">·</span>
+          <span class="hdr-ew"><span id="is-disp" class="hdr-dt hdr-ph" data-ph="Servicio" onclick="ergoHdrEdit('is')">Servicio</span><input class="fi" type="text" id="is" placeholder="Servicio" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('is')" title="Editar servicio" aria-label="Editar servicio">✏️</button></span>
+          <span class="hdr-sep">·</span>
+          <span class="hdr-ew" style="gap:4px"><span class="hdr-lbl">Estudio:</span><input class="fi" type="date" id="fe" title="Fecha del estudio" oninput="updComp()" style="min-width:120px"></span>
+          <span class="hdr-sep">·</span>
+          <span class="hdr-ew" style="gap:4px"><span class="hdr-lbl">Solicitud:</span><input class="fi" type="date" id="fecha_solicitud_ergo" title="Fecha de solicitud" style="min-width:120px"></span>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="topbar-right">
     <div id="logo-centro-wrap" onclick="logoClick(event)" title="Logo institucional (click para cargar)" style="position:relative;min-width:46px;height:40px;padding:0 6px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;background:var(--bg3);">
@@ -486,29 +541,6 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
 </div>
 
-<!-- FIRMA -->
-<div class="firma-strip no-print">
-  <div class="firma-logo"><span id="flph" style="font-size:14px;color:var(--text3)">🖋️</span><img id="flimg" alt="Logo de la firma" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'flimg','flph',null)"></div>
-  <button type="button" class="btn btn-ghost" onclick="firmaOpen()" title="Editar firma del profesional" style="padding:5px 10px;font-size:12px;flex-shrink:0">✏️ Firma</button>
-  <div class="firma-fields">
-    <span class="hdr-ew"><span id="fn-disp" class="hdr-dt hdr-ph" data-ph="Dr./Dra. Nombre Apellido" onclick="ergoHdrEdit('fn')">Dr./Dra. Nombre Apellido</span><input class="fi" type="text" id="fn" placeholder="Dr./Dra. Nombre Apellido" style="display:none;min-width:150px"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fn')" title="Editar nombre" aria-label="Editar nombre">✏️</button></span>
-    <span class="hdr-sep">·</span>
-    <span class="hdr-ew"><span id="fesp-disp" class="hdr-dt hdr-ph" data-ph="Especialidad" onclick="ergoHdrEdit('fesp')">Especialidad</span><input class="fi" type="text" id="fesp" placeholder="Especialidad" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fesp')" title="Editar especialidad" aria-label="Editar especialidad">✏️</button></span>
-    <span class="hdr-sep">·</span>
-    <span class="hdr-ew"><span id="fmat-disp" class="hdr-dt hdr-ph" data-ph="Matrícula / Registro" onclick="ergoHdrEdit('fmat')">Matrícula / Registro</span><input class="fi" type="text" id="fmat" placeholder="Matrícula / Registro" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fmat')" title="Editar matrícula" aria-label="Editar matrícula">✏️</button></span>
-    <span class="hdr-sep">·</span>
-    <span class="hdr-ew"><span id="finst-disp" class="hdr-dt hdr-ph" data-ph="Institución / Centro" onclick="ergoHdrEdit('finst')">Institución / Centro</span><input class="fi" type="text" id="finst" placeholder="Institución / Centro" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('finst')" title="Editar institución" aria-label="Editar institución">✏️</button></span>
-    <span class="hdr-sep">·</span>
-    <span class="hdr-ew"><span id="fciu-disp" class="hdr-dt hdr-ph" data-ph="Ciudad, País" onclick="ergoHdrEdit('fciu')">Ciudad, País</span><input class="fi" type="text" id="fciu" placeholder="Ciudad, País" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fciu')" title="Editar localidad" aria-label="Editar localidad">✏️</button></span>
-    <span class="hdr-sep">·</span>
-    <span class="hdr-ew"><span id="is-disp" class="hdr-dt hdr-ph" data-ph="Servicio" onclick="ergoHdrEdit('is')">Servicio</span><input class="fi" type="text" id="is" placeholder="Servicio" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('is')" title="Editar servicio" aria-label="Editar servicio">✏️</button></span>
-    <span class="hdr-sep">·</span>
-    <span class="hdr-ew" style="gap:4px"><span class="hdr-lbl">Estudio:</span><input class="fi" type="date" id="fe" title="Fecha del estudio" oninput="updComp()" style="min-width:120px"></span>
-    <span class="hdr-sep">·</span>
-    <span class="hdr-ew" style="gap:4px"><span class="hdr-lbl">Solicitud:</span><input class="fi" type="date" id="fecha_solicitud_ergo" title="Fecha de solicitud" style="min-width:120px"></span>
-  </div>
-</div>
-
 <!-- MODAL FIRMA DEL PROFESIONAL -->
 <div class="modal-overlay" id="modal-firma" style="display:none">
   <div class="modal-box" style="max-width:420px">
@@ -527,19 +559,21 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
 </div>
 
-<!-- TAB BAR -->
-<div class="tab-bar no-print">
-  <button class="tab-btn active" onclick="swTab('paciente',this)">👤 Paciente</button>
-  <button class="tab-btn" onclick="swTab('ergo',this)">🏃 Ergometría</button>
-  <button class="tab-btn" onclick="swTab('analisis',this)">📊 Análisis</button>
-  <button class="tab-btn" onclick="swTab('concl',this)">📝 Conclusión</button>
-  <button class="tab-btn" onclick="swTab('img',this)">🖼️ Imágenes</button>
-</div>
-<div class="tab-bar no-print">
-  <button class="tab-btn" onclick="swTab('calc',this)">🧮 Calculadoras</button>
-  <button class="tab-btn" onclick="swTab('ref',this)">📚 Referencias</button>
-  <button class="tab-btn" onclick="swTab('config',this)">⚙️ Config</button>
-</div>
+<!-- ═══ APP SHELL: rail lateral izquierdo + contenido ═══ -->
+<div class="app-shell">
+  <nav class="rail no-print" aria-label="Secciones principales">
+    <button class="tab-btn active" onclick="swTab('paciente',this)">👤 Paciente</button>
+    <button class="tab-btn" onclick="swTab('ergo',this)">📋 Protocolo</button>
+    <button class="tab-btn" onclick="swTab('analisis',this)">📊 Análisis</button>
+    <button class="tab-btn" onclick="swTab('concl',this)">📝 Conclusión</button>
+    <button class="tab-btn" onclick="swTab('img',this)">🖼️ Imágenes</button>
+  </nav>
+  <div class="app-content">
+    <div class="subtab-bar no-print" aria-label="Herramientas">
+      <button class="tab-btn" onclick="swTab('calc',this)">🧮 Calculadoras</button>
+      <button class="tab-btn" onclick="swTab('ref',this)">📚 Referencias</button>
+      <button class="tab-btn" onclick="swTab('config',this)">⚙️ Config</button>
+    </div>
 
 <!-- ═══ TAB PACIENTE ═══ -->
 <div class="tab-panel" id="tab-config"><div class="main">
@@ -1417,6 +1451,8 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
 
 </div></div><!-- /tab-lab -->
+  </div><!-- /app-content -->
+</div><!-- /app-shell -->
 
 <!-- BARRA FLOTANTE -->
 <div class="fab-bar no-print">
@@ -4769,5 +4805,18 @@ document.addEventListener('keydown',e=>{
 });
 window.mostrarAvisoErgo=mostrarAvisoErgo;window.cerrarAvisoErgo=cerrarAvisoErgo;
 window.abrirAyudaErgo=abrirAyudaErgo;window.cerrarAyudaErgo=cerrarAyudaErgo;window.renderAyudaErgo=renderAyudaErgo;
+</script>
+<script>
+/* Layout: sincroniza el alto real del header con --topbar-h para que el rail
+   lateral quede fijo justo debajo sin solaparse (solo presentación). */
+(function(){
+  var tb=document.querySelector('.topbar');
+  if(!tb) return;
+  function sync(){document.documentElement.style.setProperty('--topbar-h', tb.offsetHeight+'px');}
+  sync();
+  if(window.ResizeObserver){try{new ResizeObserver(sync).observe(tb);}catch(e){}}
+  window.addEventListener('resize', sync);
+  window.addEventListener('load', sync);
+})();
 </script>
 </body></html>
