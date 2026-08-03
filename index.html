@@ -2008,59 +2008,23 @@ function exportPDF(){
   // resumen final
   const riesgoCat = selTxt('rerg');
   if(resTxt && resTxt!=='—') partes.push('En síntesis, prueba '+resTxt.toLowerCase()+(riesgoCat && riesgoCat!=='—'?', categoría de riesgo '+riesgoCat.toLowerCase():'')+'.');
-  // texto libre del usuario (conclusión editada)
-  const conclLibre = sval('concltxt');
-
-  const estilo = 'estandar';
-  if(partes.length){
-    if(estilo==='conciso'){
-      const lin=[];
-      if(resTxt && resTxt!=='—') lin.push('Resultado: '+resTxt+'.');
-      if(mets>0){ const eqv2 = mets>10?'capacidad funcional alta':mets>=5?'capacidad funcional intermedia':'capacidad funcional baja'; lin.push('Capacidad funcional: '+mets+' METs ('+eqv2+').'); }
-      if(fcAlc && fcme){ const pct2=Math.round((fcAlc/fcme)*100); const suf2=pct2>=umbral; lin.push('FC máx '+fcAlc+' lpm ('+pct2+'% FCME) — '+(suf2?'prueba máxima':'prueba submáxima')+'.'); }
-      if(duke) lin.push('Score de Duke: '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.');
-      if(riesgoCat && riesgoCat!=='—') lin.push('Riesgo '+riesgoCat.toLowerCase()+'.');
-      drawParagraph(lin.join('\n'));
-    } else if(estilo==='narrativo'){
-      let frase='';
-      if(protoNom || ergTxt){
-        frase='Se realizó prueba ergométrica'+(ergTxt?' en '+ergTxt.toLowerCase():'')+(protoNom?' (protocolo '+protoNom+')':'');
-        const det=[];
-        if(mets>0) det.push('alcanzando '+mets+' METs');
-        if(fcAlc && fcme){ const pct2=Math.round((fcAlc/fcme)*100); const suf2=pct2>=umbral; det.push('una FC máxima de '+fcAlc+' lpm ('+pct2+'% de la FCME), '+(suf2?'prueba máxima':'prueba submáxima')); }
-        if(det.length) frase+=', '+det.join(' y ');
-        frase+='.';
-      } else if(mets>0){
-        frase='Se alcanzó una capacidad funcional de '+mets+' METs.';
-      }
-      let frase2='';
-      if(resTxt && resTxt!=='—'){
-        frase2='El estudio resultó '+resTxt.toLowerCase();
-        if(duke) frase2+=', con un Score de Duke de '+duke+(dukeL?' ('+dukeL.trim()+')':'');
-        frase2+='.';
-      } else if(duke){
-        frase2='El Score de Duke fue de '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.';
-      }
-      const extra=[];
-      if(pasMax>0) extra.push('La respuesta presora mostró una PAS máxima de '+pasMax+' mmHg'+ergoPresoraTxt(pasMax));
-      if(rfc) extra.push('la recuperación de FC al primer minuto fue de '+rfc+' lpm'+(rfc>18?' (normal)':rfc>=13?' (zona intermedia)':' (anormal / alto riesgo)'));
-      if(irc){ const ircInt = parseFloat(irc)<0.80 ? 'incompetente' : 'normal'; extra.push('con un índice de respuesta cronotrópica de '+irc+' ('+ircInt+')'); }
-      if(arrTabla.length) extra.push('se registraron arritmias durante el esfuerzo ('+arrTabla.join('; ')+')');
-      else if(rows.length) extra.push('sin arritmias significativas');
-      let frase3='';
-      if(extra.length) frase3=extra.join('; ').replace(/^./,c=>c.toUpperCase())+'.';
-      let frase4='';
-      if(riesgoCat && riesgoCat!=='—') frase4='Se estima una categoría de riesgo '+riesgoCat.toLowerCase()+'.';
-      const narr=[frase,frase2,frase3,frase4].filter(Boolean).join(' ');
-      drawParagraph(narr || partes.join(' '));
-    } else {
-      // INFORME: cada oración en su propio renglón (no todo corrido)
-      drawParagraph(partes.join('\n'));
-    }
+  // ── Fuente ÚNICA del informe: el texto editable del médico (concltxt). ──
+  // Fallback a la narrativa auto-generada (partes) si el médico no generó/editó el informe.
+  let informeFull = sval('concltxt');
+  if(!informeFull) informeFull = partes.join('\n');
+  // Separar la síntesis final ("En síntesis…" / "Conclusión…") → va a la sección CONCLUSIÓN.
+  // El cuerpo (sin esas líneas) va a INFORME, de modo que NO se duplica el mismo texto.
+  const _linsInf = informeFull.split(/\n/);
+  const _esSintesis = l => /^\s*(en s[ií]ntesis|conclusi[oó]n)/i.test(l);
+  const _cuerpoInf   = _linsInf.filter(l => l.trim() && !_esSintesis(l));
+  const _sintesisInf = _linsInf.filter(l => l.trim() &&  _esSintesis(l));
+  if(_cuerpoInf.length){
+    drawParagraph(_cuerpoInf.join('\n'));
+  } else {
+    fn(8); tc(120,120,120); checkPage(6); doc.text('Generá o completá el informe en la pestaña Conclusión.', mL+1, y+4); y+=6;
   }
-  else { fn(8); tc(120,120,120); checkPage(6); doc.text('Complete los campos del informe para generar la conclusión.', mL+1, y+4); y+=6; }
-  // CONCLUSIÓN: resumen breve del médico (campo libre) — no repite el informe
-  if(conclLibre){ y+=2; drawBar('CONCLUSIÓN'); drawParagraph(conclLibre); }
+  // CONCLUSIÓN: síntesis breve — NO repite el cuerpo del informe
+  if(_sintesisInf.length){ y+=2; drawBar('CONCLUSIÓN'); drawParagraph(_sintesisInf.join('\n')); }
 
   // ════════════════════════════════════════════════════════════
   // BLOQUE 6 · REGISTRO ELECTROCARDIOGRÁFICO
