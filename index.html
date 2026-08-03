@@ -377,19 +377,23 @@ body.printing-clean #clean-controls{display:none!important}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
-/* ═══ REDISEÑO LAYOUT: header + rail lateral izquierdo + subtabs (estilo EcoEstrés) ═══ */
-:root{--rail:180px;--topbar-h:92px}
+/* ═══ REDISEÑO LAYOUT: header compacto + rail lateral izquierdo + subtabs (estilo EcoEstrés) ═══ */
+:root{--rail:160px;--topbar-h:60px}
 .topbar{min-height:var(--topbar-h)}
-.hdr-titlecol{display:flex;flex-direction:column;gap:4px;min-width:0}
-.hdr-doctor{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
-.hdr-doctor .firma-fields{flex:1 1 auto}
+/* Botón "✏️ Médico" con panel desplegable de datos del profesional */
+.hdr-med-wrap{position:relative;display:inline-flex;flex-shrink:0}
+.hdr-med-panel{position:absolute;top:calc(100% + 8px);left:0;z-index:200;
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  box-shadow:0 16px 44px rgba(0,0,0,.55);padding:12px 14px;min-width:340px;max-width:540px}
+.hdr-med-panel .hdr-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.hdr-med-panel .firma-fields{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:12px}
 .app-shell{display:flex;align-items:flex-start;min-height:calc(100vh - var(--topbar-h))}
 .rail{position:sticky;top:var(--topbar-h);align-self:flex-start;flex:0 0 var(--rail);width:var(--rail);
   height:calc(100vh - var(--topbar-h));overflow-y:auto;background:var(--card2);
   border-right:1px solid var(--border);display:flex;flex-direction:column;padding:10px 0;gap:2px;z-index:70}
-.rail .tab-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  padding:11px 16px;border:none;border-left:3px solid transparent;
-  color:var(--text2);font-size:13px;font-weight:600;background:transparent;cursor:pointer;transition:all .15s}
+.rail .tab-btn{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  padding:10px 14px;border:none;border-left:3px solid transparent;
+  color:var(--text2);font-size:12.5px;font-weight:600;background:transparent;cursor:pointer;transition:all .15s;white-space:nowrap}
 .rail .tab-btn:hover{background:rgba(255,255,255,.04);color:var(--text)}
 .rail .tab-btn.active{color:var(--accent);border-left-color:var(--accent);background:rgba(14,165,233,.08)}
 .app-content{flex:1 1 auto;min-width:0}
@@ -478,11 +482,14 @@ body.printing-clean #clean-controls{display:none!important}
 <div class="topbar no-print">
   <div class="topbar-left">
     <div class="logo-wrap"><span id="lph" style="display:flex;align-items:center;justify-content:center;font-size:2.5rem;line-height:1">🏃</span><img id="limg" alt="Logo institucional" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'limg','lph','print-logo')"></div>
-    <div class="hdr-titlecol">
-      <div class="title-block"><h1>Ergo<span>Smart</span></h1><p>Prueba Ergométrica Graduada</p></div>
-      <div class="hdr-doctor">
-        <div class="firma-logo"><span id="flph" style="font-size:14px;color:var(--text3)">🖋️</span><img id="flimg" alt="Logo de la firma" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'flimg','flph',null)"></div>
-        <button type="button" class="btn btn-ghost" onclick="firmaOpen()" title="Editar firma del profesional" style="padding:5px 10px;font-size:12px;flex-shrink:0">✏️ Firma</button>
+    <div class="title-block"><h1>Ergo<span>Smart</span></h1><p>Prueba Ergométrica Graduada</p></div>
+    <div class="hdr-med-wrap">
+      <button type="button" class="btn btn-outline" id="hdr-med-btn" onclick="ergoMedToggle()" title="Datos del médico (desplegar / ocultar)" aria-expanded="false">✏️ Médico</button>
+      <div id="hdr-med-panel" class="hdr-med-panel" style="display:none">
+        <div class="hdr-row">
+          <div class="firma-logo"><span id="flph" style="font-size:14px;color:var(--text3)">🖋️</span><img id="flimg" alt="Logo de la firma" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'flimg','flph',null)"></div>
+          <button type="button" class="btn btn-ghost" onclick="firmaOpen()" title="Editar firma del profesional" style="padding:5px 10px;font-size:12px;flex-shrink:0">✏️ Firma</button>
+        </div>
         <div class="firma-fields">
           <span class="hdr-ew"><span id="fn-disp" class="hdr-dt hdr-ph" data-ph="Dr./Dra. Nombre Apellido" onclick="ergoHdrEdit('fn')">Dr./Dra. Nombre Apellido</span><input class="fi" type="text" id="fn" placeholder="Dr./Dra. Nombre Apellido" style="display:none;min-width:150px"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fn')" title="Editar nombre" aria-label="Editar nombre">✏️</button></span>
           <span class="hdr-sep">·</span>
@@ -495,10 +502,6 @@ body.printing-clean #clean-controls{display:none!important}
           <span class="hdr-ew"><span id="fciu-disp" class="hdr-dt hdr-ph" data-ph="Ciudad, País" onclick="ergoHdrEdit('fciu')">Ciudad, País</span><input class="fi" type="text" id="fciu" placeholder="Ciudad, País" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('fciu')" title="Editar localidad" aria-label="Editar localidad">✏️</button></span>
           <span class="hdr-sep">·</span>
           <span class="hdr-ew"><span id="is-disp" class="hdr-dt hdr-ph" data-ph="Servicio" onclick="ergoHdrEdit('is')">Servicio</span><input class="fi" type="text" id="is" placeholder="Servicio" style="display:none"><button type="button" class="hdr-pe" onclick="ergoHdrEdit('is')" title="Editar servicio" aria-label="Editar servicio">✏️</button></span>
-          <span class="hdr-sep">·</span>
-          <span class="hdr-ew" style="gap:4px"><span class="hdr-lbl">Estudio:</span><input class="fi" type="date" id="fe" title="Fecha del estudio" oninput="updComp()" style="min-width:120px"></span>
-          <span class="hdr-sep">·</span>
-          <span class="hdr-ew" style="gap:4px"><span class="hdr-lbl">Solicitud:</span><input class="fi" type="date" id="fecha_solicitud_ergo" title="Fecha de solicitud" style="min-width:120px"></span>
         </div>
       </div>
     </div>
@@ -563,6 +566,7 @@ body.printing-clean #clean-controls{display:none!important}
 <div class="app-shell">
   <nav class="rail no-print" aria-label="Secciones principales">
     <button class="tab-btn active" onclick="swTab('paciente',this)">👤 Paciente</button>
+    <button class="tab-btn" onclick="swTab('indic',this)">🎯 Indicación</button>
     <button class="tab-btn" onclick="swTab('ergo',this)">📋 Protocolo</button>
     <button class="tab-btn" onclick="swTab('analisis',this)">📊 Análisis</button>
     <button class="tab-btn" onclick="swTab('concl',this)">📝 Conclusión</button>
@@ -630,18 +634,8 @@ body.printing-clean #clean-controls{display:none!important}
     <div><label>SC Dubois (m²)</label><input type="text" id="psc" class="computed" readonly></div>
   </div>
   <div class="fg fg4" style="margin-bottom:12px">
-    <div><label>Motivo de la prueba</label>
-      <select id="pac-motivo-prueba">
-        <option value="">Seleccionar motivo...</option>
-        <option value="Dolor torácico">Dolor torácico</option>
-        <option value="Disnea de esfuerzo">Disnea de esfuerzo</option>
-        <option value="Ambos">Ambos</option>
-        <option value="Control / seguimiento">Control / seguimiento</option>
-        <option value="Preoperatorio">Preoperatorio</option>
-        <option value="Diagnóstico de isquemia">Diagnóstico de isquemia</option>
-        <option value="Otro">Otro</option>
-      </select>
-    </div>
+    <div><label>Fecha del estudio</label><input type="date" id="fe" oninput="updComp()"></div>
+    <div><label>Fecha de solicitud</label><input type="date" id="fecha_solicitud_ergo"></div>
   </div>
   <div class="fg fg4" style="margin-bottom:12px">
     <div><label>Edad (años)</label><input type="number" id="ped" placeholder="años" oninput="rFC();sEP()"></div>
@@ -684,7 +678,26 @@ body.printing-clean #clean-controls{display:none!important}
   <div><label>Otras medicaciones</label><input type="text" id="moto" placeholder="Otros fármacos..."></div>
 </div></div>
 
+</div></div><!-- /main paciente -->
+
+<!-- ═══ TAB INDICACIÓN ═══ -->
+<div class="tab-panel" id="tab-indic"><div class="main">
+
 <div class="sc" id="sind"><div class="sh" onclick="tg('sind')"><span class="st">🎯 Indicación, Clasificación Funcional y Probabilidad Pretest</span><span class="ci">▼</span></div><div class="sb">
+  <div class="fg" style="margin-bottom:12px;max-width:360px">
+    <label>Motivo de la prueba</label>
+    <select id="pac-motivo-prueba">
+      <option value="">Seleccionar motivo...</option>
+      <option value="Dolor torácico">Dolor torácico</option>
+      <option value="Disnea de esfuerzo">Disnea de esfuerzo</option>
+      <option value="Ambos">Ambos</option>
+      <option value="Control / seguimiento">Control / seguimiento</option>
+      <option value="Preoperatorio">Preoperatorio</option>
+      <option value="Diagnóstico de isquemia">Diagnóstico de isquemia</option>
+      <option value="Otro">Otro</option>
+    </select>
+  </div>
+  <hr class="divider">
   <div class="sc collapsed" id="sindic" style="margin-bottom:12px"><div class="sh" onclick="tg('sindic')"><span class="st">🎯 Indicación</span><span class="ci">▼</span></div><div class="sb">
   <div class="indic-grid">
     <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="dg_isq"><span class="indic-ico">🔍</span><div class="indic-text"><strong>Diagnóstico de isquemia</strong><span>PTP intermedia de EAC</span></div></label>
@@ -741,7 +754,7 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
 </div></div>
 
-</div></div><!-- /main paciente -->
+</div></div><!-- /main indic -->
 
 <!-- ═══ TAB ERGOMETRÍA ═══ -->
 <div class="tab-panel" id="tab-ergo"><div class="main">
@@ -4818,5 +4831,19 @@ window.abrirAyudaErgo=abrirAyudaErgo;window.cerrarAyudaErgo=cerrarAyudaErgo;wind
   window.addEventListener('resize', sync);
   window.addEventListener('load', sync);
 })();
+/* Header compacto: botón "✏️ Médico" despliega/oculta los datos del profesional. */
+function ergoMedToggle(){
+  var p=document.getElementById('hdr-med-panel'), b=document.getElementById('hdr-med-btn');
+  if(!p) return;
+  var show=(p.style.display==='none'||!p.style.display);
+  p.style.display=show?'block':'none';
+  if(b) b.setAttribute('aria-expanded', show?'true':'false');
+}
+window.ergoMedToggle=ergoMedToggle;
+document.addEventListener('click',function(e){
+  var w=document.querySelector('.hdr-med-wrap'), p=document.getElementById('hdr-med-panel');
+  if(!w||!p||p.style.display!=='block') return;
+  if(!w.contains(e.target)){ p.style.display='none'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','false'); }
+});
 </script>
 </body></html>
