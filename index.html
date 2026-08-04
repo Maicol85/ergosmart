@@ -32,14 +32,28 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .title-block p{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:1.1px;text-transform:uppercase}
 .topbar-right{display:flex;gap:6px;align-items:center}
 .topbar-burger{display:none;background:transparent;border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:6px;font-size:18px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
+.ergo-tabsburger{display:none;background:transparent;border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:6px;font-size:19px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
+.ergo-drawer,.ergo-drawer-ov{display:none}
+.tr-mob-only{display:none}
 /* Botones de acción al pie del contenido (patrón UltraSmart) */
 .foot-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:560px;margin:34px auto 0;padding:20px 0 24px;border-top:1px solid var(--border)}
 .foot-actions button{background:#0369A1;color:#fff;border:none;border-radius:8px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
 @media(max-width:768px){
   .topbar{flex-wrap:wrap;row-gap:6px;position:relative}
+  .rail{display:none!important}
+  .subtab-bar{display:none!important}
+  .ergo-tabsburger{display:inline-flex;align-items:center}
   .topbar-burger{display:inline-flex;align-items:center;margin-left:auto}
   .topbar-right{display:none;position:absolute;top:100%;right:8px;flex-direction:column;align-items:stretch;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;box-shadow:0 12px 34px rgba(0,0,0,.5);z-index:300;min-width:220px;max-height:78vh;overflow:auto}
   .topbar-right.open{display:flex}
+  .topbar-right .tr-mob-only{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;text-align:left}
+  .ergo-drawer{display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;width:250px;max-width:82vw;background:var(--card2);border-right:1px solid var(--border);z-index:400;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:14px 0}
+  .ergo-drawer.open{transform:translateX(0)}
+  .ergo-drawer button{background:transparent;border:none;color:var(--text);text-align:left;font-size:14px;font-weight:600;padding:12px 18px;cursor:pointer;display:flex;align-items:center;gap:10px;white-space:nowrap;border-left:3px solid transparent}
+  .ergo-drawer button:hover{background:var(--card)}
+  .ergo-drawer button.active{color:var(--accent);border-left-color:var(--accent)}
+  .ergo-drawer-ov{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:399;opacity:0;pointer-events:none;transition:opacity .25s}
+  .ergo-drawer-ov.open{opacity:1;pointer-events:auto}
 }
 .btn{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;white-space:nowrap}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}
@@ -490,6 +504,7 @@ body.printing-clean #clean-controls{display:none!important}
 
 <!-- TOPBAR -->
 <div class="topbar no-print">
+  <button class="ergo-tabsburger" aria-label="Secciones" onclick="ergoDrawerToggle()">≡</button>
   <div class="topbar-left">
     <div class="logo-wrap"><span id="lph" style="display:flex;align-items:center;justify-content:center;font-size:2.5rem;line-height:1">🏃</span><img id="limg" alt="Logo institucional" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'limg','lph','print-logo')"></div>
     <div class="title-block"><h1>Ergo<span>Smart</span></h1><p>Prueba Ergométrica Graduada</p></div>
@@ -516,7 +531,7 @@ body.printing-clean #clean-controls{display:none!important}
       </div>
     </div>
   </div>
-  <button class="topbar-burger" aria-label="Menú de acciones" onclick="document.querySelector('.topbar-right').classList.toggle('open')">☰</button>
+  <button class="topbar-burger" aria-label="Menú de acciones" onclick="document.querySelector('.topbar-right').classList.toggle('open')">⋮</button>
   <div class="topbar-right">
     <div id="logo-centro-wrap" onclick="logoClick(event)" title="Logo institucional (click para cargar)" style="position:relative;min-width:46px;height:40px;padding:0 6px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;background:var(--bg3);">
       <div id="logo-centro-ph" style="display:flex;flex-direction:column;align-items:center;line-height:1.1;color:var(--text2);font-size:9px;gap:1px;"><span style="font-size:15px;">＋</span>Logo</div>
@@ -551,9 +566,15 @@ body.printing-clean #clean-controls{display:none!important}
       </select>
     </span>
     <button class="btn btn-outline" onclick="abrirAyudaErgo()" title="Ayuda / Manual" style="padding:6px 10px;font-size:14px;">?</button>
+    <button class="tr-mob-only" onclick="document.querySelector('.topbar-right').classList.remove('open');swTab('calc',null)">🧮 Calculadoras</button>
+    <button class="tr-mob-only" onclick="document.querySelector('.topbar-right').classList.remove('open');swTab('ref',null)">📚 Referencias</button>
+    <button class="tr-mob-only" onclick="document.querySelector('.topbar-right').classList.remove('open');swTab('config',null)">⚙️ Config</button>
     <button class="btn btn-outline" onclick="cerrarSesion()" title="Cerrar informe">🔒 Cerrar</button>
   </div>
 </div>
+<!-- Drawer de tabs (≡, solo móvil ≤768px) -->
+<div class="ergo-drawer-ov" id="ergoDrawerOv" onclick="ergoDrawerClose()"></div>
+<nav class="ergo-drawer" id="ergoDrawer" aria-label="Secciones principales"></nav>
 
 <!-- MODAL FIRMA DEL PROFESIONAL -->
 <div class="modal-overlay" id="modal-firma" style="display:none">
@@ -4845,5 +4866,37 @@ document.addEventListener('click',function(e){
   if(!w||!p||p.style.display!=='block') return;
   if(!w.contains(e.target)){ p.style.display='none'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','false'); }
 });
+</script>
+<script>
+/* Estándar encabezado móvil: ≡ abre un drawer con las tabs principales.
+   Se construye desde los .tab-btn del rail; cada ítem hace .click() sobre el
+   botón original → comportamiento idéntico (incluye rGuard/renderAnalisisCharts/
+   ecgcRefreshPhases/ergoCfgOpen vía swTab). Sincroniza el activo. No altera la lógica. */
+(function(){
+  function railBtns(){return document.querySelectorAll('.rail .tab-btn');}
+  function idOf(b){var m=(b.getAttribute('onclick')||'').match(/swTab\('([^']+)'/);return m?m[1]:null;}
+  function buildDrawer(){
+    var d=document.getElementById('ergoDrawer');if(!d)return;
+    d.innerHTML='';
+    railBtns().forEach(function(b){
+      var id=idOf(b);if(!id)return;
+      var btn=document.createElement('button');
+      btn.textContent=b.textContent.trim();btn.setAttribute('data-tab',id);
+      if(b.classList.contains('active'))btn.classList.add('active');
+      btn.onclick=function(){b.click();window.ergoDrawerClose();};
+      d.appendChild(btn);
+    });
+  }
+  window.ergoDrawerToggle=function(){var d=document.getElementById('ergoDrawer'),o=document.getElementById('ergoDrawerOv');if(d)d.classList.toggle('open');if(o)o.classList.toggle('open');};
+  window.ergoDrawerClose=function(){var d=document.getElementById('ergoDrawer'),o=document.getElementById('ergoDrawerOv');if(d)d.classList.remove('open');if(o)o.classList.remove('open');};
+  function syncDrawerActive(){
+    var d=document.getElementById('ergoDrawer');if(!d)return;
+    var active=document.querySelector('.rail .tab-btn.active');var id=active?idOf(active):null;
+    Array.prototype.forEach.call(d.querySelectorAll('button'),function(x){x.classList.toggle('active',x.getAttribute('data-tab')===id);});
+  }
+  if(window.swTab&&!window.swTab.__ergoDrawer){var _p=window.swTab;var w=function(){var r=_p.apply(this,arguments);try{syncDrawerActive();}catch(e){}return r;};w.__ergoDrawer=true;window.swTab=w;}
+  function init(){buildDrawer();syncDrawerActive();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script>
 </body></html>
