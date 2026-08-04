@@ -1695,69 +1695,54 @@ function generarConclusion(){
   const ergTxt=ergActual==='cinta'?'Cinta deslizante':'Bicicleta ergométrica';
   const protoNom=(PROTOCOLOS[ergActual]&&PROTOCOLOS[ergActual][protoActual])?PROTOCOLOS[ergActual][protoActual].nombre:'';
   const rowsCount=Array.from(document.querySelectorAll('#tetb tr')).filter(tr=>{const fc=(tr.querySelector('td:nth-child(8) input')||{}).value; const pas=(tr.querySelector('td:nth-child(9) input')||{}).value; return fc||pas;}).length;
-  const partes=[];
-  const edad=sval('ped'), fcAlc=parseInt(sval('fcmax'))||0, fcme=parseInt(stxt('vfcme'))||0;
+  // ── Conclusión estructurada en 8 puntos (punto de partida editable) ──
+  const fcAlc=parseInt(sval('fcmax'))||0, fcme=parseInt(stxt('vfcme'))||0;
   const bb=g('bbs')?g('bbs').value:'no';
   const umbral=bb==='no'?85:62;
-  const sexoNar=sexo==='M'?'masculino':sexo==='F'?'femenino':'';
-  if(edad && sexoNar) partes.push('Paciente de '+edad+' años, sexo '+sexoNar+'.');
-  if(protoNom) partes.push('Prueba realizada en '+ergTxt.toLowerCase()+', protocolo '+protoNom+'.');
-  if(fcAlc && fcme){ const pct=Math.round((fcAlc/fcme)*100); const suf=pct>=umbral; partes.push('FC máxima alcanzada '+fcAlc+' lpm ('+pct+'% de la FCME), '+(suf?'alcanzándose el objetivo cronotrópico (prueba máxima, umbral '+umbral+'%)':'sin alcanzar el objetivo cronotrópico (prueba submáxima, umbral '+umbral+'%)')+'.'); }
-  const resTxt=selTxt('res');
-  if(resTxt && resTxt!=='—') partes.push('Resultado de la prueba: '+resTxt+'.');
-  const duke=clean(stxt('dval')), dukeL=clean(stxt('dlbl')).replace(/[✓⚠⛔]\s*/,'');
-  if(duke) partes.push('Score de Duke: '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.');
-  const mets=parseFloat(sval('metat').replace(',','.'));
-  if(mets>0){ const eqv=mets>10?'capacidad funcional alta':mets>=5?'capacidad funcional intermedia':'capacidad funcional baja'; partes.push('Capacidad funcional: '+mets+' METs — '+eqv+' — '+metsFrase(mets)+'.'); partes.push('Umbral anaeróbico estimado: '+(mets*0.6).toFixed(1)+' METs (~60% del máximo alcanzado).'); }
-  let pasMax=0; document.querySelectorAll('#tetb tr td:nth-child(9) input').forEach(i=>{const v=parseInt(i.value)||0; if(v>pasMax)pasMax=v;});
-  if(pasMax>0) partes.push('Respuesta presora: PAS máxima '+pasMax+' mmHg'+ergoPresoraTxt(pasMax)+'.');
-  const dpm=clean(sval('dpmax'));
-  if(dpm) partes.push('Doble producto máximo: '+dpm+'.');
-  const irc=clean(stxt('virc'));
-  if(irc){ const _cut=ergoIrcCut(); const ircInt=parseFloat(irc)<_cut?'respuesta cronotrópica incompetente':'respuesta cronotrópica normal'; partes.push('Índice de respuesta cronotrópica: '+irc+' ('+ircInt+', cutoff '+(_cut===0.62?'0.62 con betabloqueante':'0.80 sin betabloqueante')+').'); }
-  const rfc=parseInt(sval('rfc1'))||0;
-  if(rfc) partes.push('Recuperación de FC al 1er minuto: '+rfc+' lpm'+(rfc>18?' (normal, >18 lpm)':rfc>=13?' (zona intermedia / reducida leve, 13–18 lpm)':' (anormal / alto riesgo, ≤12 lpm — predictor pronóstico)')+'. Cutoff para recuperación pasiva; la recuperación activa puede requerir valores diferentes.');
-  const arN=document.querySelectorAll('.ari.chk').length;
+  const mets=parseFloat(sval('metat').replace(',','.'))||0;
+  const esBici=(ergActual==='bici');
+  // 1) Carga de trabajo (máxima)
+  let cargaTxt='';
+  if(esBici){ let w=0; document.querySelectorAll('#tetb tr .td-carga input').forEach(i=>{const v=parseFloat((i.value||'').replace(',','.'))||0; if(v>w)w=v;}); if(w>0) cargaTxt=w+' W (~'+Math.round(w*6.12)+' kgm/min)'; }
+  else { let vel=0,pend=0; document.querySelectorAll('#tetb tr').forEach(tr=>{const vv=parseFloat((((tr.querySelector('.td-vel input')||{}).value)||'').replace(',','.'))||0; const pp=parseFloat((((tr.querySelector('.td-pend input')||{}).value)||'').replace(',','.'))||0; if(vv>vel)vel=vv; if(pp>pend)pend=pp;}); if(vel>0||pend>0) cargaTxt=[vel?vel+' km/h':'',pend?pend+'% pendiente':''].filter(Boolean).join(' · '); }
+  // 2) Suficiencia / tipo de prueba
+  const pctFC=(fcAlc&&fcme)?Math.round((fcAlc/fcme)*100):0;
+  const maxima=(pctFC>=umbral);
+  // 3) Capacidad funcional
+  const capCat = mets<5?'baja':mets<7?'moderada':mets<10?'alta':'atlética';
+  // 4) Síntomas (columna de la tabla de etapas)
+  const sintomas=[]; document.querySelectorAll('#tetb tr td:nth-child(12) select').forEach(s=>{ if(s.value && s.selectedOptions[0]){ const t=s.selectedOptions[0].text.trim(); if(t && !/sin s[ií]ntomas/i.test(t)) sintomas.push(t); } });
+  // 5) Isquemia
+  const resVal=g('res')?g('res').value:'';
+  const isqTxt = resVal==='neg'?'negativa':resVal==='pos'?'positiva':(resVal==='nc'||resVal==='nd')?'indeterminada':'';
+  // 6) Respuesta presora
+  let pasMax=0, pasBas=0; { const b=document.querySelector('#tetb tr td:nth-child(9) input'); pasBas=b?(parseInt(b.value)||0):0; document.querySelectorAll('#tetb tr td:nth-child(9) input').forEach(i=>{const v=parseInt(i.value)||0; if(v>pasMax)pasMax=v;}); }
+  const presoraCat = pasMax>=210?'hipertensiva':(pasBas>0&&pasMax<pasBas)?'hipotensora':'normal';
+  // 7) Arritmias
   const arrTabla=Array.from(document.querySelectorAll('#tetb tr td:nth-child(14) input')).map(i=>(i.value||'').trim()).filter(t=>t && !/sin arritmias/i.test(t));
-  if(arrTabla.length) partes.push('Arritmias registradas durante el esfuerzo: '+arrTabla.join('; ')+'.');
-  else if(rowsCount) partes.push('No se registraron arritmias significativas durante el esfuerzo ni la recuperación.');
-  if(arN>0) partes.push(arN+' criterio'+(arN>1?'s':'')+' ergométrico'+(arN>1?'s':'')+' de alto riesgo identificado'+(arN>1?'s':'')+'.');
-  const riesgoCat=selTxt('rerg');
-  if(resTxt && resTxt!=='—') partes.push('En síntesis, prueba '+resTxt.toLowerCase()+(riesgoCat && riesgoCat!=='—'?', categoría de riesgo '+riesgoCat.toLowerCase():'')+'.');
-  if(!partes.length){ showToast('⚠ Completá los datos del estudio antes de generar la conclusión'); return; }
-  const estilo='estandar';
-  let out='';
-  if(estilo==='conciso'){
-    const lin=[];
-    if(resTxt && resTxt!=='—') lin.push('Resultado: '+resTxt+'.');
-    if(mets>0){ const eqv2=mets>10?'capacidad funcional alta':mets>=5?'capacidad funcional intermedia':'capacidad funcional baja'; lin.push('Capacidad funcional: '+mets+' METs ('+eqv2+').'); }
-    if(fcAlc && fcme){ const pct2=Math.round((fcAlc/fcme)*100); const suf2=pct2>=umbral; lin.push('FC máx '+fcAlc+' lpm ('+pct2+'% FCME) — '+(suf2?'prueba máxima':'prueba submáxima')+'.'); }
-    if(duke) lin.push('Score de Duke: '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.');
-    if(riesgoCat && riesgoCat!=='—') lin.push('Riesgo '+riesgoCat.toLowerCase()+'.');
-    out=lin.join('\n');
-  } else if(estilo==='narrativo'){
-    let frase='';
-    if(protoNom || ergTxt){ frase='Se realizó prueba ergométrica'+(ergTxt?' en '+ergTxt.toLowerCase():'')+(protoNom?' (protocolo '+protoNom+')':''); const det=[]; if(mets>0) det.push('alcanzando '+mets+' METs'); if(fcAlc && fcme){ const pct2=Math.round((fcAlc/fcme)*100); const suf2=pct2>=umbral; det.push('una FC máxima de '+fcAlc+' lpm ('+pct2+'% de la FCME), '+(suf2?'prueba máxima':'prueba submáxima')); } if(det.length) frase+=', '+det.join(' y '); frase+='.'; }
-    else if(mets>0){ frase='Se alcanzó una capacidad funcional de '+mets+' METs.'; }
-    let frase2='';
-    if(resTxt && resTxt!=='—'){ frase2='El estudio resultó '+resTxt.toLowerCase(); if(duke) frase2+=', con un Score de Duke de '+duke+(dukeL?' ('+dukeL.trim()+')':''); frase2+='.'; }
-    else if(duke){ frase2='El Score de Duke fue de '+duke+(dukeL?' ('+dukeL.trim()+')':'')+'.'; }
-    const extra=[];
-    if(pasMax>0) extra.push('La respuesta presora mostró una PAS máxima de '+pasMax+' mmHg'+ergoPresoraTxt(pasMax));
-    if(rfc) extra.push('la recuperación de FC al primer minuto fue de '+rfc+' lpm'+(rfc>18?' (normal)':rfc>=13?' (zona intermedia)':' (anormal / alto riesgo)'));
-    if(irc){ const _cut=ergoIrcCut(); const ircInt=parseFloat(irc)<_cut?'incompetente':'normal'; extra.push('con un índice de respuesta cronotrópica de '+irc+' ('+ircInt+', cutoff '+(_cut===0.62?'0.62 con BB':'0.80 sin BB')+')'); }
-    if(arrTabla.length) extra.push('se registraron arritmias durante el esfuerzo ('+arrTabla.join('; ')+')');
-    else if(rowsCount) extra.push('sin arritmias significativas');
-    let frase3=''; if(extra.length) frase3=extra.join('; ').replace(/^./,c=>c.toUpperCase())+'.';
-    let frase4=''; if(riesgoCat && riesgoCat!=='—') frase4='Se estima una categoría de riesgo '+riesgoCat.toLowerCase()+'.';
-    out=[frase,frase2,frase3,frase4].filter(Boolean).join(' ') || partes.join(' ');
-  } else {
-    // INFORME estructurado: cada oración en su propio renglón
-    out=partes.join('\n');
+  // 8) Respuesta cronotrópica
+  const irc=clean(stxt('virc'));
+  const cronoAlt=(irc && parseFloat(irc)<ergoIrcCut());
+
+  if(!mets && !fcAlc && !resVal && !pasMax && !sintomas.length && !arrTabla.length && !irc){
+    showToast('⚠ Completá los datos del estudio antes de generar la conclusión'); return;
   }
+
+  const P=[];
+  P.push('- Carga de trabajo: '+(cargaTxt?cargaTxt+', ':'')+(mets>0?mets+' METs':'METs no registrados')+'.');
+  P.push('- Prueba '+(maxima?'máxima':'submáxima')+', '+(maxima?'suficiente':'insuficiente')+' para valoración isquémica'+(pctFC?' (FC '+fcAlc+'/'+fcme+' lpm, '+pctFC+'% FCME)':'')+'.');
+  P.push('- Capacidad funcional: '+(mets>0?mets+' METs — '+capCat:'no valorable')+'.');
+  P.push('- '+(sintomas.length?'Con síntomas: '+sintomas.join('; '):'Sin síntomas')+'.');
+  P.push('- Prueba '+(isqTxt||'no concluyente')+' para isquemia'+((!maxima&&fcAlc)?'; no alcanzó la FC objetivo':'')+'.');
+  P.push('- Respuesta presora: '+presoraCat+(pasMax?' (PAS máx '+pasMax+' mmHg)':'')+'.');
+  P.push('- '+(arrTabla.length?'Arritmias: '+arrTabla.join('; '):'Sin arritmias significativas')+'.');
+  P.push('- Respuesta cronotrópica: '+(irc?((cronoAlt?'alterada':'normal')+' — índice '+irc):'no valorable')+'.');
+  const out=P.join('\n');
   const ta=g('concltxt'); if(ta) ta.value=out;
+  var _sc=document.getElementById('sconcl'); if(_sc) _sc.classList.remove('collapsed');
+  if(ta){ try{ ta.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} }
   if(typeof updComp==='function') updComp();
-  showToast('✅ Conclusión generada ('+estilo+')');
+  showToast('✅ Conclusión generada (8 puntos)');
 }
 window.generarConclusion=generarConclusion;
 
@@ -3998,16 +3983,16 @@ function ergoLabInit() {
   }).join('');
 
   // ── POBLACIÓN ──
-  const mDist = [
-    { lbl:'< 5 METs', n: metsArr.filter(v=>v<5).length,
-      total: metsArr.length, color:'#f05454' },
-    { lbl:'5–7 METs', n: metsArr.filter(v=>v>=5&&v<=7).length,
-      total: metsArr.length, color:'#f5c842' },
-    { lbl:'8–10 METs', n: metsArr.filter(v=>v>7&&v<=10).length,
-      total: metsArr.length, color:'#3ecf8e' },
-    { lbl:'> 10 METs', n: metsArr.filter(v=>v>10).length,
-      total: metsArr.length, color:'#63b3ed' },
-  ].filter(d => d.n > 0);
+  const mTot = metsArr.length;
+  const mRangos = [
+    { r:'2–2.9 METs',  f:v=>v>=2&&v<3,   color:'#f05454' },
+    { r:'3–4.9 METs',  f:v=>v>=3&&v<5,   color:'#f0774a' },
+    { r:'5–6.9 METs',  f:v=>v>=5&&v<7,   color:'#f5c842' },
+    { r:'7–7.9 METs',  f:v=>v>=7&&v<8,   color:'#a3d977' },
+    { r:'8–9.9 METs',  f:v=>v>=8&&v<10,  color:'#3ecf8e' },
+    { r:'≥ 10 METs',   f:v=>v>=10,       color:'#63b3ed' },
+  ];
+  const mDist = mRangos.map(x => { const cnt = metsArr.filter(x.f).length; return { lbl:x.r+' (n='+cnt+')', n:cnt, total:mTot, color:x.color }; }).filter(d => d.n > 0);
   ergoLabBarras('el-mets-dist', mDist);
 
   const dukeDist = [
