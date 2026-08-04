@@ -2978,7 +2978,7 @@ function imprimirLimpio(){
       row+=`<td>${cells[9]?.textContent||'—'}</td>`;
       row+=`<td>${cells[10].querySelector('select')?.selectedOptions[0]?.text||'—'}</td>`;
       const stSel=cells[11].querySelector('select')?.selectedOptions[0]?.text||'Normal';
-      const stMm=cells[11].querySelector('input[type=number]')?.value;
+      const stMm=cells[11].querySelector('input')?.value;
       row+=`<td>${stSel}${stMm?' ('+stMm+' mm)':''}</td>`;
       row+=`<td>${cells[12].querySelector('input')?.value||'Sin arritmias'}</td>`;
     } else {
@@ -2990,7 +2990,7 @@ function imprimirLimpio(){
       row+=`<td>${cells[9]?.textContent||'—'}</td>`;
       row+=`<td>${cells[10].querySelector('select')?.selectedOptions[0]?.text||'—'}</td>`;
       const stSel=cells[11].querySelector('select')?.selectedOptions[0]?.text||'Normal';
-      const stMm=cells[11].querySelector('input[type=number]')?.value;
+      const stMm=cells[11].querySelector('input')?.value;
       row+=`<td>${stSel}${stMm?' ('+stMm+' mm)':''}</td>`;
       row+=`<td>${cells[12].querySelector('input')?.value||'Sin arritmias'}</td>`;
     }
@@ -4906,6 +4906,34 @@ document.addEventListener('click',function(e){
   if(window.swTab&&!window.swTab.__ergoDrawer){var _p=window.swTab;var w=function(){var r=_p.apply(this,arguments);try{syncDrawerActive();}catch(e){}return r;};w.__ergoDrawer=true;window.swTab=w;}
   function init(){buildDrawer();syncDrawerActive();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script>
+/* ═══ Aceptar coma como separador decimal en todos los campos numéricos ═══
+   Safari/iOS rechaza la coma en type="number". Los inputs numéricos se convierten
+   a type="text" inputmode="decimal" (teclado numérico en móvil) y se normaliza
+   coma→punto en fase de captura, ANTES de que corran los oninput de cálculo.
+   Cubre inputs estáticos y los agregados dinámicamente (MutationObserver). */
+(function(){
+  function normNum(val){ return parseFloat(String(val).replace(',', '.')) || 0; }
+  window.normNum = window.normNum || normNum;
+  function conv(el){
+    if(el && el.tagName==='INPUT' && el.getAttribute('type')==='number'){
+      el.type='text'; el.setAttribute('inputmode','decimal'); el.setAttribute('pattern','[0-9]*[.,]?[0-9]*'); el.classList.add('numdec');
+    }
+  }
+  function convAll(root){ try{ (root||document).querySelectorAll('input[type="number"]').forEach(conv); }catch(_){} }
+  document.addEventListener('input', function(e){
+    var t=e.target;
+    if(t && t.classList && t.classList.contains('numdec') && typeof t.value==='string' && t.value.indexOf(',')!==-1){
+      var p=t.selectionStart; t.value=t.value.replace(/,/g,'.'); try{ t.setSelectionRange(p,p); }catch(_){}
+    }
+  }, true);
+  function start(){
+    convAll(document);
+    try{ new MutationObserver(function(muts){ for(var i=0;i<muts.length;i++){ var an=muts[i].addedNodes; if(!an)continue; for(var j=0;j<an.length;j++){ var n=an[j]; if(n.nodeType!==1)continue; conv(n); if(n.querySelectorAll)convAll(n); } } }).observe(document.documentElement,{childList:true,subtree:true}); }catch(_){}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
 </script>
 </body></html>
