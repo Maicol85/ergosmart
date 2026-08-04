@@ -510,6 +510,7 @@ body.printing-clean #clean-controls{display:none!important}
     <div class="title-block"><h1>Ergo<span>Smart</span></h1><p>Prueba Ergométrica Graduada</p></div>
     <div class="hdr-med-wrap">
       <button type="button" class="btn btn-outline" id="hdr-med-btn" onclick="ergoMedToggle()" title="Datos del médico (desplegar / ocultar)" aria-expanded="false">✏️ Médico</button>
+      <button type="button" class="btn btn-outline" id="hdr-centro-btn" onclick="ergoCentroBtn()" title="Centro / Institución (encabezado del informe)">🏥 Centro</button>
       <div id="hdr-med-panel" class="hdr-med-panel" style="display:none">
         <div class="hdr-row">
           <div class="firma-logo"><span id="flph" style="font-size:14px;color:var(--text3)">🖋️</span><img id="flimg" alt="Logo de la firma" style="display:none"><input type="file" accept="image/*" onchange="setLogo(this,'flimg','flph',null)"></div>
@@ -625,6 +626,10 @@ body.printing-clean #clean-controls{display:none!important}
       <label style="display:block"><span style="font-size:11px;color:var(--text2)">Ciudad, País</span><input id="cfg-fciu" type="text" oninput="ergoCfgField('fciu',this.value)" placeholder="Ciudad, País" style="width:100%;margin-top:3px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit"></label>
       <label style="display:block"><span style="font-size:11px;color:var(--text2)">Servicio</span><input id="cfg-is" type="text" oninput="ergoCfgField('is',this.value)" placeholder="Servicio" style="width:100%;margin-top:3px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit"></label>
     </div>
+    <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <input type="checkbox" id="ergo-modo-inst" onchange="ergoInstModeToggle(this.checked)" style="width:16px;height:16px;cursor:pointer">
+      <span style="font-size:12.5px;color:var(--text)"><b>🏛️ Modo institucional</b> — el PDF muestra sólo la institución en el encabezado (sin CeiboMed)</span>
+    </label>
   </div>
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
     <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔬 Laboratorio</div>
@@ -668,6 +673,8 @@ body.printing-clean #clean-controls{display:none!important}
   <div class="fg fg4" style="margin-bottom:12px">
     <div><label>Fecha del estudio</label><input type="date" id="fe" oninput="updComp()"></div>
     <div><label>Fecha de solicitud</label><input type="date" id="fecha_solicitud_ergo"></div>
+    <div><label>Centro / Institución</label><input type="text" id="pcentro" placeholder="Ej: Hospital Regional de Artigas"></div>
+    <div><label>Médico solicitante</label><input type="text" id="psolicitante" placeholder="Dr./Dra. Nombre Apellido"></div>
   </div>
   <div class="fg fg4" style="margin-bottom:12px">
     <div><label>Edad (años)</label><input type="number" id="ped" placeholder="años" oninput="rFC();sEP()"></div>
@@ -1857,7 +1864,10 @@ function exportPDF(){
   fb(14); tc(255,255,255);
   doc.text('Prueba Ergométrica Graduada',105,9.5,{align:'center'});
   fn(8.5); tc(210,228,248);
-  const _hdrMed=[medName,medEsp,medMat?('Mat. '+medMat):'',medInst,medCiu].filter(Boolean).join('  ·  ');
+  const _modoInst = localStorage.getItem('ergo_modo_institucional')==='1';
+  const _hdrMed = _modoInst
+    ? (medInst || sval('pcentro') || '')
+    : ('CeiboMed' + (function(){ var m=[medName,medEsp,medMat?('Mat. '+medMat):'',medInst,medCiu].filter(Boolean).join('  ·  '); return m?('  ·  '+m):''; })());
   if(_hdrMed) doc.text(_hdrMed,105,16.5,{align:'center'});
   // logo institucional en el vértice superior derecho
   try {
@@ -1884,6 +1894,7 @@ function exportPDF(){
   const indic = (document.querySelector('.indic-opt.selected strong')||{}).textContent || '';
   drawInfoBox([
     [{lbl:'Nombre', val:sval('pn')}, {lbl:'CI / Nro. Historia', val:sval('pci')}, {lbl:'Edad', val:sval('ped')?sval('ped')+' años':''}, {lbl:'Sexo', val:sexoTxt}],
+    [{lbl:'Centro / Institución', val:sval('pcentro')}, {lbl:'Fecha', val:fechaTxt}, {lbl:'Médico solicitante', val:sval('psolicitante')}],
     [{lbl:'Peso', val:sval('pp')?sval('pp')+' kg':''}, {lbl:'Talla', val:sval('pt')?sval('pt')+' cm':''}, {lbl:'IMC', val:sval('pimc')?sval('pimc')+' kg/m²':''}, {lbl:'ASC', val:sval('psc')?sval('psc')+' m²':''}],
     [{lbl:'Servicio', val:medServ}, {lbl:'Indicación', val:(indic||'').trim()}],
     [{lbl:'Antecedentes cardiovasculares', val:sval('acv')}],
@@ -2282,7 +2293,20 @@ window.ergoCfgField=ergoCfgField;
 function ergoCfgOpen(){
   ['fn','fesp','fmat','finst','fciu','is'].forEach(function(k){ var c=document.getElementById('cfg-'+k), h=document.getElementById(k); if(c&&h)c.value=h.value||''; });
   var q=document.getElementById('ergo-qr-enabled'); if(q){ try{ q.checked=(localStorage.getItem('ergo_qr_enabled')!=='0'); }catch(e){ q.checked=true; } }
+  var mi=document.getElementById('ergo-modo-inst'); if(mi){ mi.checked=(localStorage.getItem('ergo_modo_institucional')==='1'); }
 }
+/* Botón "🏥 Centro": abre el panel del médico y edita la institución (finst) */
+function ergoCentroBtn(){
+  var p=document.getElementById('hdr-med-panel'); if(p){ p.style.display='block'; var b=document.getElementById('hdr-med-btn'); if(b)b.setAttribute('aria-expanded','true'); }
+  if(typeof ergoHdrEdit==='function') ergoHdrEdit('finst');
+}
+window.ergoCentroBtn=ergoCentroBtn;
+/* Toggle "Modo institucional": ON → PDF con la institución; OFF → CeiboMed + médico */
+function ergoInstModeToggle(on){
+  localStorage.setItem('ergo_modo_institucional', on ? '1' : '0');
+  if(typeof showToast==='function') showToast(on ? '🏛️ Modo institucional activado' : 'Modo estándar (CeiboMed)');
+}
+window.ergoInstModeToggle=ergoInstModeToggle;
 window.ergoCfgOpen=ergoCfgOpen;
 function ergoQrToggle(){ var q=document.getElementById('ergo-qr-enabled'); try{ localStorage.setItem('ergo_qr_enabled',(q&&q.checked)?'1':'0'); }catch(e){} if(typeof showToast==='function')showToast((q&&q.checked)?'✅ QR activado en el PDF':'QR desactivado en el PDF'); }
 window.ergoQrToggle=ergoQrToggle;
