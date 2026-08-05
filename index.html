@@ -545,6 +545,10 @@ body.printing-clean #clean-controls{display:none!important}
       style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text2,#94A3B8);cursor:pointer;display:flex;align-items:center;gap:4px;">
       📤 Exportar
     </button>
+    <button onclick="exportarErgoAnalytics()" title="Exportar estudios para CeiboAnalytics"
+      style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text2,#94A3B8);cursor:pointer;display:flex;align-items:center;gap:4px;">
+      📤 Exportar para Analytics
+    </button>
     <button onclick="document.getElementById('ergo-import-file-cfg').click()" title="Importar estudios desde JSON"
       style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text2,#94A3B8);cursor:pointer;display:flex;align-items:center;gap:4px;">
       📥 Importar
@@ -3575,6 +3579,20 @@ function ecgcExportPorFase(){
 }
 
 // ── Export / Import JSON ──
+function exportarErgoAnalytics() {
+  const estudios = safeLoadReports();
+  if (!estudios.length) { showToast('⚠️ No hay estudios para exportar'); return; }
+  const payload = { app: 'ergosmart', version: '1.0', exportado: new Date().toISOString(), estudios: estudios };
+  const fecha = new Date().toISOString().split('T')[0];
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ergosmart_analytics_' + fecha + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✅ ' + estudios.length + ' estudios exportados para Analytics');
+}
+
 function exportarErgoJSON() {
   const lista = safeLoadReports();
   if (!lista.length) { showToast('⚠️ No hay informes para exportar'); return; }
