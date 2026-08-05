@@ -2168,7 +2168,8 @@ function exportPDF(){
 
   // ─── copyright al pie de todas las páginas ───────────────────
   const _totPag = doc.internal.getNumberOfPages();
-  for(let _p=1; _p<=_totPag; _p++){ doc.setPage(_p); fn(6.5); tc(150,150,150); doc.text('© 2026 Dr. M. D. S. y col. · ErgoSmart · Todos los derechos reservados · Uso clínico exclusivo', 105, 292, {align:'center'}); fn(5.5); tc(165,165,165); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', 105, 295, {align:'center'}); }
+  const _modoInstF = localStorage.getItem('ergo_modo_institucional')==='1';
+  for(let _p=1; _p<=_totPag; _p++){ doc.setPage(_p); fn(6.5); tc(150,150,150); const _cop=(_modoInstF&&medInst)?('© 2026 '+medInst+' · Todos los derechos reservados · Uso clínico exclusivo'):'© 2026 Dr. M. D. S. y col. · ErgoSmart · Todos los derechos reservados · Uso clínico exclusivo'; doc.text(_cop, 105, 292, {align:'center'}); fn(5.5); tc(165,165,165); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.'+(_modoInstF?'':' CeiboMed © 2026'), 105, 295, {align:'center'}); }
 
   // ─── nombre de archivo según formato ───────────────────────
   const nombrePac = sval('pn');
@@ -3495,7 +3496,9 @@ function ecgcPdfHeader(doc,W,ACC,mL,mR){
 }
 function ecgcPdfCopyright(doc,cx,cy){
   const tot=doc.internal.getNumberOfPages();
-  for(let p=1;p<=tot;p++){doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(150,150,150);doc.text('© 2026 Dr. M. D. S. y col. · ErgoSmart · Todos los derechos reservados · Uso clínico exclusivo',cx,cy,{align:'center'});doc.setFontSize(5.5);doc.setTextColor(165,165,165);doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026',cx,cy+3,{align:'center'});doc.setFontSize(6.5);doc.setTextColor(150,150,150);}
+  const _mi=localStorage.getItem('ergo_modo_institucional')==='1';
+  const _in=(function(){var e=document.getElementById('finst'); return e?(e.value||'').trim():'';})();
+  for(let p=1;p<=tot;p++){doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(150,150,150);doc.text((_mi&&_in)?('© 2026 '+_in+' · Todos los derechos reservados · Uso clínico exclusivo'):'© 2026 Dr. M. D. S. y col. · ErgoSmart · Todos los derechos reservados · Uso clínico exclusivo',cx,cy,{align:'center'});doc.setFontSize(5.5);doc.setTextColor(165,165,165);doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica.'+(_mi?'':' CeiboMed © 2026'),cx,cy+3,{align:'center'});doc.setFontSize(6.5);doc.setTextColor(150,150,150);}
 }
 function ecgcPdfFilename(suf){
   const pac=(document.getElementById('pn').value||'Paciente').replace(/[\\/:*?"<>|]/g,'_').trim().replace(/\s+/g,'_')||'Paciente';
