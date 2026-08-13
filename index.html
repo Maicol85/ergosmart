@@ -4384,6 +4384,15 @@ async function importarErgoPDFs(files) {
   "distancia": número en km,
   "duracion": "MM:SS",
   "conclusion": "texto de conclusión/diagnóstico",
+  "resultado": "Negativa/Positiva/Indeterminada",
+  "arritmias": "Ninguna/descripción si hay",
+  "cambios_st": "Ninguno/descripción si hay",
+  "respuesta_presora": "Normal/Hipertensiva/Hipotensiva/Insuficiente",
+  "sintomas": "Ninguno/descripción si hay",
+  "motivo_detencion": "Alcanza FC objetivo/Fatiga/Angina/Arritmia/Cambios ST/Otro",
+  "prueba_completa": true o false,
+  "duke_score": número o null,
+  "duke_riesgo": "Bajo/Intermedio/Alto" o null,
   "etapas": [
     {
       "fase": "Pre-test/Esfuerzo/Cooldown/Recuperación",
@@ -4464,6 +4473,16 @@ Si un campo no está en el documento, usá null.`
       set('distancia',   datos.distancia);
       set('duracion',    datos.duracion);
       set('conclusion',  datos.conclusion);
+      // Datos clínicos estructurados (solo campos: para Analytics y detalle del informe)
+      set('resultado',         datos.resultado);
+      set('arritmias',         datos.arritmias);
+      set('cambios_st',        datos.cambios_st);
+      set('respuesta_presora', datos.respuesta_presora);
+      set('sintomas',          datos.sintomas);
+      set('motivo_detencion',  datos.motivo_detencion);
+      set('prueba_completa',   String(datos.prueba_completa));
+      set('duke_score',        datos.duke_score);
+      set('duke_riesgo',       datos.duke_riesgo);
 
       // ID reproducible
       const idHash = ((datos.nombre||'') + (datos.ci||'') + (fecha||'')).toLowerCase()
@@ -4513,6 +4532,13 @@ Si un campo no está en el documento, usá null.`
         });
       }
 
+      // Resultado de la prueba: el <select id="res"> (en FORM_FIELDS) usa valores neg/pos/nc/nd;
+      // convertir el texto de Vision. El resto de los datos clínicos quedan solo en campos (no hay
+      // input editable: duke=calculado, arritmias/síntomas=checkbox/por-etapa, presora/detención=sin campo).
+      const RES_MAP = { negativa:'neg', positiva:'pos', indeterminada:'nc' };
+      const resVal = RES_MAP[String(datos.resultado||'').toLowerCase().trim()] || '';
+      if (resVal) form.res = resVal;
+
       nuevos.push({
         id,
         nombre:         datos.nombre || '—',
@@ -4525,6 +4551,8 @@ Si un campo no está en el documento, usá null.`
         protocolo:      datos.protocolo || '',
         ergometro:      'cinta',
         mets:           datos.mets || null,
+        resultado:      datos.resultado || '',   // top-level: columna "Resultado" de rGuard / verInforme
+        resultadoVal:   resVal,                   // valor para el filtro por resultado
         campos,
         form                                    // permite ver/editar/PDF como un informe normal
       });
