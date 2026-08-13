@@ -4467,7 +4467,10 @@ Si un campo no está en el documento, usá null.`
       const IMPORT_FORM_MAP = {
         nombre:'pn', ci:'pci', edad:'ped', sexo:'psex', peso:'pp', talla:'pt',
         fecha:'fe', fc_reposo:'fcrep', fc_max:'fcmax', mets:'metat',
-        duracion:'durej', conclusion:'concltxt'
+        duracion:'durej', conclusion:'concltxt', motivo:'idet'
+        // Sin destino en FORM_FIELDS (quedan solo en campos): fc_obj (calculado),
+        // pas_max/pad_max (por etapa en la tabla), vo2_max/st_fc/distancia (form nrv-*, no
+        // restaurado), tipo_test (ergActual), med-nombre/med-ref (sin campo firmante).
       };
       const form = { ergActual:'cinta', protoActual:0, meds:[], indic:'', indicText:'', arritmias:[], rows:[] };
       for (const [k, fid] of Object.entries(IMPORT_FORM_MAP)) {
