@@ -1103,6 +1103,15 @@ body.printing-clean #clean-controls{display:none!important}
     <button class="btn" onclick="exportarErgoJSON()">📤 Exportar JSON</button>
     <input type="file" id="ergo-import-file" accept=".json" style="display:none" onchange="importarErgoJSON(this.files[0]);this.value='';">
     <button class="btn" onclick="document.getElementById('ergo-import-file').click()">📥 Importar JSON</button>
+    <button class="btn" onclick="
+      const k = prompt('API key de Anthropic (se guarda solo durante esta sesión):',
+        sessionStorage.getItem('ecg_api_key') || '');
+      if (k !== null) {
+        sessionStorage.setItem('ecg_api_key', k.trim());
+        try { if (typeof ECGC === 'object' && ECGC) ECGC.apiKey = k.trim(); } catch(e) {}
+        if (typeof showToast === 'function') showToast('✅ API key guardada');
+      }
+    " title="Configurar API key para importar PDFs">⚙️ API key</button>
     <button class="btn" onclick="document.getElementById('ergo-pdf-import-file').click()" title="Importar PDFs históricos de ergometría">📄 Importar PDFs históricos</button>
     <input type="file" id="ergo-pdf-import-file" accept=".pdf" multiple style="display:none" onchange="if(this.files&&this.files.length){importarErgoPDFs(this.files);this.value='';}">
   </div>
@@ -4280,34 +4289,110 @@ async function importarErgoPDFs(files) {
     statusEl.textContent = `Procesando ${i + 1} de ${files.length}: ${file.name}`;
     progressBar.value = Math.round((i / files.length) * 100);
     try {
+      // ── Convertir PDF a imagen y enviar a Claude Vision (los PDFs son imagen, sin capa de texto) ──
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let txt = '';
-      for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const content = await page.getTextContent();
-        txt += content.items.map(item => item.str).join(' ') + '\n';
+
+      // Tomar solo la página 1 (carátula con todos los datos)
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      const base64Image = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+      // Llamar a Claude Vision — reusa la API key de sesión del módulo ECG (sessionStorage, no queda en disco)
+      const apiKey = sessionStorage.getItem('ecg_api_key') || '';
+      if (!apiKey) {
+        statusEl.textContent = '❌ Falta API key. Configurala en el botón ⚙️';
+        errores++;
+        continue;
       }
-      const PF = parseFloat;
-      const ex = (p) => { const m = txt.match(p); return (m && m[1] && m[1].trim()) ? m[1].trim() : null; };
-      const num = (p) => { const v = ex(p); return v ? PF(v.replace(',', '.')) : null; };
-      // ── PACIENTE ──
-      const nombre    = ex(/Apellidos del paciente:\s*([A-ZÁÉÍÓÚÑ\s]+?)\s*F\./i) ||
-                        ex(/Apellido:\s*(\S+)/i);
-      const nombre2   = ex(/Nombre:\s*([A-ZÁÉÍÓÚÑ\s]+?)\s*(?:Fecha|ID|$)/i);
-      const nombre_completo = nombre ? nombre.trim() : (nombre2 ? nombre2.trim() : null);
-      const ci        = ex(/ID del paciente:\s*([\d]+)/i) ||
-                        ex(/\bID:\s*([\d]+)/i);
-      const edad      = num(/Edad:\s*(\d+)/i);
-      const talla     = num(/Estatura:\s*([\d.,]+)\s*cm/i) ||
-                        num(/Altura\s*\(cm\):\s*([\d.,]+)/i);
-      const peso      = num(/Peso:\s*([\d.,]+)\s*kg/i) ||
-                        num(/Peso\s*\(kg\):\s*([\d.,]+)/i);
-      const sexo      = ex(/Género:\s*(\S)/i);
-      const medico    = ex(/(Maicol\s+Dos\s+Santos|Cecilia\s+Corbo)/i);
-      const medico_ref = ex(/Médico(?:\s+de\s+cabecera|\s+ref\.?):\s*(\S+)/i);
-      // Fecha
-      let fecha = ex(/Fecha del test:\s*([\d\/]+)/i);
+
+      const visionResp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1024,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: { type: 'base64', media_type: 'image/jpeg', data: base64Image }
+              },
+              {
+                type: 'text',
+                text: `Extraé los datos de este informe de ergometría y devolvé SOLO un JSON válido sin texto adicional, con estas claves exactas:
+{
+  "nombre": "apellido y nombre del paciente",
+  "ci": "número de documento/ID",
+  "fecha_nac": "fecha de nacimiento DD/MM/YYYY",
+  "edad": número,
+  "talla": número en cm,
+  "peso": número en kg,
+  "sexo": "M o F",
+  "fecha_test": "fecha del test DD/MM/YYYY",
+  "protocolo": "nombre del protocolo",
+  "tipo_test": "Treadmill o Bicicleta",
+  "motivo": "motivo del estudio",
+  "fin_prueba": "motivo de finalización",
+  "medico": "nombre del médico supervisor",
+  "medico_ref": "médico de cabecera o referente",
+  "fc_reposo": número,
+  "fc_max": número,
+  "fc_pct": número (porcentaje de FC máxima alcanzada),
+  "fc_obj": número (FC objetivo teórica),
+  "pas_max": número,
+  "pad_max": número,
+  "mets": número,
+  "vo2_max": número,
+  "hrr": número (recuperación FC al minuto),
+  "st_fc": número (índice ST/FC),
+  "distancia": número en km,
+  "duracion": "MM:SS",
+  "conclusion": "texto de conclusión/diagnóstico"
+}
+Si un campo no está en el documento, usá null.`
+              }
+            ]
+          }]
+        })
+      });
+
+      if (!visionResp.ok) {
+        console.warn('Vision API error:', visionResp.status);
+        errores++;
+        continue;
+      }
+
+      const visionData = await visionResp.json();
+      const rawText = visionData.content?.[0]?.text || '{}';
+
+      let datos = {};
+      try {
+        const clean = rawText.replace(/```json|```/g, '').trim();
+        datos = JSON.parse(clean);
+      } catch(e) {
+        console.warn('JSON parse error:', e, rawText);
+        errores++;
+        continue;
+      }
+
+      // Mapear datos al objeto campos
+      const campos = {};
+      const set = (k, v) => { if (v !== null && v !== undefined && v !== '') campos[k] = String(v); };
+
+      // Normalizar fecha a YYYY-MM-DD
+      let fecha = datos.fecha_test || '';
       if (fecha && fecha.includes('/')) {
         const p = fecha.split('/');
         if (p.length === 3) {
@@ -4315,75 +4400,56 @@ async function importarErgoPDFs(files) {
           else if (p[2].length === 2) fecha = `20${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
         }
       }
-      // ── ESTUDIO ──
-      const protocolo  = ex(/Protocolo:\s*(\S+)/i);
-      const tipo_test  = ex(/Tipo de test:\s*(\S+)/i);
-      const motivo     = ex(/Razón para el test:\s*([^\n]+)/i) ||
-                         ex(/Motivo de la prueba:\s*([^\n]+)/i);
-      const fin_prueba = ex(/Motivo para finalizar la prueba:\s*([^\n]+)/i);
-      // ── RESULTADOS ──
-      const fc_reposo  = num(/frecuencia cardiaca en reposo era inicialmente de ([\d]+)\s*lpm/i);
-      const fc_max     = num(/FC\s*máx\.?:\s*([\d]+)/i);
-      const fc_pct     = num(/([\d]+)\s*%\s*de la frecuencia cardiaca predicha/i);
-      const fc_obj     = num(/FC objetivo:\s*([\d]+)/i);
-      const pas_max    = num(/PAS\s*máx\.?:\s*([\d]+)/i);
-      const pad_max    = num(/PAD\s*máx\.?:\s*([\d]+)/i);
-      const mets       = num(/Max\.\s*METS:\s*([\d.,]+)/i) ||
-                         num(/METS\s*máx\.?:\s*([\d.,]+)/i);
-      const vo2_max    = num(/VO2\s*máx\.?[^:]*:\s*([\d.,]+)/i);
-      const hrr        = num(/HRR:\s*([\d]+)/i);
-      const st_fc      = num(/[Íi]ndice\s*ST\/FC:\s*([\d.,]+)/i);
-      const distancia  = num(/Distancia\s*\(km\):\s*([\d.,]+)/i);
-      const duracion   = ex(/ejercitado[^d]+durante\s*([\d:]+)\s*min:seg/i);
-      const conclusion = ex(/Conclusiones\s*\n([^\n]{20,})/i) ||
-                         ex(/REALIZA[^\n]+/i);
-      // ── ID reproducible ──
-      const idHash = ((nombre_completo||'') + (ci||'') + (fecha||'')).toLowerCase()
+
+      set('nombre',      datos.nombre);
+      set('ci',          datos.ci);
+      set('edad',        datos.edad);
+      set('talla',       datos.talla);
+      set('peso',        datos.peso);
+      set('sexo',        datos.sexo);
+      set('fecha',       fecha);
+      set('protocolo',   datos.protocolo);
+      set('tipo_test',   datos.tipo_test);
+      set('motivo',      datos.motivo);
+      set('fin_prueba',  datos.fin_prueba);
+      set('med-nombre',  datos.medico);
+      set('med-ref',     datos.medico_ref);
+      set('fc_reposo',   datos.fc_reposo);
+      set('fc_max',      datos.fc_max);
+      set('fc_pct',      datos.fc_pct);
+      set('fc_obj',      datos.fc_obj);
+      set('pas_max',     datos.pas_max);
+      set('pad_max',     datos.pad_max);
+      set('mets',        datos.mets);
+      set('vo2_max',     datos.vo2_max);
+      set('hrr',         datos.hrr);
+      set('st_fc',       datos.st_fc);
+      set('distancia',   datos.distancia);
+      set('duracion',    datos.duracion);
+      set('conclusion',  datos.conclusion);
+
+      // ID reproducible
+      const idHash = ((datos.nombre||'') + (datos.ci||'') + (fecha||'')).toLowerCase()
         .replace(/\s/g,'')
         .split('')
         .reduce((a,c) => ((a<<5)-a+c.charCodeAt(0))|0, 0);
       const id = Math.abs(idHash) + 2000000000;
+
       if (idsExistentes.has(id)) { duplicados++; continue; }
-      const campos = {};
-      const set = (k, v) => { if (v !== null && v !== undefined && v !== '') campos[k] = String(v); };
-      set('nombre',       nombre_completo);
-      set('ci',           ci);
-      set('edad',         edad);
-      set('talla',        talla);
-      set('peso',         peso);
-      set('sexo',         sexo);
-      set('fecha',        fecha);
-      set('protocolo',    protocolo);
-      set('tipo_test',    tipo_test);
-      set('motivo',       motivo);
-      set('fin_prueba',   fin_prueba);
-      set('med-nombre',   medico);
-      set('med-ref',      medico_ref);
-      set('fc_reposo',    fc_reposo);
-      set('fc_max',       fc_max);
-      set('fc_pct',       fc_pct);
-      set('fc_obj',       fc_obj);
-      set('pas_max',      pas_max);
-      set('pad_max',      pad_max);
-      set('mets',         mets);
-      set('vo2_max',      vo2_max);
-      set('hrr',          hrr);
-      set('st_fc',        st_fc);
-      set('distancia',    distancia);
-      set('duracion',     duracion);
-      set('conclusion',   conclusion);
+
       nuevos.push({
         id,
-        nombre:          nombre_completo || '—',
-        ci:              ci || '—',
-        fecha_estudio:   fecha || '',
-        fecha_guardado:  new Date().toISOString(),
-        importado_pdf:   true,
-        archivo_origen:  file.name,
-        protocolo:       protocolo || '',
-        mets:            mets || null,
+        nombre:         datos.nombre || '—',
+        ci:             datos.ci || '—',
+        fecha_estudio:  fecha || '',
+        fecha_guardado: new Date().toISOString(),
+        importado_pdf:  true,
+        archivo_origen: file.name,
+        protocolo:      datos.protocolo || '',
+        mets:           datos.mets || null,
         campos
       });
+
       idsExistentes.add(id);
       importados++;
     } catch(err) {
