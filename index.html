@@ -4383,8 +4383,21 @@ async function importarErgoPDFs(files) {
   "st_fc": número (índice ST/FC),
   "distancia": número en km,
   "duracion": "MM:SS",
-  "conclusion": "texto de conclusión/diagnóstico"
+  "conclusion": "texto de conclusión/diagnóstico",
+  "etapas": [
+    {
+      "fase": "Pre-test/Esfuerzo/Cooldown/Recuperación",
+      "etapa": número,
+      "duracion": "MM:SS",
+      "velocidad": número,
+      "grado": número,
+      "fc": número,
+      "pas": número,
+      "pad": número
+    }
+  ]
 }
+Cada fila de la tabla de etapas del estudio es un elemento de "etapas", en orden. Si no hay tabla, usá [].
 Si un campo no está en el documento, usá null.`
               }
             ]
@@ -4475,6 +4488,29 @@ Si un campo no está en el documento, usá null.`
       const form = { ergActual:'cinta', protoActual:0, meds:[], indic:'', indicText:'', arritmias:[], rows:[] };
       for (const [k, fid] of Object.entries(IMPORT_FORM_MAP)) {
         if (campos[k] !== undefined) form[fid] = campos[k];
+      }
+
+      // Tabla de etapas: construir form.rows desde datos.etapas (lo consume restoreRows al ver/editar/PDF)
+      if (Array.isArray(datos.etapas) && datos.etapas.length) {
+        const nz = v => (v === null || v === undefined) ? '' : String(v);
+        form.rows = datos.etapas.map((e, i) => {
+          const fase = String(e.fase || '').toLowerCase();
+          const tipo = /pre|reposo|basal/.test(fase) ? 'reposo'
+                     : /recuper|cooldown|enfria/.test(fase) ? 'rec' : '';
+          // duración "MM:SS" → minutos decimales para la columna numérica de tiempo
+          let tiempo = '';
+          if (e.duracion !== null && e.duracion !== undefined) {
+            const s = String(e.duracion), mm = s.match(/^(\d{1,2}):(\d{2})$/);
+            tiempo = mm ? (parseInt(mm[1],10) + parseInt(mm[2],10)/60).toFixed(1) : s;
+          }
+          return {
+            label: e.fase || ('Etapa ' + (e.etapa || (i+1))),
+            vel: nz(e.velocidad), pend: nz(e.grado),
+            carga: '', kgm: '', mets: '',
+            tiempo, fc: nz(e.fc), pas: nz(e.pas), pad: nz(e.pad),
+            dp: '—', sintomas: '', st: 'normal', stmm: '', arr: '', tipo
+          };
+        });
       }
 
       nuevos.push({
