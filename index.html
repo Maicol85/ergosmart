@@ -6,6 +6,7 @@
 <title>ErgoSmart – Prueba Ergométrica Graduada</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer onload="pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'"></script>
 <style>
 :root{--bg:#0f1623;--bg2:#161e2e;--bg3:#1e2a3a;--card:#1a2435;--card2:#202d40;--border:#2a3a52;--accent:#0ea5e9;--accent2:#06b6d4;--accent3:#10b981;--warn:#f59e0b;--danger:#ef4444;--positive:#22c55e;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--font:'Segoe UI',system-ui,sans-serif}
 [data-theme="light"]{--bg:#f1f5f9;--bg2:#e2e8f0;--bg3:#ffffff;--card:#ffffff;--card2:#f8fafc;--border:#cbd5e1;--accent:#0284c7;--accent2:#0891b2;--accent3:#059669;--warn:#d97706;--danger:#dc2626;--positive:#16a34a;--text:#0f172a;--text2:#475569;--text3:#94a3b8}
@@ -1102,6 +1103,8 @@ body.printing-clean #clean-controls{display:none!important}
     <button class="btn" onclick="exportarErgoJSON()">📤 Exportar JSON</button>
     <input type="file" id="ergo-import-file" accept=".json" style="display:none" onchange="importarErgoJSON(this.files[0]);this.value='';">
     <button class="btn" onclick="document.getElementById('ergo-import-file').click()">📥 Importar JSON</button>
+    <button class="btn" onclick="document.getElementById('ergo-pdf-import-file').click()" title="Importar PDFs históricos de ergometría">📄 Importar PDFs históricos</button>
+    <input type="file" id="ergo-pdf-import-file" accept=".pdf" multiple style="display:none" onchange="if(this.files&&this.files.length){importarErgoPDFs(this.files);this.value='';}">
   </div>
   <div style="background:var(--bg2);border-radius:10px;border:1px solid var(--border);padding:12px;margin-bottom:12px;">
     <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">
@@ -4257,6 +4260,151 @@ window.ergoLabComparar = ergoLabComparar;
 window.ergoLabCompararInit = ergoLabCompararInit;
 window.ergoLabCSV = ergoLabCSV;
 
+// ══ IMPORTADOR PDF HISTÓRICO DE ERGOMETRÍAS ════════════════
+async function importarErgoPDFs(files) {
+  if (typeof pdfjsLib === 'undefined') {
+    showToast('❌ pdf.js no cargó. Reintentá en unos segundos.');
+    return;
+  }
+  const KEY = 'ergo_informes';
+  const existentes = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const idsExistentes = new Set(existentes.map(i => i.id));
+  document.getElementById('modal-ergo-pdf-import').style.display = '';
+  const progressBar = document.getElementById('ergo-pdf-progress');
+  const statusEl    = document.getElementById('ergo-pdf-status');
+  document.getElementById('ergo-pdf-close').style.display = 'none';
+  let importados = 0, duplicados = 0, errores = 0;
+  const nuevos = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    statusEl.textContent = `Procesando ${i + 1} de ${files.length}: ${file.name}`;
+    progressBar.value = Math.round((i / files.length) * 100);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let txt = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        txt += content.items.map(item => item.str).join(' ') + '\n';
+      }
+      const PF = parseFloat;
+      const ex = (p) => { const m = txt.match(p); return (m && m[1] && m[1].trim()) ? m[1].trim() : null; };
+      const num = (p) => { const v = ex(p); return v ? PF(v.replace(',', '.')) : null; };
+      // ── PACIENTE ──
+      const nombre    = ex(/Apellidos del paciente:\s*([A-ZÁÉÍÓÚÑ\s]+?)\s*F\./i) ||
+                        ex(/Apellido:\s*(\S+)/i);
+      const nombre2   = ex(/Nombre:\s*([A-ZÁÉÍÓÚÑ\s]+?)\s*(?:Fecha|ID|$)/i);
+      const nombre_completo = nombre ? nombre.trim() : (nombre2 ? nombre2.trim() : null);
+      const ci        = ex(/ID del paciente:\s*([\d]+)/i) ||
+                        ex(/\bID:\s*([\d]+)/i);
+      const edad      = num(/Edad:\s*(\d+)/i);
+      const talla     = num(/Estatura:\s*([\d.,]+)\s*cm/i) ||
+                        num(/Altura\s*\(cm\):\s*([\d.,]+)/i);
+      const peso      = num(/Peso:\s*([\d.,]+)\s*kg/i) ||
+                        num(/Peso\s*\(kg\):\s*([\d.,]+)/i);
+      const sexo      = ex(/Género:\s*(\S)/i);
+      const medico    = ex(/(Maicol\s+Dos\s+Santos|Cecilia\s+Corbo)/i);
+      const medico_ref = ex(/Médico(?:\s+de\s+cabecera|\s+ref\.?):\s*(\S+)/i);
+      // Fecha
+      let fecha = ex(/Fecha del test:\s*([\d\/]+)/i);
+      if (fecha && fecha.includes('/')) {
+        const p = fecha.split('/');
+        if (p.length === 3) {
+          if (p[2].length === 4) fecha = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+          else if (p[2].length === 2) fecha = `20${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+        }
+      }
+      // ── ESTUDIO ──
+      const protocolo  = ex(/Protocolo:\s*(\S+)/i);
+      const tipo_test  = ex(/Tipo de test:\s*(\S+)/i);
+      const motivo     = ex(/Razón para el test:\s*([^\n]+)/i) ||
+                         ex(/Motivo de la prueba:\s*([^\n]+)/i);
+      const fin_prueba = ex(/Motivo para finalizar la prueba:\s*([^\n]+)/i);
+      // ── RESULTADOS ──
+      const fc_reposo  = num(/frecuencia cardiaca en reposo era inicialmente de ([\d]+)\s*lpm/i);
+      const fc_max     = num(/FC\s*máx\.?:\s*([\d]+)/i);
+      const fc_pct     = num(/([\d]+)\s*%\s*de la frecuencia cardiaca predicha/i);
+      const fc_obj     = num(/FC objetivo:\s*([\d]+)/i);
+      const pas_max    = num(/PAS\s*máx\.?:\s*([\d]+)/i);
+      const pad_max    = num(/PAD\s*máx\.?:\s*([\d]+)/i);
+      const mets       = num(/Max\.\s*METS:\s*([\d.,]+)/i) ||
+                         num(/METS\s*máx\.?:\s*([\d.,]+)/i);
+      const vo2_max    = num(/VO2\s*máx\.?[^:]*:\s*([\d.,]+)/i);
+      const hrr        = num(/HRR:\s*([\d]+)/i);
+      const st_fc      = num(/[Íi]ndice\s*ST\/FC:\s*([\d.,]+)/i);
+      const distancia  = num(/Distancia\s*\(km\):\s*([\d.,]+)/i);
+      const duracion   = ex(/ejercitado[^d]+durante\s*([\d:]+)\s*min:seg/i);
+      const conclusion = ex(/Conclusiones\s*\n([^\n]{20,})/i) ||
+                         ex(/REALIZA[^\n]+/i);
+      // ── ID reproducible ──
+      const idHash = ((nombre_completo||'') + (ci||'') + (fecha||'')).toLowerCase()
+        .replace(/\s/g,'')
+        .split('')
+        .reduce((a,c) => ((a<<5)-a+c.charCodeAt(0))|0, 0);
+      const id = Math.abs(idHash) + 2000000000;
+      if (idsExistentes.has(id)) { duplicados++; continue; }
+      const campos = {};
+      const set = (k, v) => { if (v !== null && v !== undefined && v !== '') campos[k] = String(v); };
+      set('nombre',       nombre_completo);
+      set('ci',           ci);
+      set('edad',         edad);
+      set('talla',        talla);
+      set('peso',         peso);
+      set('sexo',         sexo);
+      set('fecha',        fecha);
+      set('protocolo',    protocolo);
+      set('tipo_test',    tipo_test);
+      set('motivo',       motivo);
+      set('fin_prueba',   fin_prueba);
+      set('med-nombre',   medico);
+      set('med-ref',      medico_ref);
+      set('fc_reposo',    fc_reposo);
+      set('fc_max',       fc_max);
+      set('fc_pct',       fc_pct);
+      set('fc_obj',       fc_obj);
+      set('pas_max',      pas_max);
+      set('pad_max',      pad_max);
+      set('mets',         mets);
+      set('vo2_max',      vo2_max);
+      set('hrr',          hrr);
+      set('st_fc',        st_fc);
+      set('distancia',    distancia);
+      set('duracion',     duracion);
+      set('conclusion',   conclusion);
+      nuevos.push({
+        id,
+        nombre:          nombre_completo || '—',
+        ci:              ci || '—',
+        fecha_estudio:   fecha || '',
+        fecha_guardado:  new Date().toISOString(),
+        importado_pdf:   true,
+        archivo_origen:  file.name,
+        protocolo:       protocolo || '',
+        mets:            mets || null,
+        campos
+      });
+      idsExistentes.add(id);
+      importados++;
+    } catch(err) {
+      console.warn('Error en', file.name, err);
+      errores++;
+    }
+  }
+  const merged = [...existentes, ...nuevos];
+  localStorage.setItem(KEY, JSON.stringify(merged));
+  progressBar.value = 100;
+  statusEl.innerHTML =
+    `<strong>✅ Completado</strong><br>` +
+    `Importados: ${importados} | Duplicados omitidos: ${duplicados} | Errores: ${errores}`;
+  document.getElementById('ergo-pdf-close').style.display = '';
+  if (typeof rGuard === 'function') rGuard();
+  else if (typeof renderInformes === 'function') renderInformes();
+  else if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  else if (typeof cargarInformes === 'function') cargarInformes();
+}
+window.importarErgoPDFs = importarErgoPDFs;
+
 // ══ FIN LABORATORIO ERGOSMART ══════════════════════════════
 </script>
 <div class="modal-overlay" id="modal-logo-gallery" style="display:none" onclick="if(event.target===this)closeLogoGallery()">
@@ -4957,4 +5105,18 @@ document.addEventListener('click',function(e){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
 </script>
+<div class="modal-overlay" id="modal-ergo-pdf-import" style="display:none">
+  <div class="modal" style="max-width:480px;padding:28px">
+    <div style="font-size:15px;font-weight:700;color:var(--accent2);margin-bottom:16px;">
+      📄 Importando PDFs históricos
+    </div>
+    <progress id="ergo-pdf-progress" value="0" max="100" style="width:100%;margin-bottom:12px;"></progress>
+    <div id="ergo-pdf-status" style="font-size:13px;color:var(--text2);margin-bottom:16px;">
+      Preparando...
+    </div>
+    <button id="ergo-pdf-close" class="btn btn-primary" style="display:none" onclick="document.getElementById('modal-ergo-pdf-import').style.display='none'">
+      Cerrar
+    </button>
+  </div>
+</div>
 </body></html>
