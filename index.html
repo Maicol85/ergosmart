@@ -112,6 +112,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .ci{color:var(--text2);transition:transform .2s}
 .collapsed .ci{transform:rotate(-90deg)}
 .collapsed .sb{display:none}
+/* ── FIX Safari: overflow:hidden + border-radius en .sc/.ar-acc rompe el hit-testing de
+   los clicks sobre labels/chips con onclick+transition (indicación, antecedentes, medicación,
+   complicaciones, criterios de alto riesgo) — se ven pero no tildan. Los <input> nativos no se
+   ven afectados. El colapso ya usa display:none (no max-height). Liberamos el clip en esas
+   secciones y redondeamos el header para conservar las esquinas. ── */
+#sind, #sindic, #sant, #scomp { overflow: visible; }
+#sind > .sh, #sindic > .sh, #sant > .sh, #scomp > .sh { border-radius: 9px 9px 0 0; }
+#sind.collapsed > .sh, #sindic.collapsed > .sh, #sant.collapsed > .sh, #scomp.collapsed > .sh { border-radius: 9px; }
+.ar-acc-hd { border-radius: 9px 9px 0 0; }
+.ar-acc:not(.open) .ar-acc-hd { border-radius: 9px; }
 /* FORMS */
 .fg{display:grid;gap:10px}
 .fg2{grid-template-columns:1fr 1fr}
@@ -307,7 +317,7 @@ table.ecgc-grid td.ecgc-cell .ecgc-empty{color:#c99;font-size:12px}
 .hemo-card input,.hemo-card select{width:100%;margin:0}
 .hemo-duke{flex:0 0 170px;display:flex;flex-direction:column;gap:8px}
 .hemo-duke .duke-box{margin:0}
-.ar-acc{border:1px solid rgba(239,68,68,.35);border-radius:10px;margin-top:14px;overflow:hidden}
+.ar-acc{border:1px solid rgba(239,68,68,.35);border-radius:10px;margin-top:14px;overflow:visible}
 .ar-acc-hd{display:flex;align-items:center;gap:8px;background:rgba(239,68,68,.1);color:var(--danger);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 13px;cursor:pointer}
 .ar-acc-hd svg{width:17px;height:17px;flex-shrink:0}
 .ar-acc-chev{margin-left:auto;transition:transform .2s;font-size:11px}
@@ -3037,6 +3047,7 @@ function guardar(){
     conducta:document.getElementById('cond')?.value||'',
     criterios_ar:Array.from(document.querySelectorAll('.ari.chk span')).map(s=>s.textContent.trim()),
     form:capturarForm()};
+  console.log('indicacion_sel:', base.indicacion_sel);
   let lista=safeLoadReports();
   if(editandoId){
     const idx=lista.findIndex(i=>i.id===editandoId);
