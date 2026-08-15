@@ -2413,6 +2413,26 @@ function exportPDF(){
     doc.text('Sin ECG comparativo analizado.', mL+1, y+4); y += 6;
   }
 
+  // ════════════════════════════════════════════════════════════
+  // BLOQUE 7 · EN SUMA / CONCLUSIÓN RÁPIDA
+  // ════════════════════════════════════════════════════════════
+  const _ensuma = sval('ergo_ensuma');
+  if(_ensuma){
+    drawBar('EN SUMA / CONCLUSIÓN RÁPIDA');
+    const _esLines = doc.splitTextToSize(_ensuma, pgW-9);
+    const _boxH = _esLines.length*4.4 + 6;
+    checkPage(_boxH+4);
+    // caja con fondo diferenciado (tinte muy claro del color del tema) + barra de acento
+    const _tint = TEMA.map(c=>Math.round(c+(255-c)*0.90));
+    fc(_tint[0],_tint[1],_tint[2]); doc.rect(mL,y,pgW,_boxH,'F');
+    dc(TEMA[0],TEMA[1],TEMA[2]); doc.setLineWidth(0.5); doc.rect(mL,y,pgW,_boxH);
+    fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(mL,y,1.6,_boxH,'F');
+    fn(8.5); tc(30,30,30);
+    let _ey = y+5;
+    _esLines.forEach(ln=>{ doc.text(ln, mL+6, _ey); _ey += 4.4; });
+    y += _boxH + 4;
+  }
+
   // ─── firma final (alineada a la derecha, estilo index.html) ───
   checkPage(28); y += 8;
   dc(180,180,180); doc.setLineWidth(0.4); doc.line(mL, y, mR, y); y += 5;
