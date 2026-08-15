@@ -1697,6 +1697,28 @@ body.printing-clean #clean-controls{display:none!important}
       </div>
     </div>
 
+    <!-- Síntomas y arritmias (CAMBIO 6) -->
+    <div class="el-card">
+      <div class="el-hdr">🫀 Síntomas y arritmias</div>
+      <div class="el-body">
+        <div class="el-grid">
+          <div>
+            <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Síntomas durante el esfuerzo</div>
+            <div class="el-bar-wrap" id="el-sint-dist"></div>
+            <div class="el-stat" style="margin-top:12px;"><span class="el-lbl">% pruebas con angina</span><span class="el-val" id="el-pct-angina">—</span></div>
+            <div class="el-stat"><span class="el-lbl">% limitadas por angina</span><span class="el-val" id="el-pct-angina-lim">—</span></div>
+          </div>
+          <div>
+            <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Arritmias</div>
+            <div class="el-bar-wrap" id="el-arr-dist"></div>
+            <div class="el-stat" style="margin-top:12px;"><span class="el-lbl">% con arritmias</span><span class="el-val" id="el-pct-arr">—</span></div>
+            <div style="margin-top:12px;font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;">Descripción más frecuente</div>
+            <table style="width:100%;margin-top:6px;font-size:.78rem;border-collapse:collapse;"><tbody id="el-arr-tbl"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Betabloqueante -->
     <div class="el-card">
       <div class="el-hdr">💊 Betabloqueante</div>
@@ -2147,7 +2169,7 @@ function generarConclusion(){
   let pasMax=0, pasBas=0; { const b=document.querySelector('#tetb tr td:nth-child(9) input'); pasBas=b?(parseInt(b.value)||0):0; document.querySelectorAll('#tetb tr td:nth-child(9) input').forEach(i=>{const v=parseInt(i.value)||0; if(v>pasMax)pasMax=v;}); }
   const presoraCat = pasMax>=210?'hipertensiva':(pasBas>0&&pasMax<pasBas)?'hipotensora':'normal';
   // 7) Arritmias
-  const arrTabla=Array.from(document.querySelectorAll('#tetb tr td:nth-child(14) input')).map(i=>(i.value||'').trim()).filter(t=>t && !/sin arritmias/i.test(t));
+  const arrTabla=Array.from(document.querySelectorAll('#tetb tr')).filter(tr=>(tr.querySelector('.td-arr-sel')?.value||'')==='con').map(tr=>(tr.querySelector('.td-arr-txt')?.value||'').trim()||'Con arritmias');
   // 8) Respuesta cronotrópica
   const irc=clean(stxt('virc'));
   const cronoAlt=(irc && parseFloat(irc)<ergoIrcCut());
@@ -2366,7 +2388,9 @@ function exportPDF(){
     if(stSel && stSel.value!=='normal' && stMm && stMm.value) stTxt = (stTxt?stTxt+' ':'')+stMm.value+'mm';
     const sint = tr.querySelector('td:nth-child(12) select');
     const sintTxt = (sint && sint.value ? sint.selectedOptions[0].text.trim() : '') || 'Sin síntomas';
-    const arrTxt  = gv('td:nth-child(14) input') || 'Sin arritmias';
+    const arrSelV = tr.querySelector('.td-arr-sel')?.value || '';
+    const arrDesc = gv('.td-arr-txt');
+    const arrTxt  = arrSelV === 'con' ? (arrDesc ? 'Con arritmias: ' + arrDesc : 'Con arritmias') : 'Sin arritmias';
     const etapa = gv('.ela input'), mets = clean(gv('.metsc')), tiempo = gv('td:nth-child(7) input');
     const fc = gv('td:nth-child(8) input'), pas = gv('td:nth-child(9) input'), pad = gv('td:nth-child(10) input');
     const dp = clean(gv('.dpc'));
@@ -2506,7 +2530,7 @@ function exportPDF(){
   if(rfc) partes.push('Recuperación de FC al 1er minuto: '+rfc+' lpm'+(rfc>18?' (normal, >18 lpm)':rfc>=13?' (zona intermedia / reducida leve, 13–18 lpm)':' (anormal / alto riesgo, ≤12 lpm — predictor pronóstico)')+'. Cutoff para recuperación pasiva; la recuperación activa puede requerir valores diferentes.');
   // arritmias / criterios de alto riesgo
   const arN = document.querySelectorAll('.ari.chk').length;
-  const arrTabla = Array.from(document.querySelectorAll('#tetb tr td:nth-child(14) input')).map(i=>(i.value||'').trim()).filter(t=>t && !/sin arritmias/i.test(t));
+  const arrTabla = Array.from(document.querySelectorAll('#tetb tr')).filter(tr=>(tr.querySelector('.td-arr-sel')?.value||'')==='con').map(tr=>(tr.querySelector('.td-arr-txt')?.value||'').trim()||'Con arritmias');
   if(arrTabla.length) partes.push('Arritmias registradas durante el esfuerzo: '+arrTabla.join('; ')+'.');
   else if(rows.length) partes.push('No se registraron arritmias significativas durante el esfuerzo ni la recuperación.');
   if(arN>0) partes.push(arN+' criterio'+(arN>1?'s':'')+' ergométrico'+(arN>1?'s':'')+' de alto riesgo identificado'+(arN>1?'s':'')+'.');
@@ -2530,6 +2554,26 @@ function exportPDF(){
   }
   // CONCLUSIÓN: síntesis breve — NO repite el cuerpo del informe
   if(_sintesisInf.length){ y+=2; drawBar('CONCLUSIÓN'); drawParagraph(_sintesisInf.join('\n')); }
+
+  // ════════════════════════════════════════════════════════════
+  // EN SUMA / CONCLUSIÓN RÁPIDA — va después del Informe y antes del ECG (CAMBIO 1)
+  // ════════════════════════════════════════════════════════════
+  const _ensuma = sval('ergo_ensuma');
+  if(_ensuma){
+    drawBar('EN SUMA / CONCLUSIÓN RÁPIDA');
+    const _esLines = doc.splitTextToSize(_ensuma, pgW-9);
+    const _boxH = _esLines.length*4.4 + 6;
+    checkPage(_boxH+4);
+    // caja con fondo diferenciado (tinte muy claro del color del tema) + barra de acento
+    const _tint = TEMA.map(c=>Math.round(c+(255-c)*0.90));
+    fc(_tint[0],_tint[1],_tint[2]); doc.rect(mL,y,pgW,_boxH,'F');
+    dc(TEMA[0],TEMA[1],TEMA[2]); doc.setLineWidth(0.5); doc.rect(mL,y,pgW,_boxH);
+    fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(mL,y,1.6,_boxH,'F');
+    fn(8.5); tc(30,30,30);
+    let _ey = y+5;
+    _esLines.forEach(ln=>{ doc.text(ln, mL+6, _ey); _ey += 4.4; });
+    y += _boxH + 4;
+  }
 
   // ════════════════════════════════════════════════════════════
   // BLOQUE 6 · REGISTRO ELECTROCARDIOGRÁFICO
@@ -2568,26 +2612,6 @@ function exportPDF(){
     drawBar('REGISTRO ELECTROCARDIOGRÁFICO');
     fn(8); tc(120,120,120); checkPage(6);
     doc.text('Sin ECG comparativo analizado.', mL+1, y+4); y += 6;
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // BLOQUE 7 · EN SUMA / CONCLUSIÓN RÁPIDA
-  // ════════════════════════════════════════════════════════════
-  const _ensuma = sval('ergo_ensuma');
-  if(_ensuma){
-    drawBar('EN SUMA / CONCLUSIÓN RÁPIDA');
-    const _esLines = doc.splitTextToSize(_ensuma, pgW-9);
-    const _boxH = _esLines.length*4.4 + 6;
-    checkPage(_boxH+4);
-    // caja con fondo diferenciado (tinte muy claro del color del tema) + barra de acento
-    const _tint = TEMA.map(c=>Math.round(c+(255-c)*0.90));
-    fc(_tint[0],_tint[1],_tint[2]); doc.rect(mL,y,pgW,_boxH,'F');
-    dc(TEMA[0],TEMA[1],TEMA[2]); doc.setLineWidth(0.5); doc.rect(mL,y,pgW,_boxH);
-    fc(TEMA[0],TEMA[1],TEMA[2]); doc.rect(mL,y,1.6,_boxH,'F');
-    fn(8.5); tc(30,30,30);
-    let _ey = y+5;
-    _esLines.forEach(ln=>{ doc.text(ln, mL+6, _ey); _ey += 4.4; });
-    y += _boxH + 4;
   }
 
   // ─── firma final (alineada a la derecha, estilo index.html) ───
@@ -2958,11 +2982,15 @@ tr.innerHTML=`
 <td><input type="number" placeholder="mmHg" style="width:58px" oninput="calcDP(this.closest('tr'))"></td>
 <td><input type="number" placeholder="mmHg" style="width:50px"></td>
 <td class="dpc" id="dp-${rowId}">—</td>
-<td><select style="width:112px"><option value="">Sin síntomas</option><option value="ang1">Angor I</option><option value="ang2">Angor II</option><option value="ang3">Angor III ⚠</option><option value="disnea">Disnea</option><option value="mareos">Mareos</option><option value="fatiga">Fatiga</option></select></td>
+<td><select style="width:118px"><option value="">Sin síntomas</option><option value="ang_no_lim">Angor no limitante</option><option value="ang_lim">Angor limitante</option><option value="disnea">Disnea</option><option value="mareos">Mareos</option><option value="fatiga">Fatiga</option></select></td>
 <td><select style="width:122px" onchange="colorST(this)"><option value="normal">Normal</option><option value="hort">↓ Horizontal</option><option value="desc">↓↓ Descendente</option><option value="asc_l">↓ Asc. lento</option><option value="supra_sinQ">↑ SUPRA sin Q ⚠</option><option value="supra_conQ">↑ SUPRA con Q</option></select><input type="number" placeholder="mm" step="0.5" style="width:44px;margin-top:3px" title="mm"></td>
-<td><input type="text" placeholder="Sin arritmias" style="width:112px"></td>
+<td><select class="td-arr-sel" style="width:118px" onchange="onArrSel(this)"><option value="">Sin arritmias</option><option value="con">Con arritmias</option></select><input type="text" class="td-arr-txt" placeholder="¿Cuál? (EV, TPSV, FA…)" style="width:118px;margin-top:3px;display:none"></td>
 <td class="no-print"><button class="del-btn" aria-label="Eliminar fila" title="Eliminar fila" onclick="document.getElementById('${rowId}').remove()">✕</button></td>`;
 tbody.appendChild(tr);}
+// Arritmias: mostrar/ocultar el detalle de texto según el select
+function onArrSel(sel){ const tr=sel.closest('tr'); const txt=tr&&tr.querySelector('.td-arr-txt'); if(txt){ txt.style.display = sel.value==='con' ? '' : 'none'; if(sel.value!=='con') txt.value=''; } }
+// Migración de síntomas de estudios previos (Angor I/II → no limitante · Angor III → limitante)
+function _migSint(v){ if(v==='ang1'||v==='ang2') return 'ang_no_lim'; if(v==='ang3') return 'ang_lim'; return v||''; }
 
 function onCarga(inp){const tr=inp.closest('tr'),w=parseFloat(inp.value.replace(',','.'))||0,kgm=w*6;const tk=tr.querySelector('.td-kgm input');if(tk)tk.value=kgm>0?kgm:'';updateMETS(tr,kgm);}
 function onKgm(inp){const tr=inp.closest('tr'),kgm=parseFloat(inp.value.replace(',','.'))||0;const wi=tr.querySelector('.td-carga input');if(wi&&kgm>0)wi.value=Math.round(kgm/6);updateMETS(tr,kgm);}
@@ -3178,6 +3206,7 @@ function capturarForm(){
       pad:tr.querySelector('td:nth-child(10) input')?.value||'',
       dp:q('.dpc')?.textContent||'—',
       sintomas:tr.querySelector('td:nth-child(12) select')?.value||'',
+      arrSel:tr.querySelector('.td-arr-sel')?.value||'',
       st:tr.querySelector('td:nth-child(13) select')?.value||'normal',
       stmm:tr.querySelector('td:nth-child(13) input')?.value||'',
       arr:tr.querySelector('td:nth-child(14) input')?.value||'',
@@ -3207,13 +3236,16 @@ function restoreRows(rows){
 <td><input type="number" value="${esc(r.pas)}" placeholder="mmHg" style="width:58px" oninput="calcDP(this.closest('tr'))"></td>
 <td><input type="number" value="${esc(r.pad)}" placeholder="mmHg" style="width:50px"></td>
 <td class="dpc" id="dp-${rowId}">${esc(r.dp)||'—'}</td>
-<td><select style="width:112px"><option value="">Sin síntomas</option><option value="ang1">Angor I</option><option value="ang2">Angor II</option><option value="ang3">Angor III ⚠</option><option value="disnea">Disnea</option><option value="mareos">Mareos</option><option value="fatiga">Fatiga</option></select></td>
+<td><select style="width:118px"><option value="">Sin síntomas</option><option value="ang_no_lim">Angor no limitante</option><option value="ang_lim">Angor limitante</option><option value="disnea">Disnea</option><option value="mareos">Mareos</option><option value="fatiga">Fatiga</option></select></td>
 <td><select style="width:122px" onchange="colorST(this)"><option value="normal">Normal</option><option value="hort">↓ Horizontal</option><option value="desc">↓↓ Descendente</option><option value="asc_l">↓ Asc. lento</option><option value="supra_sinQ">↑ SUPRA sin Q ⚠</option><option value="supra_conQ">↑ SUPRA con Q</option></select><input type="number" value="${esc(r.stmm)}" placeholder="mm" step="0.5" style="width:44px;margin-top:3px" title="mm"></td>
-<td><input type="text" value="${esc(r.arr)}" placeholder="Sin arritmias" style="width:112px"></td>
+<td><select class="td-arr-sel" style="width:118px" onchange="onArrSel(this)"><option value="">Sin arritmias</option><option value="con">Con arritmias</option></select><input type="text" class="td-arr-txt" value="${esc(r.arr)}" placeholder="¿Cuál? (EV, TPSV, FA…)" style="width:118px;margin-top:3px;display:none"></td>
 <td class="no-print"><button class="del-btn" aria-label="Eliminar fila" title="Eliminar fila" onclick="document.getElementById('${rowId}').remove()">✕</button></td>`;
     tbody.appendChild(tr);
-    const symSel=tr.querySelector('td:nth-child(12) select');if(symSel)symSel.value=r.sintomas||'';
+    const symSel=tr.querySelector('td:nth-child(12) select');if(symSel)symSel.value=_migSint(r.sintomas);
     const stSel=tr.querySelector('td:nth-child(13) select');if(stSel){stSel.value=r.st||'normal';colorST(stSel);}
+    // Arritmias: derivar el select. Estudios previos con texto → "Con arritmias" + descripción.
+    const arrSel=tr.querySelector('.td-arr-sel'), arrTxt=tr.querySelector('.td-arr-txt');
+    if(arrSel){ const has = (r.arrSel!==undefined) ? (r.arrSel==='con') : (!!(r.arr && !/sin arritmias/i.test(r.arr))); arrSel.value = has?'con':''; if(arrTxt) arrTxt.style.display = has?'':'none'; }
   });
 }
 
@@ -5009,14 +5041,15 @@ function ergoLabInit() {
   if (!n) {
     ['el-total','el-positivas','el-negativas','el-indet',
      'el-mets-prom','el-duke-prom','el-tiempo-sol',
-     'el-edad-prom','el-cf4'].forEach(id => {
+     'el-edad-prom','el-cf4','el-pct-angina','el-pct-angina-lim','el-pct-arr'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = '—';
     });
-    ['el-mets-dist','el-duke-dist','el-calidad-bars'].forEach(id => {
+    ['el-mets-dist','el-duke-dist','el-calidad-bars','el-sint-dist','el-arr-dist'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '<div class="el-empty">Sin datos</div>';
     });
+    { const _at = document.getElementById('el-arr-tbl'); if (_at) _at.innerHTML = ''; }
     const tb = document.getElementById('el-indicadores');
     if (tb) tb.innerHTML =
       '<tr><td colspan="4" style="text-align:center;' +
@@ -5168,6 +5201,46 @@ function ergoLabInit() {
       total: dukeArr.length, color:'#3ecf8e' },
   ].filter(d => d.n > 0);
   ergoLabBarras('el-duke-dist', dukeDist);
+
+  // ── CAMBIO 6: Síntomas y arritmias por etapa (lee inf.form.rows) ──
+  {
+    const PRI = ['ang_lim','ang_no_lim','disnea','mareos','fatiga'];
+    const SLBL = { ang_lim:'Angor limitante', ang_no_lim:'Angor no limitante', disnea:'Disnea', mareos:'Mareos', fatiga:'Fatiga' };
+    const SCOL = { ang_lim:'#f05454', ang_no_lim:'#f0774a', disnea:'#f5c842', mareos:'#a3d977', fatiga:'#63b3ed' };
+    let sinSint = 0; const sintCnt = { ang_lim:0, ang_no_lim:0, disnea:0, mareos:0, fatiga:0 };
+    let conAngina = 0, anginaLim = 0, conArr = 0; const arrDescCnt = {};
+    infs.forEach(inf => {
+      const rws = (inf.form && inf.form.rows) || [];
+      const present = new Set();
+      rws.forEach(r => { const s = _migSint(r.sintomas); if (s && sintCnt[s] !== undefined) present.add(s); });
+      if (present.size === 0) sinSint++;
+      present.forEach(s => { sintCnt[s]++; });
+      if (present.has('ang_lim') || present.has('ang_no_lim')) conAngina++;
+      if (present.has('ang_lim')) anginaLim++;
+      let hasArr = false;
+      rws.forEach(r => {
+        const con = (r.arrSel !== undefined) ? (r.arrSel === 'con') : (!!(r.arr && !/sin arritmias/i.test(r.arr)));
+        if (con) { hasArr = true; const d = (r.arr || '').trim(); if (d) { const k = d.toLowerCase(); (arrDescCnt[k] = arrDescCnt[k] || { label:d, n:0 }).n++; } }
+      });
+      if (hasArr) conArr++;
+    });
+    const N = infs.length;
+    const sintBars = [{ lbl:'Sin síntomas (n=' + sinSint + ')', n:sinSint, total:N, color:'#3ecf8e' }]
+      .concat(PRI.map(k => ({ lbl:SLBL[k] + ' (n=' + sintCnt[k] + ')', n:sintCnt[k], total:N, color:SCOL[k] })));
+    ergoLabBarras('el-sint-dist', sintBars.filter(d => d.n > 0));
+    ergoLabBarras('el-arr-dist', [
+      { lbl:'Sin arritmias (n=' + (N - conArr) + ')', n:N - conArr, total:N, color:'#3ecf8e' },
+      { lbl:'Con arritmias (n=' + conArr + ')', n:conArr, total:N, color:'#f05454' }
+    ].filter(d => d.n > 0));
+    const pct = x => N > 0 ? Math.round(x / N * 100) + '% (' + x + '/' + N + ')' : '—';
+    const setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    setT('el-pct-angina', pct(conAngina)); setT('el-pct-angina-lim', pct(anginaLim)); setT('el-pct-arr', pct(conArr));
+    const descArr = Object.values(arrDescCnt).sort((a, b) => b.n - a.n).slice(0, 5);
+    const tb = document.getElementById('el-arr-tbl');
+    if (tb) tb.innerHTML = descArr.length
+      ? descArr.map(d => '<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border)">' + esc(d.label) + '</td><td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:var(--accent)">' + d.n + '</td></tr>').join('')
+      : '<tr><td style="padding:4px 6px;color:var(--text2)">Sin descripciones registradas</td></tr>';
+  }
 
   // Gráfica dona resultados
   ergoLabDestroyChart('el-chart-resultados');
@@ -6470,8 +6543,8 @@ function generarEnSuma(silent){
   else if(rp) L.push('Respuesta presora alterada.');
   // 4) Arritmias
   const marc=document.querySelectorAll('.ari.chk').length;
-  const filasArr=Array.from(document.querySelectorAll('#tetb tr td:nth-child(14) input'))
-    .some(i=>(i.value||'').trim() && !/sin\s+arritmias/i.test(i.value));
+  const filasArr=Array.from(document.querySelectorAll('#tetb tr'))
+    .some(tr=>(tr.querySelector('.td-arr-sel')?.value||'')==='con');
   const motint=document.getElementById('motint')?.value;
   const huboArr = marc>0 || filasArr || motint==='arr';
   L.push(huboArr ? 'Se registraron arritmias durante la prueba.' : 'Sin arritmias significativas.');
