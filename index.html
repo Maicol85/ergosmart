@@ -22,6 +22,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .modal-box p{color:var(--text2);font-size:13px;line-height:1.65;margin-bottom:9px}
 .modal-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.28);border-radius:8px;padding:11px 14px;font-size:12px;color:var(--warn);margin-bottom:14px;line-height:1.6}
 .modal-footer{display:flex;justify-content:flex-end;margin-top:16px}
+.pdfopt{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);cursor:pointer}
+.pdfopt input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 .topbar{background:linear-gradient(135deg,#0c1525 0%,#0f2040 100%);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:90}
 [data-theme="light"] .topbar{background:linear-gradient(135deg,#0f2040 0%,#1e40af 100%)}
 .topbar-left{display:flex;align-items:center;gap:12px}
@@ -716,6 +718,40 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
 </div>
 
+<!-- MODAL: SELECCIÓN DE SECCIONES DEL PDF DE LABORATORIO -->
+<div class="modal-overlay" id="modal-pdf-lab" style="display:none" onclick="if(event.target===this)ergoCerrarModalPDF()">
+  <div class="modal-box" style="max-width:560px;max-height:88vh;overflow:auto">
+    <h2 style="color:var(--accent)">📄 Seleccioná qué incluir en el PDF</h2>
+    <div id="modal-pdf-opts" style="display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;margin:10px 0 6px">
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-portada" checked> Portada con banner de KPIs</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-actividad" checked> Actividad del laboratorio</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-poblacion" checked> Características de la población</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-histograma" checked> Histograma de distribución de METs</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-area" checked> Área apilada — evolución mensual</label>
+      <label class="pdfopt" style="grid-column:1/-1;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><input type="checkbox" id="pdfopt-comparacion" checked> Comparación por:
+        <select id="pdfopt-cmp-criterio" style="padding:3px 6px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:.8rem">
+          <option value="sexo">Sexo</option><option value="edad">Edad</option><option value="iam">IAM</option><option value="dm">DM</option><option value="bb">BB</option>
+        </select></label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-heatmap" checked> Mapa de calor</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-duke" checked> Score de Duke y hallazgos</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-bb" checked> Betabloqueante</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-hemo" checked> Respuesta hemodinámica</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-interr" checked> Causa de interrupción</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-criterios" checked> Criterios de alto riesgo</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-indicacion" checked> Indicación</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-antec" checked> Antecedentes CV</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-conducta" checked> Conducta sugerida</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-complic" checked> Complicaciones</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-calidad" checked> Calidad del laboratorio</label>
+      <label class="pdfopt"><input type="checkbox" id="pdfopt-docencia" checked> Docencia — casos de interés</label>
+    </div>
+    <div class="modal-footer" style="gap:8px">
+      <button type="button" class="btn btn-ghost" onclick="ergoCerrarModalPDF()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="ergoLabGenerarPDF()">Generar PDF</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-firma" style="display:none">
   <div class="modal-box" style="max-width:420px">
     <h2 style="color:var(--accent)">🖊️ Firma del profesional</h2>
@@ -1383,6 +1419,13 @@ body.printing-clean #clean-controls{display:none!important}
   #tab-lab .el-table tr:last-child td{border-bottom:none;}
   #tab-lab .el-empty{text-align:center;color:var(--text2);
     font-size:.84rem;padding:30px;}
+  #tab-lab .viz-pills{display:flex;flex-wrap:wrap;gap:6px;}
+  #tab-lab .viz-pill{padding:7px 14px;border-radius:20px;border:1px solid var(--border);
+    background:var(--bg3);color:var(--text2);font-size:.8rem;font-weight:600;cursor:pointer;
+    font-family:inherit;transition:.15s;}
+  #tab-lab .viz-pill:hover{border-color:var(--accent);color:var(--text);}
+  #tab-lab .viz-pill.active{background:var(--accent);border-color:var(--accent);color:#0f1117;}
+  #tab-lab .viz-pill-sm{padding:5px 11px;font-size:.74rem;}
 </style>
 
   <!-- FILTROS -->
@@ -1533,6 +1576,27 @@ body.printing-clean #clean-controls{display:none!important}
 
   <!-- PANEL POBLACIÓN -->
   <div id="el-sub-poblacion" class="el-subpanel">
+    <div class="el-card">
+      <div class="el-hdr">📊 Visualización interactiva</div>
+      <div class="el-body">
+        <div class="viz-pills" id="el-viz-pills">
+          <button class="viz-pill active" data-viz="histograma" onclick="ergoVizSet('histograma',this)">Histograma</button>
+          <button class="viz-pill" data-viz="area" onclick="ergoVizSet('area',this)">Área apilada</button>
+          <button class="viz-pill" data-viz="comparacion" onclick="ergoVizSet('comparacion',this)">Comparación</button>
+          <button class="viz-pill" data-viz="heatmap" onclick="ergoVizSet('heatmap',this)">Mapa de calor</button>
+        </div>
+        <div class="viz-pills" id="el-viz-cmp-row" style="display:none;margin-top:8px;">
+          <span style="font-size:.72rem;color:var(--text2);align-self:center;margin-right:2px;">Comparar por:</span>
+          <button class="viz-pill viz-pill-sm active" data-cmp="sexo" onclick="ergoVizSetCmp('sexo',this)">Sexo</button>
+          <button class="viz-pill viz-pill-sm" data-cmp="edad" onclick="ergoVizSetCmp('edad',this)">Edad (&lt;50 vs ≥50)</button>
+          <button class="viz-pill viz-pill-sm" data-cmp="iam" onclick="ergoVizSetCmp('iam',this)">IAM previo</button>
+          <button class="viz-pill viz-pill-sm" data-cmp="dm" onclick="ergoVizSetCmp('dm',this)">Diabetes</button>
+          <button class="viz-pill viz-pill-sm" data-cmp="bb" onclick="ergoVizSetCmp('bb',this)">BB suspendido</button>
+        </div>
+        <div style="position:relative;height:320px;margin-top:14px;"><canvas id="el-viz-canvas"></canvas></div>
+        <div id="el-viz-title" style="text-align:center;font-size:.8rem;color:var(--text2);margin-top:8px;"></div>
+      </div>
+    </div>
     <div class="el-card">
       <div class="el-hdr">👥 Perfil de la Población</div>
       <div class="el-body">
@@ -1795,17 +1859,8 @@ body.printing-clean #clean-controls{display:none!important}
             <input type="text" id="el-pdf-responsable" placeholder="Dr./Dra. Nombre Apellido" style="padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:.82rem;">
           </div>
         </div>
-        <div style="margin-bottom:16px;">
-          <label style="font-size:.75rem;font-weight:700;color:var(--text2);">Secciones a incluir</label>
-          <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">
-            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-actividad" checked> Actividad</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-indicadores" checked> Indicadores automáticos</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-poblacion" checked> Perfil de la población</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-calidad" checked> Calidad</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="el-pdf-docencia" checked> Docencia — casos de interés</label>
-          </div>
-        </div>
-        <button onclick="ergoLabGenerarPDF()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--accent);color:#0f1117;font-weight:700;cursor:pointer;font-size:.86rem;">📄 Generar PDF de Auditoría</button>
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Al generar el PDF vas a poder elegir qué secciones incluir.</div>
+        <button onclick="ergoLabAbrirModalPDF()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--accent);color:#0f1117;font-weight:700;cursor:pointer;font-size:.86rem;">📄 Generar PDF de Auditoría</button>
       </div>
     </div>
   </div>
@@ -4183,90 +4238,329 @@ function ergoLabGetInfs() {
   });
 }
 
+// ══════════════════════════════════════════════════════════════
+// VISUALIZACIÓN INTERACTIVA (tab Población) — datos reales + dibujo custom 2D
+// (las mismas funciones de datos y de dibujo se reutilizan en el PDF)
+// ══════════════════════════════════════════════════════════════
+const _vizMes = f => (f||'').slice(0,7);
+function ergoVizMonths(infs){ const s=new Set(); infs.forEach(i=>{const m=_vizMes(i.fecha); if(m)s.add(m);}); return Array.from(s).sort(); }
+function ergoVizMetsHisto(infs){
+  const bins=[{l:'<3',f:v=>v<3,c:'#f05454'},{l:'3-5',f:v=>v>=3&&v<5,c:'#f05454'},{l:'5-7',f:v=>v>=5&&v<7,c:'#63b3ed'},{l:'7-9',f:v=>v>=7&&v<9,c:'#63b3ed'},{l:'9-11',f:v=>v>=9&&v<11,c:'#3ecf8e'},{l:'11-13',f:v=>v>=11&&v<13,c:'#3ecf8e'},{l:'>13',f:v=>v>=13,c:'#3ecf8e'}];
+  const arr=infs.map(i=>parseFloat(i.mets)).filter(v=>!isNaN(v)&&v>0);
+  return {bins:bins.map(b=>({label:b.l,n:arr.filter(b.f).length,color:b.c})), n:arr.length};
+}
+function ergoVizStacked(infs){
+  const months=ergoVizMonths(infs), neg=[],pos=[],ind=[];
+  months.forEach(m=>{ const sub=infs.filter(i=>_vizMes(i.fecha)===m); neg.push(sub.filter(i=>i.resultadoVal==='neg').length); pos.push(sub.filter(i=>i.resultadoVal==='pos').length); ind.push(sub.filter(i=>i.resultadoVal!=='neg'&&i.resultadoVal!=='pos').length); });
+  return {months, series:[{label:'Negativos',data:neg,color:'62,207,142'},{label:'Positivos',data:pos,color:'240,84,84'},{label:'Indeterminados',data:ind,color:'245,200,66'}]};
+}
+function ergoVizGroups(infs,criterio){
+  const ped=i=>parseInt((i.form&&i.form.ped)||i.ped||'')||null;
+  const antec=i=> (Array.isArray(i.antec_cv_sel)?i.antec_cv_sel:((i.form&&i.form.antec_cv)||[]));
+  const bbs=i=> (i.bbs||(i.form&&i.form.bbs)||(i.bb_suspendio==='si'?'si':''));
+  const sx=i=> (i.form&&i.form.psex)||i.psex;
+  const defs={
+    sexo:{a:{label:'Masculino',f:i=>sx(i)==='M'},b:{label:'Femenino',f:i=>sx(i)==='F'}},
+    edad:{a:{label:'<50 años',f:i=>{const e=ped(i);return e!=null&&e<50;}},b:{label:'≥50 años',f:i=>{const e=ped(i);return e!=null&&e>=50;}}},
+    iam:{a:{label:'Con IAM previo',f:i=>antec(i).includes('IAM previo')},b:{label:'Sin IAM previo',f:i=>!antec(i).includes('IAM previo')}},
+    dm:{a:{label:'Con diabetes',f:i=>antec(i).includes('DM')},b:{label:'Sin diabetes',f:i=>!antec(i).includes('DM')}},
+    bb:{a:{label:'BB suspendido',f:i=>bbs(i)==='si'},b:{label:'Sin suspender BB',f:i=>bbs(i)!=='si'}}
+  };
+  return defs[criterio]||defs.sexo;
+}
+function ergoVizComparison(infs,criterio){
+  const g=ergoVizGroups(infs,criterio), A=infs.filter(g.a.f), B=infs.filter(g.b.f);
+  const avg=(arr,get)=>{const v=arr.map(get).filter(x=>!isNaN(x));return v.length?v.reduce((a,b)=>a+b,0)/v.length:0;};
+  const mets=arr=>avg(arr,i=>{const v=parseFloat(i.mets);return v>0?v:NaN;});
+  const duke=arr=>avg(arr,i=>parseFloat(i.duke));
+  const fc=arr=>avg(arr,i=>{const v=parseFloat(i.fcmax);return v>0?v:NaN;});
+  const pctNeg=arr=>arr.length?arr.filter(i=>i.resultadoVal==='neg').length/arr.length*100:0;
+  return {gA:g.a.label,gB:g.b.label,nA:A.length,nB:B.length,vars:[
+    {name:'METs prom.',a:mets(A),b:mets(B),fmt:v=>v.toFixed(1)},
+    {name:'% Negativos',a:pctNeg(A),b:pctNeg(B),fmt:v=>Math.round(v)+'%'},
+    {name:'Duke prom.',a:duke(A),b:duke(B),fmt:v=>v.toFixed(1)},
+    {name:'FC máx prom.',a:fc(A),b:fc(B),fmt:v=>Math.round(v)}
+  ]};
+}
+function ergoVizHeatmap(infs){
+  const rows=[{l:'<5',f:v=>v<5},{l:'5-7',f:v=>v>=5&&v<7},{l:'7-9',f:v=>v>=7&&v<9},{l:'9-11',f:v=>v>=9&&v<11},{l:'>11',f:v=>v>=11}];
+  const months=ergoVizMonths(infs);
+  const matrix=rows.map(r=>months.map(m=>infs.filter(i=>{const v=parseFloat(i.mets);return _vizMes(i.fecha)===m && !isNaN(v)&&r.f(v);}).length));
+  let max=1; matrix.forEach(row=>row.forEach(c=>{if(c>max)max=c;}));
+  return {rows:rows.map(r=>r.l),months,matrix,max};
+}
+// ── Dibujo custom 2D (funciona en canvas de pantalla y off-screen para el PDF) ──
+function ergoDrawHisto(ctx,W,H,d,pal){
+  const padL=34,padR=12,padT=14,padB=34, cw=W-padL-padR, chH=H-padT-padB, max=Math.max(1,...d.bins.map(b=>b.n));
+  ctx.strokeStyle=pal.grid;ctx.lineWidth=1;ctx.fillStyle=pal.text;ctx.font='10px sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let s=0;s<=4;s++){const val=Math.round(max*s/4),yy=padT+chH-chH*s/4;ctx.beginPath();ctx.moveTo(padL,yy);ctx.lineTo(W-padR,yy);ctx.stroke();ctx.fillText(String(val),padL-4,yy);}
+  const bw=cw/d.bins.length;
+  d.bins.forEach((b,i)=>{const bh=chH*(b.n/max),bx=padL+i*bw+bw*0.15,bwi=bw*0.7,by=padT+chH-bh;
+    ctx.fillStyle=b.color;ctx.fillRect(bx,by,bwi,bh);
+    if(b.n>0){ctx.fillStyle=pal.strong;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.font='10px sans-serif';ctx.fillText(String(b.n),bx+bwi/2,by-2);}
+    ctx.fillStyle=pal.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(b.label,padL+i*bw+bw/2,padT+chH+5);});
+}
+function ergoDrawArea(ctx,W,H,d,pal){
+  const padL=30,padR=12,padT=14,padB=42, cw=W-padL-padR, chH=H-padT-padB, M=d.months.length;
+  if(!M){ctx.fillStyle=pal.text;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='13px sans-serif';ctx.fillText('Sin datos mensuales',W/2,H/2);return;}
+  const totals=d.months.map((m,idx)=>d.series.reduce((s,ser)=>s+ser.data[idx],0)), max=Math.max(1,...totals);
+  const xAt=idx=> M===1?padL+cw/2:padL+cw*idx/(M-1), yAt=val=>padT+chH-chH*(val/max);
+  ctx.strokeStyle=pal.grid;ctx.lineWidth=1;ctx.fillStyle=pal.text;ctx.font='10px sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let s=0;s<=4;s++){const val=Math.round(max*s/4),yy=padT+chH-chH*s/4;ctx.beginPath();ctx.moveTo(padL,yy);ctx.lineTo(W-padR,yy);ctx.stroke();ctx.fillText(String(val),padL-4,yy);}
+  const cum=d.months.map(()=>0);
+  d.series.forEach(ser=>{
+    ctx.beginPath();
+    for(let idx=0;idx<M;idx++){const x=xAt(idx),yT=yAt(cum[idx]+ser.data[idx]);idx===0?ctx.moveTo(x,yT):ctx.lineTo(x,yT);}
+    for(let idx=M-1;idx>=0;idx--)ctx.lineTo(xAt(idx),yAt(cum[idx]));
+    ctx.closePath();ctx.fillStyle='rgba('+ser.color+',0.6)';ctx.fill();
+    ctx.strokeStyle='rgb('+ser.color+')';ctx.lineWidth=1.5;ctx.beginPath();
+    for(let idx=0;idx<M;idx++){const x=xAt(idx),yT=yAt(cum[idx]+ser.data[idx]);idx===0?ctx.moveTo(x,yT):ctx.lineTo(x,yT);}
+    ctx.stroke();
+    for(let idx=0;idx<M;idx++)cum[idx]+=ser.data[idx];
+  });
+  ctx.fillStyle=pal.text;ctx.font='9px sans-serif';ctx.textBaseline='top';const stepX=Math.ceil(M/8);
+  d.months.forEach((m,idx)=>{if(idx%stepX===0||idx===M-1){ctx.save();ctx.translate(xAt(idx),padT+chH+4);ctx.rotate(-Math.PI/4);ctx.textAlign='right';ctx.fillText(m.replace('-','/'),0,0);ctx.restore();}});
+  ctx.textBaseline='middle';let lx=padL;
+  d.series.forEach(ser=>{ctx.fillStyle='rgb('+ser.color+')';ctx.fillRect(lx,H-11,9,9);ctx.fillStyle=pal.text;ctx.textAlign='left';ctx.font='9px sans-serif';ctx.fillText(ser.label,lx+12,H-6);lx+=ctx.measureText(ser.label).width+32;});
+}
+function ergoDrawDumbbell(ctx,W,H,d,pal){
+  const padL=88,padR=64,padT=18,padB=20, cw=W-padL-padR, rows=d.vars.length, rh=(H-padT-padB)/rows;
+  d.vars.forEach((v,i)=>{
+    const cy=padT+rh*i+rh/2, lo=Math.min(0,v.a,v.b), hi=Math.max(v.a,v.b,lo+0.0001), sx=x=>padL+cw*((x-lo)/(hi-lo));
+    ctx.fillStyle=pal.strong;ctx.font='11px sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(v.name,padL-8,cy);
+    ctx.strokeStyle=pal.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(padL,cy);ctx.lineTo(W-padR,cy);ctx.stroke();
+    ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx(v.a),cy);ctx.lineTo(sx(v.b),cy);ctx.stroke();
+    const dot=(x,col)=>{ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx(x),cy,5.5,0,7);ctx.fill();};
+    dot(v.a,pal.colA);dot(v.b,pal.colB);
+    ctx.font='9px sans-serif';ctx.textBaseline='middle';
+    ctx.fillStyle=pal.colA;ctx.textAlign='left';ctx.fillText(v.fmt(v.a),W-padR+6,cy-6);
+    ctx.fillStyle=pal.colB;ctx.fillText(v.fmt(v.b),W-padR+6,cy+7);
+  });
+}
+function ergoDrawHeatmap(ctx,W,H,d,pal){
+  const M=d.months.length,R=d.rows.length;
+  if(!M){ctx.fillStyle=pal.text;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='13px sans-serif';ctx.fillText('Sin datos mensuales',W/2,H/2);return;}
+  const padL=42,padR=8,padT=10,padB=44, gw=(W-padL-padR)/M, gh=(H-padT-padB)/R;
+  for(let r=0;r<R;r++){
+    ctx.fillStyle=pal.text;ctx.font='10px sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(d.rows[r],padL-5,padT+gh*r+gh/2);
+    for(let c=0;c<M;c++){const v=d.matrix[r][c],t=v/d.max,x=padL+gw*c,yy=padT+gh*r;
+      ctx.fillStyle=v===0?'rgba(148,163,184,.08)':'rgba(14,165,233,'+(0.2+0.8*t)+')';
+      ctx.fillRect(x+1,yy+1,gw-2,gh-2);
+      if(v>0){ctx.fillStyle=t>0.5?'#fff':pal.strong;ctx.font='10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(v),x+gw/2,yy+gh/2);}}
+  }
+  ctx.fillStyle=pal.text;ctx.font='9px sans-serif';const stepX=Math.ceil(M/10);
+  for(let c=0;c<M;c++){if(c%stepX===0||c===M-1){ctx.save();ctx.translate(padL+gw*c+gw/2,padT+gh*R+4);ctx.rotate(-Math.PI/4);ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(d.months[c].replace('-','/'),0,0);ctx.restore();}}
+}
+// ── Estado + render del canvas de pantalla ──
+window._ergoVizType='histograma'; window._ergoVizCmp='sexo';
+function ergoVizSet(t,btn){ window._ergoVizType=t; document.querySelectorAll('#el-viz-pills .viz-pill').forEach(b=>b.classList.toggle('active',b===btn)); const r=document.getElementById('el-viz-cmp-row'); if(r)r.style.display=(t==='comparacion')?'flex':'none'; ergoVizRender(); }
+function ergoVizSetCmp(c,btn){ window._ergoVizCmp=c; document.querySelectorAll('#el-viz-cmp-row .viz-pill').forEach(b=>b.classList.toggle('active',b===btn)); ergoVizRender(); }
+function ergoVizRender(){
+  const canvas=document.getElementById('el-viz-canvas'); if(!canvas)return;
+  const infs=(typeof ergoLabGetInfs==='function')?ergoLabGetInfs():[];
+  const cont=canvas.parentElement, W=Math.max(280,cont.clientWidth||320), H=cont.clientHeight||320, dpr=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=W*dpr; canvas.height=H*dpr; canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  const pal={text:'#94a3b8',strong:'#e2e8f0',axis:'#475569',grid:'rgba(148,163,184,.18)',colA:'#63b3ed',colB:'#e67e22'};
+  const title=document.getElementById('el-viz-title');
+  if(!infs.length){ ctx.fillStyle=pal.text;ctx.font='13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Sin estudios en el período',W/2,H/2); if(title)title.textContent=''; return; }
+  const t=window._ergoVizType;
+  if(t==='area'){ const d=ergoVizStacked(infs); ergoDrawArea(ctx,W,H,d,pal); if(title)title.textContent='Evolución mensual de resultados'; }
+  else if(t==='comparacion'){ const d=ergoVizComparison(infs,window._ergoVizCmp); ergoDrawDumbbell(ctx,W,H,d,pal); if(title)title.textContent=d.gA+' (n='+d.nA+', azul) vs '+d.gB+' (n='+d.nB+', naranja)'; }
+  else if(t==='heatmap'){ const d=ergoVizHeatmap(infs); ergoDrawHeatmap(ctx,W,H,d,pal); if(title)title.textContent='Mapa de calor — METs × mes (nº de estudios)'; }
+  else { const d=ergoVizMetsHisto(infs); ergoDrawHisto(ctx,W,H,d,pal); if(title)title.textContent='Distribución de METs alcanzados (n='+d.n+')'; }
+}
+window.ergoVizSet=ergoVizSet; window.ergoVizSetCmp=ergoVizSetCmp; window.ergoVizRender=ergoVizRender;
+
+// ── Modal de selección de secciones del PDF (persistencia en localStorage) ──
+const PDF_OPT_IDS=['portada','actividad','poblacion','histograma','area','comparacion','heatmap','duke','bb','hemo','interr','criterios','indicacion','antec','conducta','complic','calidad','docencia'];
+function ergoLabAbrirModalPDF(){
+  try{ const s=JSON.parse(localStorage.getItem('ergo_pdf_opts')||'null'); if(s){ PDF_OPT_IDS.forEach(k=>{const el=document.getElementById('pdfopt-'+k); if(el&&typeof s[k]==='boolean')el.checked=s[k];}); const sc=document.getElementById('pdfopt-cmp-criterio'); if(sc&&s.cmp)sc.value=s.cmp; } }catch(e){}
+  const m=document.getElementById('modal-pdf-lab'); if(m)m.style.display='flex';
+}
+function ergoCerrarModalPDF(){ const m=document.getElementById('modal-pdf-lab'); if(m)m.style.display='none'; }
+function _ergoPdfSaveOpts(){ const o={}; PDF_OPT_IDS.forEach(k=>{const el=document.getElementById('pdfopt-'+k); o[k]=el?el.checked:true;}); const sc=document.getElementById('pdfopt-cmp-criterio'); o.cmp=sc?sc.value:'sexo'; try{localStorage.setItem('ergo_pdf_opts',JSON.stringify(o));}catch(e){} }
+window.ergoLabAbrirModalPDF=ergoLabAbrirModalPDF; window.ergoCerrarModalPDF=ergoCerrarModalPDF;
+
 function ergoLabGenerarPDF() {
   const infs = ergoLabGetInfs();
   if (!infs.length) { if(typeof showToast==='function')showToast('⚠ Sin estudios en el período'); return; }
   if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) { if(typeof showToast==='function')showToast('⚠ La biblioteca PDF está cargando'); return; }
+  _ergoPdfSaveOpts();
+  ergoCerrarModalPDF();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'mm', format:'a4' });
-  function S(x){ return String(x==null?'':x).replace(/[–—]/g,'-').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/→/g,'->').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/…/g,'...').replace(/[^\x20-\xFF\t\n\r]/g,''); }
+  // Sanitización → WinAnsi/ASCII
+  function S(x){ return String(x==null?'':x).replace(/[–—]/g,'-').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/→/g,'->').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/…/g,'...').replace(/[·•]/g,'-').replace(/₂/g,'2').replace(/[^\x20-\xFF\t\n\r]/g,''); }
   const _t = doc.text.bind(doc);
   doc.text = function(t,x,y,o){ if(typeof t==='string')t=S(t); else if(Array.isArray(t))t=t.map(v=>typeof v==='string'?S(v):v); return _t(t,x,y,o); };
-  const titulo = (document.getElementById('el-pdf-titulo')?.value||'').trim() || 'Informe de Auditoría';
-  const inst = (document.getElementById('el-pdf-inst')?.value||'').trim();
-  const periodo = (document.getElementById('el-pdf-periodo')?.value||'').trim();
-  const resp = (document.getElementById('el-pdf-responsable')?.value||'').trim();
-  const W=210, M=15; let y=20;
-  doc.setFillColor(30,30,46); doc.rect(0,0,W,40,'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text(titulo,M,16);
-  doc.setFontSize(10); doc.setFont(undefined,'normal');
-  if(inst)doc.text(inst,M,24); if(periodo)doc.text('Período: '+periodo,M,31);
-  doc.setTextColor(0,0,0); y=50;
-  const n = infs.length;
+  // Paleta
+  const BLUE=[26,82,118], BLUE2=[46,134,193], ALT=[244,246,247], BORDER=[189,195,199], KPIBG=[232,242,251], TXT=[45,45,45];
+  const W=210, PH=297, M=15, CW=W-2*M; let y=0;
   const chk = id => document.getElementById(id)?.checked;
-  const addSection = t => { if(y>260){doc.addPage();y=20;} doc.setFillColor(240,240,250); doc.rect(M,y,W-M*2,8,'F'); doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(50,50,120); doc.text(t,M+3,y+5.5); doc.setTextColor(0,0,0); doc.setFont(undefined,'normal'); y+=12; };
-  const addFila = (lbl,val) => { if(y>270){doc.addPage();y=20;} doc.setFontSize(9); doc.text(String(lbl),M+3,y); doc.setFont(undefined,'bold'); doc.text(String(val),M+95,y); doc.setFont(undefined,'normal'); y+=6; };
+  const opt = k => chk('pdfopt-'+k);
+  const titulo = (document.getElementById('el-pdf-titulo')?.value||'').trim();
+  const inst = (document.getElementById('el-pdf-inst')?.value||'').trim();
+  const periodoTxt = (document.getElementById('el-pdf-periodo')?.value||'').trim();
+  const resp = (document.getElementById('el-pdf-responsable')?.value||'').trim();
+  const n = infs.length;
   const metsArr = infs.map(i=>parseFloat(i.mets)).filter(v=>!isNaN(v)&&v>0);
   const dukeArr = infs.map(i=>parseFloat(i.duke)).filter(v=>!isNaN(v));
   const pos=infs.filter(i=>i.resultadoVal==='pos').length, neg=infs.filter(i=>i.resultadoVal==='neg').length, ind=n-pos-neg;
   const pctOf=x=>Math.round(x/n*100);
-  if(chk('el-pdf-actividad')){
-    addSection('Actividad del Laboratorio');
-    addFila('Total de estudios', n);
-    addFila('Ergometrías positivas', pos+' ('+pctOf(pos)+'%)');
-    addFila('Ergometrías negativas', neg+' ('+pctOf(neg)+'%)');
-    addFila('Indeterminadas', ind+' ('+pctOf(ind)+'%)');
-    addFila('METs promedio', metsArr.length?(metsArr.reduce((a,b)=>a+b,0)/metsArr.length).toFixed(1)+' (n='+metsArr.length+')':'-');
-    addFila('Duke Score promedio', dukeArr.length?(dukeArr.reduce((a,b)=>a+b,0)/dukeArr.length).toFixed(1)+' (n='+dukeArr.length+')':'-');
-    const tiempos = infs.filter(i=>i.fecha&&i.fecha_solicitud).map(i=>(new Date(i.fecha)-new Date(i.fecha_solicitud))/86400000).filter(d=>d>=0&&d<365);
-    addFila('Tiempo solicitud -> estudio', tiempos.length?(tiempos.reduce((a,b)=>a+b,0)/tiempos.length).toFixed(1)+' dias (n='+tiempos.length+')':'-');
-    y+=3;
+  const avg=a=>a.length?(a.reduce((s,b)=>s+b,0)/a.length):0;
+  const ped=i=>parseInt((i.form&&i.form.ped)||i.ped||'')||null;
+  const edades=infs.map(ped).filter(v=>v!=null);
+  const metsProm=avg(metsArr), dukeProm=avg(dukeArr), edadProm=avg(edades);
+  const fcArr=infs.map(i=>parseFloat(i.fcmax)).filter(v=>!isNaN(v)&&v>0);
+  const arrOf=(i,k,fk)=>Array.isArray(i[k])?i[k]:((i.form&&Array.isArray(i.form[fk]))?i.form[fk]:[]);
+  const LV=(i,k,fk)=>{const v=i[k]; if(v!==undefined&&v!==null&&v!=='')return v; return (i.form&&i.form[fk]!=null)?i.form[fk]:'';};
+  // ── helpers de dibujo ──
+  function ensure(h){ if(y+h>PH-18){ doc.addPage(); y=16; } }
+  function sectionTitle(t){ ensure(12); doc.setFillColor(...BLUE); doc.rect(M,y,CW,9,'F'); doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(11); doc.text(t,M+3,y+6); doc.setTextColor(...TXT); doc.setFont(undefined,'normal'); y+=9+3; }
+  function kvTable(rows,x,w){ x=x==null?M:x; w=w==null?CW:w; doc.setFontSize(9);
+    rows.forEach((r,i)=>{ ensure(6.4); if(i%2){ doc.setFillColor(...ALT); doc.rect(x,y-0.6,w,6,'F'); }
+      doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.line(x,y+5.4,x+w,y+5.4);
+      doc.setTextColor(...TXT); doc.setFont(undefined,'normal'); doc.text(String(r[0]),x+2,y+4);
+      doc.setFont(undefined,'bold'); doc.text(String(r[1]),x+w-2,y+4,{align:'right'}); doc.setFont(undefined,'normal'); y+=6; }); y+=3; }
+  function dataTable(headers,rows){ const cols=headers.length, cw=CW/cols;
+    ensure(9); doc.setFillColor(...BLUE2); doc.rect(M,y,CW,7.5,'F'); doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(8.5);
+    headers.forEach((h,c)=>{ doc.text(String(h),M+c*cw+2,y+5,c>0?{align:'left'}:undefined); }); y+=7.5;
+    doc.setTextColor(...TXT); doc.setFont(undefined,'normal');
+    rows.forEach((row,i)=>{ ensure(6.4); if(i%2){ doc.setFillColor(...ALT); doc.rect(M,y,CW,6,'F'); }
+      doc.setDrawColor(...BORDER); doc.setLineWidth(0.1); doc.rect(M,y,CW,6);
+      row.forEach((cell,c)=>{ doc.text(String(cell),M+c*cw+2,y+4,{maxWidth:cw-3}); }); y+=6; }); y+=3; }
+  function chartPNG(drawFn,data,w,h){ const c=document.createElement('canvas'),sc=2; c.width=w*sc; c.height=h*sc; const ctx=c.getContext('2d'); ctx.scale(sc,sc); ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h); const pal={text:'#475569',strong:'#1a1a1a',axis:'#94a3b8',grid:'rgba(120,130,140,.28)',colA:'#2e86c1',colB:'#e67e22'}; try{drawFn(ctx,w,h,data,pal);}catch(e){} return c.toDataURL('image/png'); }
+  function vizSection(title,drawFn,data,leftRows,caption){ sectionTitle(title);
+    const chartWmm=76, chartHmm=52; ensure(chartHmm+4); const startY=y, leftW=CW-chartWmm-6;
+    let ry=startY+4; doc.setFontSize(8.5);
+    (leftRows||[]).forEach((r,i)=>{ if(i%2){doc.setFillColor(...ALT);doc.rect(M,ry-4,leftW,5.6,'F');} doc.setDrawColor(...BORDER);doc.setLineWidth(0.1);doc.line(M,ry+1.4,M+leftW,ry+1.4); doc.setTextColor(...TXT);doc.setFont(undefined,'normal');doc.text(String(r[0]),M+2,ry); doc.setFont(undefined,'bold');doc.text(String(r[1]),M+leftW-2,ry,{align:'right'});doc.setFont(undefined,'normal'); ry+=5.6; });
+    const _png=chartPNG(drawFn,data,150,100); try{ doc.addImage(_png,'PNG',M+leftW+6,startY,chartWmm,chartHmm); }catch(e){}
+    if(caption){ const cy=startY+chartHmm+4; doc.setFontSize(7.5); doc.setTextColor(120,120,120); doc.text(caption,M+leftW+6+chartWmm/2,cy,{align:'center',maxWidth:chartWmm}); doc.setTextColor(...TXT); }
+    y=Math.max(ry,startY+chartHmm+ (caption?8:0))+4; }
+  // ════ PORTADA ════
+  y=20;
+  if(opt('portada')){
+    doc.setTextColor(...BLUE); doc.setFont(undefined,'bold'); doc.setFontSize(18); doc.text('LABORATORIO DE ERGOMETRÍA', M, y); y+=8;
+    if(titulo){ doc.setFontSize(11); doc.setTextColor(...TXT); doc.setFont(undefined,'normal'); doc.text(titulo, M, y); y+=6; }
+    doc.setFontSize(11); doc.setTextColor(120,120,120); doc.setFont(undefined,'normal');
+    if(inst){ doc.text(inst, M, y); y+=5; }
+    if(periodoTxt){ doc.text('Período: '+periodoTxt, M, y); y+=5; }
+    doc.setDrawColor(...BLUE); doc.setLineWidth(0.8); doc.line(M, y, W-M, y); y+=8;
+    // Banner KPIs
+    const kpis=[['Total', String(n)],['Edad prom.', edades.length?Math.round(edadProm)+' a':'-'],['METs prom.', metsArr.length?metsProm.toFixed(1):'-'],['% Negativos', pctOf(neg)+'%'],['Duke prom.', dukeArr.length?dukeProm.toFixed(1):'-']];
+    const kw=CW/kpis.length, kh=18;
+    doc.setFillColor(...KPIBG); doc.rect(M,y,CW,kh,'F'); doc.setDrawColor(...BLUE2); doc.setLineWidth(0.3); doc.rect(M,y,CW,kh);
+    kpis.forEach((k,c)=>{ const cx=M+c*kw+kw/2; if(c>0){doc.setDrawColor(...BORDER);doc.line(M+c*kw,y+2,M+c*kw,y+kh-2);}
+      doc.setTextColor(90,110,130); doc.setFont(undefined,'normal'); doc.setFontSize(7.5); doc.text(k[0],cx,y+6,{align:'center'});
+      doc.setTextColor(...BLUE); doc.setFont(undefined,'bold'); doc.setFontSize(13); doc.text(k[1],cx,y+13.5,{align:'center'}); });
+    doc.setTextColor(...TXT); doc.setFont(undefined,'normal'); y+=kh+6;
   }
-  if(chk('el-pdf-indicadores')){
-    addSection('Indicadores automáticos');
-    [['METs < 5 con resultado negativo', infs.filter(i=>parseFloat(i.mets)<5&&i.resultadoVal==='neg').length],
-     ['Duke Score alto riesgo (< -10)', infs.filter(i=>parseFloat(i.duke)<-10).length],
-     ['Positivos sin Duke Score', infs.filter(i=>i.resultadoVal==='pos'&&!i.duke).length],
-     ['Sin METs registrados', infs.filter(i=>!i.mets||isNaN(parseFloat(i.mets))).length],
-     ['Sin conclusión documentada', infs.filter(i=>!(i.concl||'').trim()).length]
-    ].forEach(x=>addFila(x[0], x[1]+' ('+pctOf(x[1])+'%)'));
-    y+=3;
+  // ════ ACTIVIDAD ════
+  if(opt('actividad')){
+    const tiempos=infs.filter(i=>i.fecha&&i.fecha_solicitud).map(i=>(new Date(i.fecha)-new Date(i.fecha_solicitud))/86400000).filter(d=>d>=0&&d<365);
+    kvTableWrap('Actividad del laboratorio',[
+      ['Total de estudios', n],['Ergometrías positivas', pos+' ('+pctOf(pos)+'%)'],['Ergometrías negativas', neg+' ('+pctOf(neg)+'%)'],
+      ['Indeterminadas', ind+' ('+pctOf(ind)+'%)'],['METs promedio', metsArr.length?metsProm.toFixed(1)+' (n='+metsArr.length+')':'-'],
+      ['Duke Score promedio', dukeArr.length?dukeProm.toFixed(1)+' (n='+dukeArr.length+')':'-'],
+      ['Tiempo solicitud -> estudio', tiempos.length?avg(tiempos).toFixed(1)+' dias (n='+tiempos.length+')':'-']
+    ]);
   }
-  if(chk('el-pdf-poblacion')){
-    addSection('Perfil de la población');
-    const edades=infs.map(i=>{const fn=(i.form&&i.form.fn)||i.fn||''; if(!fn||!i.fecha)return null; const e=(new Date(i.fecha)-new Date(fn))/(365.25*24*3600*1000); return e>0&&e<120?Math.round(e):null;}).filter(v=>v!=null);
-    addFila('Edad promedio', edades.length?Math.round(edades.reduce((a,b)=>a+b,0)/edades.length)+' años (n='+edades.length+')':'-');
+  function kvTableWrap(t,rows){ sectionTitle(t); kvTable(rows); }
+  // ════ POBLACIÓN ════
+  if(opt('poblacion')){
     const cfIV=infs.filter(i=>(i.cf||'').toLowerCase().includes('iv')).length;
-    addFila('% capacidad funcional IV', pctOf(cfIV)+'% (n='+cfIV+')');
-    addFila('METs < 5', metsArr.filter(v=>v<5).length);
-    addFila('METs 5-7', metsArr.filter(v=>v>=5&&v<=7).length);
-    addFila('METs 8-10', metsArr.filter(v=>v>7&&v<=10).length);
-    addFila('METs > 10', metsArr.filter(v=>v>10).length);
-    addFila('Duke alto riesgo (< -10)', dukeArr.filter(v=>v<-10).length);
-    addFila('Duke intermedio (-10 a 4)', dukeArr.filter(v=>v>=-10&&v<=4).length);
-    addFila('Duke bajo riesgo (> 4)', dukeArr.filter(v=>v>4).length);
-    y+=3;
+    kvTableWrap('Características de la población',[
+      ['Edad promedio', edades.length?Math.round(edadProm)+' años (n='+edades.length+')':'-'],
+      ['% capacidad funcional IV', pctOf(cfIV)+'% (n='+cfIV+')'],
+      ['METs < 5', metsArr.filter(v=>v<5).length],['METs 5-7', metsArr.filter(v=>v>=5&&v<=7).length],
+      ['METs 8-10', metsArr.filter(v=>v>7&&v<=10).length],['METs > 10', metsArr.filter(v=>v>10).length]
+    ]);
   }
-  if(chk('el-pdf-calidad')){
-    addSection('Calidad del Laboratorio');
-    [['METs registrados', i=>!!i.mets],['Resultado registrado', i=>!!i.resultadoVal],['Duke Score calculado', i=>!!i.duke],
-     ['Conclusión documentada', i=>!!(i.concl||'').trim()],['FC máxima registrada', i=>!!i.fcmax],['Protocolo registrado', i=>!!i.protocolo],
-     ['Capacidad funcional', i=>!!i.cf],['Fecha de solicitud', i=>!!i.fecha_solicitud]
-    ].forEach(x=>{const con=infs.filter(x[1]).length; addFila(x[0], pctOf(con)+'% ('+con+'/'+n+')');});
-    y+=3;
-  }
-  if(chk('el-pdf-docencia')){
-    addSection('Docencia — Casos de interés');
+  // ════ HISTOGRAMA METs ════
+  if(opt('histograma')){ const d=ergoVizMetsHisto(infs); vizSection('Histograma — distribución de METs', ergoDrawHisto, d, d.bins.map(b=>[b.label+' METs', b.n]), 'Distribución de METs (n='+d.n+')'); }
+  // ════ ÁREA APILADA ════
+  if(opt('area')){ const d=ergoVizStacked(infs); const rows=d.months.map((m,idx)=>[m.replace('-','/'), d.series[0].data[idx]+'/'+d.series[1].data[idx]+'/'+d.series[2].data[idx]]); rows.unshift(['Mes','Neg/Pos/Ind']); vizSection('Evolución mensual (área apilada)', ergoDrawArea, d, rows.slice(0,10), 'Neg (verde) / Pos (rojo) / Ind (amarillo)'); }
+  // ════ COMPARACIÓN ════
+  if(opt('comparacion')){ const crit=document.getElementById('pdfopt-cmp-criterio')?.value||'sexo'; const d=ergoVizComparison(infs,crit); vizSection('Comparación: '+d.gA+' vs '+d.gB, ergoDrawDumbbell, d, d.vars.map(v=>[v.name, v.fmt(v.a)+' vs '+v.fmt(v.b)]), d.gA+' (azul, n='+d.nA+') vs '+d.gB+' (naranja, n='+d.nB+')'); }
+  // ════ MAPA DE CALOR ════
+  if(opt('heatmap')){ const d=ergoVizHeatmap(infs); const rows=d.rows.map((r,ri)=>[r+' METs', d.matrix[ri].reduce((a,b)=>a+b,0)]); rows.unshift(['Rango','Total']); vizSection('Mapa de calor — METs por mes', ergoDrawHeatmap, d, rows, 'Nº de estudios por rango de METs y mes'); }
+  // ════ DUKE Y HALLAZGOS ════
+  if(opt('duke')){ sectionTitle('Score de Duke y hallazgos'); kvTable([
+    ['Duke alto riesgo (< -10)', dukeArr.filter(v=>v<-10).length+' ('+Math.round(dukeArr.filter(v=>v<-10).length/(dukeArr.length||1)*100)+'%)'],
+    ['Duke intermedio (-10 a 4)', dukeArr.filter(v=>v>=-10&&v<=4).length],
+    ['Duke bajo riesgo (> 4)', dukeArr.filter(v=>v>4).length],
+    ['Positivos sin Duke registrado', infs.filter(i=>i.resultadoVal==='pos'&&!i.duke).length],
+    ['METs < 5 con resultado negativo', infs.filter(i=>parseFloat(i.mets)<5&&i.resultadoVal==='neg').length]
+  ]); }
+  // ════ BETABLOQUEANTE ════
+  if(opt('bb')){ const bbsOf=i=>(i.bbs||(i.form&&i.form.bbs)||(i.bb_toma==='si'?'si':i.bb_toma==='no'?'no':'')); const enBB=infs.filter(i=>bbsOf(i)==='si').length, sinBB=infs.filter(i=>bbsOf(i)==='no').length;
+    sectionTitle('Betabloqueante'); kvTable([['En BB (toma)', enBB+' ('+Math.round(enBB/n*100)+'%)'],['Sin BB', sinBB+' ('+Math.round(sinBB/n*100)+'%)'],['Suspendieron BB', enBB+' (modelo: BB = suspendido)']]); }
+  // ════ RESPUESTA HEMODINÁMICA ════
+  if(opt('hemo')){ const rp=infs.map(i=>LV(i,'rpress','rpress')).filter(Boolean); const rc=infs.map(i=>LV(i,'rcrono','rcrono')).filter(Boolean);
+    const rfc1=infs.map(i=>parseFloat(LV(i,'rfc1','rfc1'))).filter(v=>!isNaN(v));
+    sectionTitle('Respuesta hemodinámica'); kvTable([
+      ['Presora normal', rp.filter(v=>v==='normal').length],['Presora alterada', rp.filter(v=>v&&v!=='normal').length],
+      ['Cronotrópica incompetente', rc.filter(v=>v==='incomp').length],
+      ['RFC 1er min promedio', rfc1.length?avg(rfc1).toFixed(1)+' lpm (n='+rfc1.length+')':'-'],
+      ['RFC < 12 lpm al 1er min', rfc1.filter(v=>v<12).length]
+    ]); }
+  // ════ CAUSA DE INTERRUPCIÓN ════
+  if(opt('interr')){ const MI={fatiga:'Fatiga',disnea:'Disnea',angor:'Angina',st:'Cambios ST',arr:'Arritmia',pa:'Caída de PA',prot:'Completó protocolo',pac:'Solicitud del paciente'};
+    const mi=infs.map(i=>LV(i,'motivo_interrupcion','motint')).filter(Boolean); const cnt={}; mi.forEach(v=>cnt[v]=(cnt[v]||0)+1);
+    const rows=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k=>[MI[k]||k, cnt[k]+' ('+Math.round(cnt[k]/mi.length*100)+'%)']);
+    sectionTitle('Causa de interrupción'); kvTable(rows.length?rows:[['Sin datos','-']]); }
+  // ════ CRITERIOS ALTO RIESGO ════
+  if(opt('criterios')){ const ARI=Array.from(document.querySelectorAll('.ari span')).map(s=>s.textContent.trim());
+    const critOf=i=>{if(Array.isArray(i.criterios_ar)&&i.criterios_ar.length)return i.criterios_ar;const ar=(i.form&&i.form.arritmias)||[];return ar.map(idx=>ARI[idx]).filter(Boolean);};
+    const lists=infs.map(critOf), cnt={}; lists.forEach(l=>l.forEach(c=>cnt[c]=(cnt[c]||0)+1));
+    const rows=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k=>[k, cnt[k]]);
+    rows.push(['≥1 criterio', lists.filter(l=>l.length>=1).length+' ('+Math.round(lists.filter(l=>l.length>=1).length/n*100)+'%)']);
+    rows.push(['≥2 criterios', lists.filter(l=>l.length>=2).length+' ('+Math.round(lists.filter(l=>l.length>=2).length/n*100)+'%)']);
+    sectionTitle('Criterios de alto riesgo'); kvTable(rows); }
+  // ════ INDICACIÓN ════
+  if(opt('indicacion')){ const IL={dg_isq:'Diagnóstico de isquemia',eac:'EAC conocida / Evaluativa',piam:'Post-IAM',prev:'Post-Revascularización',udt:'Unidad de dolor torácico',valv:'Valvulopatía',arr:'Arritmias / Dispositivos',ic:'Insuficiencia cardíaca',preop:'PreOP cirugía no cardíaca',cheq:'Chequeo preventivo',rehab:'Rehabilitación CV',dep:'Evaluación deportiva'};
+    const cnt={}; infs.forEach(i=>arrOf(i,'indicacion_sel','indicacion_sel').forEach(c=>cnt[c]=(cnt[c]||0)+1));
+    const rows=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k=>[IL[k]||k, cnt[k]+' ('+Math.round(cnt[k]/n*100)+'%)']);
+    sectionTitle('Indicación'); kvTable(rows.length?rows:[['Sin datos','-']]); }
+  // ════ ANTECEDENTES CV ════
+  if(opt('antec')){ const cnt={}; infs.forEach(i=>arrOf(i,'antec_cv_sel','antec_cv').forEach(c=>cnt[c]=(cnt[c]||0)+1));
+    const rows=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k=>[k, cnt[k]+' ('+Math.round(cnt[k]/n*100)+'%)']);
+    sectionTitle('Antecedentes cardiovasculares'); kvTable(rows.length?rows:[['Sin datos','-']]); }
+  // ════ CONDUCTA ════
+  if(opt('conducta')){ const CL={ctrl:'Control clínico periódico',tto:'Optimizar tto médico',img:'Imagen de estrés',rehab:'Rehabilitación CV',hemo:'Cinecoronariografía'};
+    const cv=infs.map(i=>LV(i,'conducta','cond')).filter(Boolean); const cnt={}; cv.forEach(v=>cnt[v]=(cnt[v]||0)+1);
+    const rows=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).map(k=>[CL[k]||k, cnt[k]+' ('+Math.round(cnt[k]/cv.length*100)+'%)']);
+    rows.push(['Derivados a cinecoronariografía', cv.filter(v=>v==='hemo').length]);
+    rows.push(['Derivados a rehabilitación CV', cv.filter(v=>v==='rehab').length]);
+    sectionTitle('Conducta sugerida'); kvTable(rows); }
+  // ════ COMPLICACIONES ════
+  if(opt('complic')){ const compOf=i=>arrOf(i,'complicaciones','complicaciones'); const real=l=>l.filter(c=>c&&c!=='Sin complicaciones');
+    const sinC=infs.filter(i=>real(compOf(i)).length===0).length, conC=n-sinC; const cnt={}; infs.forEach(i=>real(compOf(i)).forEach(c=>cnt[c]=(cnt[c]||0)+1));
+    const rows=[['Sin complicaciones', sinC+' ('+Math.round(sinC/n*100)+'%)'],['Con ≥1 complicación', conC+' ('+Math.round(conC/n*100)+'%)']];
+    Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).forEach(k=>rows.push([k, cnt[k]]));
+    sectionTitle('Complicaciones'); kvTable(rows); }
+  // ════ CALIDAD ════
+  if(opt('calidad')){ sectionTitle('Calidad del laboratorio');
+    const items=[['METs registrados', i=>!!i.mets],['Resultado registrado', i=>!!i.resultadoVal],['Duke Score calculado', i=>!!i.duke],['Conclusión documentada', i=>!!(i.concl||'').trim()],['FC máxima registrada', i=>!!i.fcmax],['Protocolo registrado', i=>!!i.protocolo],['Indicación registrada', i=>arrOf(i,'indicacion_sel','indicacion_sel').length>0],['Conducta registrada', i=>!!LV(i,'conducta','cond')],['Complicaciones registradas', i=>arrOf(i,'complicaciones','complicaciones').length>0]];
+    kvTable(items.map(x=>{const c=infs.filter(x[1]).length; return [x[0], pctOf(c)+'% ('+c+'/'+n+')'];})); }
+  // ════ DOCENCIA ════
+  if(opt('docencia')){ sectionTitle('Docencia — Casos de interés');
     const docentes=infs.filter(i=>i.caso_interes==='1'||/caso.*inter[eé]s|ateneo|residente/i.test(i.concl||''));
-    addFila('Casos marcados', docentes.length+' ('+pctOf(docentes.length)+'%)');
-    docentes.slice(0,12).forEach(i=>addFila('  - '+(i.nombre||'—'), i.fecha||'—'));
-    y+=3;
+    if(docentes.length){ dataTable(['Paciente','Fecha','Resumen'], docentes.slice(0,20).map(i=>{ const nota=(i.nota_interes||'').trim(); const base=(i.ensuma||i.concl||'').trim(); const res=nota||(base.length>60?base.slice(0,60)+'...':base)||'-'; return [i.nombre||'-', i.fecha||'-', res]; })); }
+    else { kvTable([['Casos marcados','0']]); }
   }
-  if(y>250){doc.addPage();y=20;}
-  y=Math.max(y+10,240);
-  doc.setFontSize(9);
-  doc.text('Responsable: '+(resp||'___________________________'), M, y);
-  doc.text('Fecha de emisión: '+new Date().toLocaleDateString('es-UY'), M, y+6);
+  // ════ RESPONSABLE + FECHA ════
+  ensure(16); y+=4; doc.setFontSize(9); doc.setTextColor(...TXT);
+  doc.text('Responsable: '+(resp||'___________________________'), M, y); y+=6;
+  doc.text('Fecha de emisión: '+new Date().toLocaleDateString('es-UY'), M, y);
+  // ════ PIE DE PÁGINA EN CADA HOJA ════
+  const total=doc.getNumberOfPages();
+  for(let p=1;p<=total;p++){ doc.setPage(p);
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.2); doc.line(M, PH-12, W-M, PH-12);
+    doc.setFontSize(8); doc.setTextColor(130,130,130); doc.setFont(undefined,'normal');
+    doc.text('Laboratorio ErgoSmart · CeiboMed 2026', M, PH-8);
+    doc.text('Página '+p+' de '+total, W-M, PH-8, {align:'right'}); }
   doc.save('auditoria_ergometria_'+new Date().toISOString().split('T')[0]+'.pdf');
   if(typeof showToast==='function')showToast('✅ PDF de auditoría generado');
 }
@@ -4280,6 +4574,7 @@ function ergoLabSubTab(id, el) {
   el.classList.add('active');
   document.getElementById('el-sub-' + id).classList.add('active');
   if (id === 'comparar') ergoLabCompararInit();
+  if (id === 'poblacion' && typeof ergoVizRender === 'function') ergoVizRender();
 }
 
 // Modo Comparativo (desde la barra del informe): abre el Laboratorio y su sub-pestaña Comparar
@@ -4762,6 +5057,8 @@ function ergoLabInit() {
       </table>`;
     }
   }
+  // Visualización interactiva (respeta el filtro de período)
+  if (typeof ergoVizRender === 'function') ergoVizRender();
 }
 
 function ergoLabCompararInit() {
