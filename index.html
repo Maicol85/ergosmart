@@ -177,6 +177,25 @@ textarea{resize:vertical;min-height:56px}
 .erg-sel{display:flex;gap:8px;margin-bottom:12px}
 .eb{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
 .eb.active{border-color:var(--accent);background:rgba(14,165,233,.1);color:var(--accent)}
+/* ── Rediseño sección Protocolo ── */
+.proto-layout{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;margin-bottom:14px}
+.proto-left{flex:1;min-width:280px;display:flex;flex-direction:column;gap:12px}
+.erg-cards{display:flex;gap:10px;flex-wrap:wrap}
+.erg-card{flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:10px;background:var(--card2);padding:11px 12px;cursor:pointer;transition:all .15s;opacity:.6}
+.erg-card.active{border-color:var(--accent);background:rgba(14,165,233,.08);opacity:1;box-shadow:inset 0 0 0 1px var(--accent)}
+.erg-card-hd{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:9px}
+.erg-card.active .erg-card-hd{color:var(--accent)}
+.erg-card-hd svg{width:18px;height:18px;flex-shrink:0}
+.proto-pills{display:flex;gap:5px;flex-wrap:wrap}
+.proto-desc{background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;padding:10px 13px;font-size:12px;color:var(--text2);line-height:1.5}
+.fc-col{flex:0 0 172px;display:flex;flex-direction:column;gap:7px}
+.fc-mini{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;text-align:center}
+.fc-mini-l{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);margin-bottom:2px}
+.fc-mini-v{font-size:14px;color:var(--text)}
+.fc-mini-v strong{font-size:18px;font-weight:800;color:var(--accent2)}
+.fc-mini-hi{border-color:var(--accent);background:rgba(14,165,233,.1)}
+.fc-mini-hi .fc-mini-v strong{color:var(--accent)}
+@media(max-width:640px){.fc-col{flex:1 1 100%;flex-direction:row;flex-wrap:wrap}.fc-col .fc-mini{flex:1;min-width:120px}}
 /* TABLA */
 .et-wrap{overflow-x:auto}
 .et{width:100%;border-collapse:collapse;font-size:12px;min-width:1100px}
@@ -808,19 +827,36 @@ body.printing-clean #clean-controls{display:none!important}
 <!-- ═══ TAB ERGOMETRÍA ═══ -->
 <div class="tab-panel" id="tab-ergo"><div class="main">
 
-<div class="sc" id="sprot"><div class="sh" onclick="tg('sprot')"><span class="st">📈 Protocolo y Registro por Etapas</span><span class="ci">▼</span></div><div class="sb">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-    <label style="margin-bottom:0;font-size:12px;color:var(--text2);white-space:nowrap">Ergómetro:</label>
-    <div class="erg-sel" style="flex:1;min-width:200px;margin-bottom:0">
-      <button class="eb active" id="ec" onclick="sErg('cinta')">🏃 Cinta deslizante</button>
-      <button class="eb" id="eb2" onclick="sErg('bici')">🚴 Bicicleta ergométrica</button>
+<div class="sc" id="sprot"><div class="sh" onclick="tg('sprot')"><span class="st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M3 12h4l3 8l4 -16l3 8h4"/></svg>Protocolo y Registro por Etapas</span><span class="ci">▼</span></div><div class="sb">
+  <div class="proto-layout">
+    <div class="proto-left">
+      <div class="erg-cards">
+        <!-- Card Cinta -->
+        <div class="erg-card active" id="ec" onclick="sErg('cinta')">
+          <div class="erg-card-hd">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="1"/><path d="M4 17l5 1l.75 -1.5"/><path d="M15 21l0 -4l-4 -3l1 -6"/><path d="M7 12l0 -3l5 -1l3 3l3 1"/></svg>
+            Cinta deslizante
+          </div>
+          <div class="proto-pills" id="pbar-cinta"></div>
+        </div>
+        <!-- Card Bicicleta -->
+        <div class="erg-card" id="eb2" onclick="sErg('bici')">
+          <div class="erg-card-hd">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="3"/><circle cx="19" cy="18" r="3"/><path d="M12 19l0 -4l-3 -3l5 -4l2 3l3 0"/><circle cx="17" cy="5" r="1"/></svg>
+            Bicicleta ergométrica
+          </div>
+          <div class="proto-pills" id="pbar-bici"></div>
+        </div>
+      </div>
+      <div id="pinfo" class="proto-desc">Seleccioná un protocolo.</div>
     </div>
-  </div>
-  <div style="margin-bottom:10px"><label>Protocolo:</label><div class="proto-bar" id="pbar"></div></div>
-  <div id="pinfo" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-size:12px;color:var(--text2);margin-bottom:12px">Seleccioná un protocolo.</div>
-  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:9px 12px;margin-bottom:12px;font-size:12px">
-    <strong style="color:var(--accent)">FC objetivos: </strong>
-    FCME: <strong id="fcr">—</strong> lpm &nbsp;|&nbsp; 85% (sin BB): <strong id="fc85r">—</strong> lpm &nbsp;|&nbsp; 62% (con BB): <strong id="fc62r">—</strong> lpm &nbsp;|&nbsp; Alcanzada: <strong id="fcar">—</strong> lpm &nbsp;&nbsp;<span id="sufbdg">—</span>
+    <div class="fc-col">
+      <div class="fc-mini"><div class="fc-mini-l">FCME</div><div class="fc-mini-v"><strong id="fcr">—</strong> lpm</div></div>
+      <div class="fc-mini"><div class="fc-mini-l">85% sin BB</div><div class="fc-mini-v"><strong id="fc85r">—</strong> lpm</div></div>
+      <div class="fc-mini"><div class="fc-mini-l">62% con BB</div><div class="fc-mini-v"><strong id="fc62r">—</strong> lpm</div></div>
+      <div class="fc-mini fc-mini-hi"><div class="fc-mini-l">FC Alcanzada</div><div class="fc-mini-v"><strong id="fcar">—</strong> lpm</div></div>
+      <div id="sufbdg" style="text-align:center;margin-top:2px;font-size:11px">—</div>
+    </div>
   </div>
   <div class="et-wrap">
     <table class="et" id="tet"><thead><tr>
@@ -2425,7 +2461,37 @@ function cPTP(){const dolor=document.getElementById('tdol').value,edadSel=docume
 function sErg(tipo){ergActual=tipo;document.getElementById('ec').classList.toggle('active',tipo==='cinta');document.getElementById('eb2').classList.toggle('active',tipo==='bici');// Columnas cinta
 ['thvel','thpend'].forEach(id=>document.getElementById(id).style.display=tipo==='cinta'?'':'none');// Columnas bici
 document.getElementById('thcarga').style.display=tipo==='bici'?'':'none';document.getElementById('thkgm').style.display='none';renderPBar();}
-function renderPBar(){const bar=document.getElementById('pbar'),protos=PROTOCOLOS[ergActual];bar.innerHTML='';let first=true;for(const key in protos){const btn=document.createElement('button');btn.className='pb'+(first?' active':'');btn.textContent=protos[key].nombre;btn.onclick=()=>setProto(key,btn);bar.appendChild(btn);if(first){setProto(key,btn);first=false;}}}
+function renderPBar(){
+  // Rellena los pills de protocolo dentro de CADA card (cinta y bici). Solo cambia el renderizado.
+  ['cinta','bici'].forEach(ergo=>{
+    const bar=document.getElementById(ergo==='cinta'?'pbar-cinta':'pbar-bici');
+    if(!bar)return;
+    bar.innerHTML='';
+    const protos=PROTOCOLOS[ergo];
+    let firstKey=null,firstBtn=null;
+    for(const key in protos){
+      const btn=document.createElement('button');
+      btn.type='button';btn.className='pb';btn.textContent=protos[key].nombre;
+      btn.onclick=(e)=>{ e.stopPropagation(); _selectProtoErg(ergo,key,btn); };
+      bar.appendChild(btn);
+      if(firstKey===null){ firstKey=key; firstBtn=btn; }
+    }
+    if(ergo===ergActual && firstBtn){ setProto(firstKey,firstBtn); }
+  });
+}
+// Seleccionar un protocolo desde su pill: activa ese ergómetro si hace falta (sin rebuild) y setProto.
+function _selectProtoErg(ergo,key,btn){
+  if(ergActual!==ergo){
+    ergActual=ergo;
+    document.getElementById('ec').classList.toggle('active',ergo==='cinta');
+    document.getElementById('eb2').classList.toggle('active',ergo==='bici');
+    document.getElementById('thvel').style.display=ergo==='cinta'?'':'none';
+    document.getElementById('thpend').style.display=ergo==='cinta'?'':'none';
+    document.getElementById('thcarga').style.display=ergo==='bici'?'':'none';
+    document.getElementById('thkgm').style.display='none';
+  }
+  setProto(key,btn);
+}
 function setProto(key,btn){protoActual=key;_protoIdx=0;_recIdx=0;document.querySelectorAll('.pb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('pinfo').textContent=PROTOCOLOS[ergActual][key].info;}
 function insProto(){if(!confirm('Esto reemplazará las etapas actuales. ¿Continuar?'))return;document.getElementById('tetb').innerHTML='';etapaCount=0;PROTOCOLOS[ergActual][protoActual].etapas.forEach(e=>aRow(e.tipo,e.label,e.vel,e.pend,e.tiempo,e.mets,e.carga,e.kgm));showToast('Etapas insertadas ✓');}
 
