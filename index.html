@@ -451,6 +451,50 @@ body.printing-clean > *:not(#clean-overlay){display:none!important}
 body.printing-clean #clean-overlay{position:static!important;overflow:visible!important;padding:0!important}
 body.printing-clean #clean-controls{display:none!important}
 @media(max-width:768px){.fc-targets{grid-template-columns:1fr 1fr}.fg4,.fg3{grid-template-columns:1fr 1fr}.ar-grid,.ccs-g{grid-template-columns:1fr}}
+/* ═══ MOBILE ≤768px — legibilidad y layout vertical (Protocolo · Hemodinámico · Antecedentes/Medicación · Indicación) ═══ */
+@media(max-width:768px){
+  /* Evita el desborde horizontal en mobile: con .app-shell en columna y align-items:flex-start,
+     .app-content se ajusta a su contenido (la tabla de 1100px) en vez de estirarse al viewport,
+     desbordando toda la página. Forzamos que ocupe el ancho del viewport y que la tabla scrollee
+     dentro de .et-wrap (los .sc son flex-items de .main con min-width:auto; sin min-width:0 no encogen). */
+  .app-shell{align-items:stretch}
+  .app-content{width:100%;min-width:0}
+  .main{min-width:0}
+  .sc{min-width:0}
+  .et-wrap{max-width:100%}
+  /* Tipografía mínima legible (labels ≥12px, títulos de sección 14px; valores base ya son 13px) */
+  .st{font-size:14px}
+  label{font-size:12px}
+  .hemo-card label{font-size:12px}
+  .fc-mini-l{font-size:12px}
+  .sb{padding:11px}
+  /* PROTOCOLO: cards en columna vertical → FC debajo → descripción al final, ancho completo */
+  .proto-layout{flex-direction:column;gap:12px}
+  .proto-left{display:contents}
+  .erg-cards{order:1;flex-direction:column}
+  .erg-card{flex:0 0 auto;min-width:0}
+  .fc-col{order:2;flex:1 1 100%;flex-direction:row;flex-wrap:wrap;gap:6px}
+  .fc-col .fc-mini{flex:1 1 44%;min-width:120px}
+  .proto-desc{order:3}
+  .proto-pills{gap:4px}
+  .pb{font-size:12px;padding:5px 9px}
+  /* TABLA DE ETAPAS: scroll horizontal (ya en .et-wrap) + celdas 11px, sin tocar columnas */
+  .et,.et td,.et td input,.et td select{font-size:11px}
+  /* RESUMEN HEMODINÁMICO: 3 columnas → 1 vertical (izquierda · Duke · derecha) + 3 selectores en 1 columna */
+  .hemo-cols{flex-direction:column;align-items:stretch}
+  .hemo-col{flex:1 1 100%;min-width:0}
+  .hemo-duke{flex:1 1 100%}
+  #shemo .fg3{grid-template-columns:1fr}
+  /* ANTECEDENTES Y MEDICACIÓN: 2 columnas → 1 vertical */
+  .antmed-cols{flex-direction:column}
+  .antmed-col{min-width:0}
+  /* INDICACIÓN y chips: 1 columna */
+  .indic-grid{grid-template-columns:1fr}
+  .chip-grid{grid-template-columns:1fr}
+  /* BARRA INFERIOR: padding compacto y permitir wrap */
+  .fab-bar{padding:10px 10px;gap:8px 10px}
+  .fab-bar .btn{padding:8px 12px;font-size:12px}
+}
 /* ══ LOGIN REDISEÑADO (scopeado, no afecta al aviso) ══ */
 #modal-login{background:radial-gradient(1200px 600px at 50% 22%,#5c3210 0%,#3d1f00 52%,#1f1000 100%)!important;backdrop-filter:blur(4px)}
 #modal-login .modal-box{background:rgba(255,255,255,.055)!important;border:1px solid rgba(251,146,60,.3)!important;box-shadow:0 24px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:blur(10px);border-radius:18px}
