@@ -141,6 +141,18 @@ textarea{resize:vertical;min-height:56px}
 .med-chip.active{border-color:var(--warn);background:rgba(245,158,11,.1);color:var(--warn)}
 .med-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--border)}
 .med-chip.active .dot{background:var(--warn)}
+/* ── Rediseño Antecedentes y Medicación ── */
+.antmed-cols{display:flex;gap:16px;flex-wrap:wrap}
+.antmed-col{flex:1;min-width:260px}
+.antmed-hd{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--accent2);margin-bottom:9px}
+.antmed-hd svg{width:16px;height:16px;flex-shrink:0}
+.chip-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chip-grid input[type=checkbox]{display:none}
+.antec-chip{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;transition:all .15s}
+.antec-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+.antec-chip.active{border-color:var(--accent);background:rgba(14,165,233,.1);color:var(--accent)}
+.antec-chip.active .dot{background:var(--accent)}
+@media(max-width:640px){.chip-grid{grid-template-columns:1fr}}
 /* INDIC */
 .indic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
 .indic-opt{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:9px}
@@ -738,28 +750,53 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
 </div></div>
 
-<div class="sc" id="sant"><div class="sh" onclick="tg('sant')"><span class="st">📋 Antecedentes y Medicación</span><span class="ci">▼</span></div><div class="sb">
-  <div class="fg fg2" style="margin-bottom:12px">
-    <div><label>Antecedentes cardiovasculares</label><textarea id="acv" placeholder="IAM, CRM, ATC, valvulopatía, MCH, HTA..." oninput="updComp()"></textarea></div>
-    <div><label>Otros antecedentes</label><textarea id="aot" placeholder="DM, EPOC, IRC, dislipemia, tabaquismo..."></textarea></div>
-  </div>
-  <div class="sc collapsed" id="smed" style="margin-bottom:10px"><div class="sh" onclick="tg('smed')"><span class="st">💊 Medicación activa <span style="color:var(--warn);font-weight:400;text-transform:none;letter-spacing:0">(marcar los que correspondan)</span></span><span class="ci">▼</span></div><div class="sb">
-    <div class="med-grid">
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Betabloqueante"><div class="dot"></div>⚠️ Betabloqueante</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Nitratos"><div class="dot"></div>💊 Nitratos</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Calcioantagonista"><div class="dot"></div>💊 Calcioantagonista</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Digoxina"><div class="dot"></div>⚠️ Digoxina</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="IECA/ARAII"><div class="dot"></div>💊 IECA/ARAII</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Estatinas"><div class="dot"></div>💊 Estatinas</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Antiagregante"><div class="dot"></div>💊 Antiagregante</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Anticoagulante"><div class="dot"></div>💊 Anticoagulante</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Antiarrítmico"><div class="dot"></div>⚠️ Antiarrítmico</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Insulina/ADO"><div class="dot"></div>⚠️ Insulina/ADO</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Diurético"><div class="dot"></div>💊 Diurético</div>
-      <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Ivabradina"><div class="dot"></div>⚠️ Ivabradina</div>
+<div class="sc collapsed" id="sant"><div class="sh" onclick="tg('sant')"><span class="st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"/><path d="M9 12l2 2l4 -4"/></svg>Antecedentes y Medicación</span><span class="ci">▼</span></div><div class="sb">
+  <div class="antmed-cols">
+    <!-- IZQUIERDA — Antecedentes -->
+    <div class="antmed-col">
+      <div class="antmed-hd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>Antecedentes cardiovasculares</div>
+      <div class="chip-grid" id="antec-cv-grid">
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="IAM previo"><div class="dot"></div>IAM previo</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="HTA"><div class="dot"></div>HTA</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="CRM / By-pass"><div class="dot"></div>CRM / By-pass</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="DM"><div class="dot"></div>DM</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="ATC / Stent"><div class="dot"></div>ATC / Stent</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="Dislipemia"><div class="dot"></div>Dislipemia</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="Valvulopatía"><div class="dot"></div>Valvulopatía</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="Tabaquismo"><div class="dot"></div>Tabaquismo</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="MCH"><div class="dot"></div>MCH</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="FA / Flutter"><div class="dot"></div>FA / Flutter</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="IC previa"><div class="dot"></div>IC previa</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="ACV / AIT"><div class="dot"></div>ACV / AIT</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="ERC"><div class="dot"></div>ERC</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="EPOC / Asma"><div class="dot"></div>EPOC / Asma</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="Dispositivo (MPP/CDI/CRT)"><div class="dot"></div>Dispositivo (MPP/CDI/CRT)</div>
+        <div class="antec-chip" onclick="tMed(this)"><input type="checkbox" value="Otro"><div class="dot"></div>Otro</div>
+      </div>
+      <label style="display:block;margin-top:12px">Otros antecedentes</label>
+      <textarea id="aot" placeholder="Otros antecedentes relevantes..."></textarea>
     </div>
-  </div></div>
-  <div><label>Otras medicaciones</label><input type="text" id="moto" placeholder="Otros fármacos..."></div>
+    <!-- DERECHA — Medicación -->
+    <div class="antmed-col">
+      <div class="antmed-hd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l8 -8a4.94 4.94 0 0 1 7 7l-8 8a4.94 4.94 0 0 1 -7 -7"/><path d="M8.5 8.5l7 7"/></svg>Medicación activa</div>
+      <div class="chip-grid" id="med-activa-grid">
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Betabloqueante"><div class="dot"></div>Betabloqueante</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Nitratos"><div class="dot"></div>Nitratos</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Antiarrítmico"><div class="dot"></div>Antiarrítmico</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="IECA / ARA II"><div class="dot"></div>IECA / ARA II</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Diurético"><div class="dot"></div>Diurético</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Estatina"><div class="dot"></div>Estatina</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Antiagregante"><div class="dot"></div>Antiagregante</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Anticoagulante"><div class="dot"></div>Anticoagulante</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Calcioantagonista"><div class="dot"></div>Calcioantagonista</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Digoxina"><div class="dot"></div>Digoxina</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Hipoglucemiante"><div class="dot"></div>Hipoglucemiante</div>
+        <div class="med-chip" onclick="tMed(this)"><input type="checkbox" value="Otro"><div class="dot"></div>Otro</div>
+      </div>
+      <label style="display:block;margin-top:12px">Otras medicaciones</label>
+      <textarea id="moto" placeholder="Otros fármacos..."></textarea>
+    </div>
+  </div>
 </div></div>
 
 </div></div><!-- /main paciente -->
@@ -1990,7 +2027,7 @@ function exportPDF(){
     [{lbl:'Centro / Institución', val:sval('pcentro')}, {lbl:'Fecha', val:fechaTxt}, {lbl:'Médico solicitante', val:sval('psolicitante')}],
     [{lbl:'Peso', val:sval('pp')?sval('pp')+' kg':''}, {lbl:'Talla', val:sval('pt')?sval('pt')+' cm':''}, {lbl:'IMC', val:sval('pimc')?sval('pimc')+' kg/m²':''}, {lbl:'ASC', val:sval('psc')?sval('psc')+' m²':''}],
     [{lbl:'Servicio', val:medServ}, {lbl:'Indicación', val:(indic||'').trim()}],
-    [{lbl:'Antecedentes cardiovasculares', val:sval('acv')}],
+    [{lbl:'Antecedentes cardiovasculares', val:Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value).join(', ')}],
     [{lbl:'Otros antecedentes', val:sval('aot')}],
     [{lbl:'Motivo de consulta', val:motivo}],
   ]);
@@ -2727,7 +2764,7 @@ let cmpSel=[];                     // ids seleccionados para comparar (máx 2)
 const ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>ESC_MAP[c]);}
 // Campos restaurables (id -> valor)
-const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','acv','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu','ergo_ensuma'];
+const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu','ergo_ensuma'];
 
 // Captura del snapshot del formulario en vivo
 function capturarForm(){
@@ -2736,6 +2773,7 @@ function capturarForm(){
   form.ergActual=ergActual;
   form.protoActual=protoActual;
   form.meds=Array.from(document.querySelectorAll('.med-chip.active input')).map(i=>i.value);
+  form.antec_cv=Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value);
   const indSel=document.querySelector('.indic-opt.selected');
   form.indic=indSel?indSel.querySelector('input')?.value:'';
   form.indicText=indSel?(indSel.querySelector('strong')?.textContent||''):'';
@@ -2810,6 +2848,8 @@ function restoreForm(form){
   FORM_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el&&form[id]!==undefined)el.value=form[id];});
   // Medicaciones
   document.querySelectorAll('.med-chip').forEach(c=>{const v=c.querySelector('input')?.value;const on=(form.meds||[]).includes(v);c.classList.toggle('active',on);const cb=c.querySelector('input');if(cb)cb.checked=on;});
+  // Antecedentes cardiovasculares
+  document.querySelectorAll('.antec-chip').forEach(c=>{const v=c.querySelector('input')?.value;const on=(form.antec_cv||[]).includes(v);c.classList.toggle('active',on);const cb=c.querySelector('input');if(cb)cb.checked=on;});
   // Indicación
   document.querySelectorAll('.indic-opt').forEach(o=>{const v=o.querySelector('input')?.value;const on=v===form.indic;o.classList.toggle('selected',on);const r=o.querySelector('input');if(r)r.checked=on;});
   // Arritmias alto riesgo
@@ -2843,6 +2883,8 @@ function guardar(){
     ensuma:document.getElementById('ergo_ensuma')?.value||'',
     caso_interes:document.getElementById('caso_interes_ergo')?.checked?'1':'0',
     fecha_solicitud:document.getElementById('fecha_solicitud_ergo')?.value||'',
+    antec_cv_sel:Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value),
+    med_activa_sel:Array.from(document.querySelectorAll('.med-chip.active input')).map(i=>i.value),
     form:capturarForm()};
   let lista=safeLoadReports();
   if(editandoId){
@@ -3025,7 +3067,7 @@ function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,re
 function cFCobj(){const edad=parseInt(document.getElementById('cfced').value)||0,rep=parseInt(document.getElementById('cfcrep').value)||0;if(!edad){document.getElementById('crfc').textContent='Ingresá la edad';return;}const fcme=220-edad,p85=Math.round(fcme*0.85),p62=Math.round(fcme*0.62),kv=rep>0?Math.round(rep+0.85*(fcme-rep)):null;document.getElementById('crfc').innerHTML=`FCME (220−edad): <strong>${fcme} lpm</strong><br>85% FCME — prueba máxima sin BB: <strong>${p85} lpm</strong><br>62% FCME — prueba suficiente con BB: <strong>${p62} lpm</strong>${kv?`<br>Karvonen 85% (reserva FC): <strong>${kv} lpm</strong>`:''}`;}
 
 // LIMPIAR
-function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
+function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.antec-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
 // Resetear campos calculados automáticamente (displays con textContent, no inputs)
 ['vfcme','v85','virc','fcr','fc85r','fc62r','fcar','ccsd','nyhad','ptpv','ptpl','ptprec'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
 // Suficiencia de la prueba y badge PTP
@@ -3074,7 +3116,7 @@ function imprimirLimpio(){
   const nombre=d('pn')||'—', ci=d('pci'), fecha=d('fe'), inst=d('finst'), serv=d('is');
   const edad=d('ped'), sexo=document.getElementById('psex')?.value==='M'?'Masculino':document.getElementById('psex')?.value==='F'?'Femenino':'—';
   const peso=d('pp'), talla=d('pt'), imc=d('pimc'), sc=d('psc');
-  const acv=d('acv'), aot=d('aot'), moto=d('moto');
+  const acv=Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value).join(', '), aot=d('aot'), moto=d('moto');
   const meds=Array.from(document.querySelectorAll('.med-chip.active input')).map(i=>i.value).join(', ')||'No referidas';
   const indicEl=document.querySelector('.indic-opt.selected strong');
   const indicacion=indicEl?indicEl.textContent:'No especificada';
@@ -4375,19 +4417,37 @@ function ergoLabComparar() {
     </table>`;
 }
 
+// Listas canónicas para las columnas binarias (deben coincidir con el markup de #sant)
+const LAB_ANTEC = ['IAM previo','HTA','CRM / By-pass','DM','ATC / Stent','Dislipemia','Valvulopatía','Tabaquismo','MCH','FA / Flutter','IC previa','ACV / AIT','ERC','EPOC / Asma','Dispositivo (MPP/CDI/CRT)','Otro'];
+const LAB_MED   = ['Betabloqueante','Nitratos','Antiarrítmico','IECA / ARA II','Diurético','Estatina','Antiagregante','Anticoagulante','Calcioantagonista','Digoxina','Hipoglucemiante','Otro'];
 function ergoLabCSV() {
   const infs = ergoLabGetInfs();
   if (!infs.length) { showToast('⚠️ Sin estudios'); return; }
   const cols = ['nombre','ci','fecha','mets','resultado',
     'duke','dukeNivel','fcmax','protocolo','cf','concl','ensuma',
     'caso_interes','fecha_solicitud'];
-  const header = cols.join(';');
-  const rows = infs.map(i =>
-    cols.map(c =>
-      String(i[c]||'').replace(/;/g,' ').replace(/\n/g,' ')
-    ).join(';')
-  );
-  const csv = [header,...rows].join('\n');
+  // Columnas binarias 0/1: una por antecedente y una por medicación
+  const antCols = LAB_ANTEC.map(a => 'ant:'+a);
+  const medCols = LAB_MED.map(m => 'med:'+m);
+  const header = [...cols, ...antCols, ...medCols].map(h=>h.replace(/;/g,' ')).join(';');
+  const clean = v => String(v==null?'':v).replace(/;/g,' ').replace(/\n/g,' ');
+  const rows = infs.map(i => {
+    // Retrocompat: registros viejos sólo tienen los seleccionados dentro de form
+    const antSel = i.antec_cv_sel || (i.form && i.form.antec_cv) || [];
+    const medSel = i.med_activa_sel || (i.form && i.form.meds) || [];
+    const base = cols.map(c => clean(i[c]));
+    const antBin = LAB_ANTEC.map(a => antSel.includes(a) ? '1' : '0');
+    const medBin = LAB_MED.map(m => medSel.includes(m) ? '1' : '0');
+    return [...base, ...antBin, ...medBin].join(';');
+  });
+  // Leyenda al pie (no altera la grilla de datos): significado de las columnas binarias
+  const leyenda = [
+    '',
+    '# LEYENDA — columnas ant:* y med:* son binarias (1 = presente / 0 = ausente)',
+    '# Antecedentes cardiovasculares: '+LAB_ANTEC.join(' | '),
+    '# Medicación activa: '+LAB_MED.join(' | ')
+  ];
+  const csv = [header,...rows,...leyenda].join('\n');
   const blob = new Blob(['\uFEFF'+csv],
     { type:'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
