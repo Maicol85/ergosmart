@@ -547,7 +547,6 @@ body.printing-clean #clean-controls{display:none!important}
       <button id="logo-centro-del" type="button" onclick="logoDelete(event)" title="Quitar logo" aria-label="Quitar logo" style="display:none;position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:10px;line-height:1;cursor:pointer;padding:0;">✕</button>
     </div>
     <button class="icon-btn" onclick="toggleTheme()" id="tbtn" title="Alternar tema" aria-label="Alternar tema claro u oscuro">🌙</button>
-    <button class="btn btn-outline" onclick="limpiar()">🗑 Limpiar</button>
     <button onclick="exportarErgoJSON()" title="Exportar estudios a JSON"
       style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text2,#94A3B8);cursor:pointer;display:flex;align-items:center;gap:4px;">
       📤 Exportar
@@ -659,7 +658,7 @@ body.printing-clean #clean-controls{display:none!important}
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
     <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">♻️ Restablecer</div>
     <div style="font-size:11px;color:var(--text2);margin:6px 0 0" style="margin:0 0 10px">Limpia el formulario actual para comenzar un nuevo estudio. Los datos de institución y firma se conservan.</div>
-    <button class="btn btn-outline" onclick="limpiar()">🆕 Nuevo estudio</button>
+    <button class="btn btn-outline" onclick="nuevoEstudio()">🆕 Nuevo estudio</button>
   </div>
 </div></div>
 <div class="tab-panel active" id="tab-paciente"><div class="main">
@@ -996,11 +995,25 @@ body.printing-clean #clean-controls{display:none!important}
     <label style="margin-bottom:8px;display:block">Texto del informe / Conclusión clínica</label>
     <textarea id="concltxt" placeholder="Escribí la conclusión clínica aquí..." style="min-height:140px" oninput="updComp()"></textarea>
   </div>
+  <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
+    <label style="margin-bottom:8px;display:block;font-weight:700;color:var(--accent2)">✅ EN SUMA / Conclusión rápida</label>
+    <textarea id="ergo_ensuma" placeholder="Resumen rápido, una línea por ítem..." style="min-height:110px"></textarea>
+    <div style="margin-top:8px">
+      <button type="button" class="btn btn-primary btn-sm" onclick="generarEnSuma()">✅ Generar EN SUMA</button>
+    </div>
+  </div>
   <div class="fg fg2" style="margin-top:10px">
     <div><label>Conducta sugerida</label>
       <select id="cond"><option value="">—</option><option value="ctrl">Control clínico periódico</option><option value="tto">Optimizar tratamiento médico</option><option value="img">Imagen de estrés (eco/SPECT)</option><option value="rehab">Rehabilitación cardiovascular</option><option value="hemo">Cinecoronariografía</option></select>
     </div>
     <div><label>Correlación clínica / Observaciones</label><input type="text" id="obs" placeholder="Observaciones adicionales..."></div>
+  </div>
+
+  <div class="report-foot" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+    <button type="button" class="btn btn-primary" onclick="generarConclusion()">📝 Regenerar Informe</button>
+    <button type="button" class="btn" onclick="generarEnSuma()">✅ Generar EN SUMA</button>
+    <button type="button" class="btn btn-primary" onclick="exportPDF()">📄 Exportar PDF</button>
+    <button type="button" class="btn btn-success" onclick="guardar()">💾 Guardar Informe</button>
   </div>
 </div></div>
 
@@ -1529,7 +1542,8 @@ body.printing-clean #clean-controls{display:none!important}
   <div class="foot-actions">
     <button onclick="irAInforme()" title="Ir a Conclusión y generar el informe">📝 Informe</button>
     <button onclick="swTab('guard',null)" title="Informes guardados">💾 Guardados</button>
-    <button onclick="swTab('lab',null);if(window.ergoLabInit)ergoLabInit()" title="Laboratorio">🔬 Laboratorio</button>
+    <button onclick="nuevoEstudio()" title="Iniciar un nuevo estudio">🆕 Nuevo Estudio</button>
+    <button onclick="swTab('lab',null)" title="Laboratorio">🔬 Laboratorio</button>
   </div>
   </div><!-- /app-content -->
 </div><!-- /app-shell -->
@@ -1537,7 +1551,6 @@ body.printing-clean #clean-controls{display:none!important}
 <!-- BARRA FLOTANTE -->
 <div class="fab-bar no-print">
   <span style="font-size:11px;color:var(--text2)">© 2026 Dr. M. D. S. y col. · ErgoSmart · Todos los derechos reservados · Uso clínico exclusivo</span>
-  <button class="btn btn-outline" onclick="limpiar()">🗑 Limpiar</button>
   <button class="btn btn-success" onclick="guardar()">💾 Guardar informe</button>
 </div>
 
@@ -2214,7 +2227,7 @@ function toggleTheme(){const h=document.documentElement,d=h.getAttribute('data-t
 (()=>{const t=localStorage.getItem('ergo_theme');if(t){document.documentElement.setAttribute('data-theme',t);document.getElementById('tbtn').textContent=t==='light'?'🌙':'☀️';}})();
 
 // TABS
-function swTab(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');if(btn){btn.classList.add('active');}else{document.querySelectorAll('.tab-btn').forEach(b=>{const oc=b.getAttribute('onclick')||'';if(oc.indexOf("'"+id+"'")!==-1)b.classList.add('active');});}if(id==='guard')rGuard();if(id==='analisis')renderAnalisisCharts();if(id==='img')ecgcRefreshPhases();if(id==='config'&&window.ergoCfgOpen)ergoCfgOpen();}
+function swTab(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');if(btn){btn.classList.add('active');}else{document.querySelectorAll('.tab-btn').forEach(b=>{const oc=b.getAttribute('onclick')||'';if(oc.indexOf("'"+id+"'")!==-1)b.classList.add('active');});}if(id==='guard')rGuard();if(id==='analisis')renderAnalisisCharts();if(id==='img')ecgcRefreshPhases();if(id==='config'&&window.ergoCfgOpen)ergoCfgOpen();if(id==='lab'&&window.ergoLabInit)ergoLabInit();}
 function renderAnalisisCharts(){
   const tb=document.getElementById('tetb');
   const rows=tb?Array.from(tb.querySelectorAll('tr')):[];
@@ -2626,7 +2639,7 @@ let cmpSel=[];                     // ids seleccionados para comparar (máx 2)
 const ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>ESC_MAP[c]);}
 // Campos restaurables (id -> valor)
-const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','acv','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu'];
+const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','acv','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu','ergo_ensuma'];
 
 // Captura del snapshot del formulario en vivo
 function capturarForm(){
@@ -2739,6 +2752,7 @@ function guardar(){
   const base={fecha,nombre,ci,mets,resultado,resultadoVal,duke:dukeV,dukeNivel,concl,
     protocolo:PROTOCOLOS[ergActual][protoActual]?.nombre,ergometro:ergActual,
     fcmax,fcObj,cf,
+    ensuma:document.getElementById('ergo_ensuma')?.value||'',
     caso_interes:document.getElementById('caso_interes_ergo')?.checked?'1':'0',
     fecha_solicitud:document.getElementById('fecha_solicitud_ergo')?.value||'',
     form:capturarForm()};
@@ -2748,13 +2762,28 @@ function guardar(){
     if(idx>=0){lista[idx]={...lista[idx],...base,id:editandoId};}
     else{base.id=Date.now();lista.unshift(base);}
     editandoId=null;
-  }else{
-    base.id=Date.now();lista.unshift(base);
-    if(lista.length>50)lista=lista.slice(0,50);
+    _ergoPersistLista(lista);
+    return;
   }
+  // Nuevo estudio: ¿existe informe previo del mismo paciente (nombre O CI) en 30 días?
+  const cutoff=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const ciN=(ci||'').trim();
+  const previo=lista.find(i=>(
+    ((i.nombre||'').trim().toLowerCase()===nombre.trim().toLowerCase())||
+    (ciN&&(i.ci||'').trim()===ciN)
+  )&&(i.fecha||'')>=cutoff);
+  if(previo){ ergoModalSobreescribir(previo, base, lista); return; }
+  _ergoGuardarNuevo(base, lista);
+}
+function _ergoPersistLista(lista){
   try{localStorage.setItem('ergo_informes',JSON.stringify(lista));showToast('Informe guardado ✓');}
   catch(e){showToast('⚠ No se pudo guardar (almacenamiento lleno)');}
   rGuard();
+}
+function _ergoGuardarNuevo(base, lista){
+  base.id=Date.now(); lista.unshift(base);
+  if(lista.length>50)lista=lista.slice(0,50);
+  _ergoPersistLista(lista);
 }
 
 function safeLoadReports(){
@@ -2908,7 +2937,7 @@ function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,re
 function cFCobj(){const edad=parseInt(document.getElementById('cfced').value)||0,rep=parseInt(document.getElementById('cfcrep').value)||0;if(!edad){document.getElementById('crfc').textContent='Ingresá la edad';return;}const fcme=220-edad,p85=Math.round(fcme*0.85),p62=Math.round(fcme*0.62),kv=rep>0?Math.round(rep+0.85*(fcme-rep)):null;document.getElementById('crfc').innerHTML=`FCME (220−edad): <strong>${fcme} lpm</strong><br>85% FCME — prueba máxima sin BB: <strong>${p85} lpm</strong><br>62% FCME — prueba suficiente con BB: <strong>${p62} lpm</strong>${kv?`<br>Karvonen 85% (reserva FC): <strong>${kv} lpm</strong>`:''}`;}
 
 // LIMPIAR
-function limpiar(){if(!confirm('¿Limpiar todos los datos del formulario?'))return;const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
+function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
 // Resetear campos calculados automáticamente (displays con textContent, no inputs)
 ['vfcme','v85','virc','fcr','fc85r','fc62r','fcar','ccsd','nyhad','ptpv','ptpl','ptprec'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
 // Suficiencia de la prueba y badge PTP
@@ -2924,7 +2953,8 @@ const _ptpe=document.getElementById('ptpe');if(_ptpe)_ptpe.selectedIndex=0;
 document.querySelectorAll('.ptpc').forEach(c=>c.classList.remove('ptp-sel'));
 const _ptpr=document.getElementById('ptpr');if(_ptpr)_ptpr.classList.remove('show');
 const _ptpv=document.getElementById('ptpv');if(_ptpv)_ptpv.style.color='';
-updComp();updResumen();showToast('Formulario limpiado');}
+const _es=document.getElementById('ergo_ensuma');if(_es)_es.value='';updComp();updResumen();showToast('Formulario limpiado');}
+function limpiar(){if(!confirm('¿Limpiar todos los datos del formulario?'))return;limpiarForm();}
 
 // UNIDAD VELOCIDAD
 let velUnit='kmh'; // 'kmh' | 'mph'
@@ -3755,7 +3785,8 @@ function ergoLabGetInfs() {
   const hasta = document.getElementById('el-hasta')?.value;
   const hoy = new Date();
   return todos.filter(inf => {
-    const f = inf.fecha ? new Date(inf.fecha) : null;
+    const fStr = inf.fecha || inf.fecha_estudio;   // importados usan 'fecha_estudio'
+    const f = fStr ? new Date(fStr) : null;
     if (!f || isNaN(f)) return false;
     if (desde && f < new Date(desde)) return false;
     if (hasta && f > new Date(hasta + 'T23:59:59')) return false;
@@ -4249,7 +4280,7 @@ function ergoLabCSV() {
   const infs = ergoLabGetInfs();
   if (!infs.length) { showToast('⚠️ Sin estudios'); return; }
   const cols = ['nombre','ci','fecha','mets','resultado',
-    'duke','dukeNivel','fcmax','protocolo','cf','concl',
+    'duke','dukeNivel','fcmax','protocolo','cf','concl','ensuma',
     'caso_interes','fecha_solicitud'];
   const header = cols.join(';');
   const rows = infs.map(i =>
@@ -5305,4 +5336,93 @@ document.addEventListener('click',function(e){
     </button>
   </div>
 </div>
+
+<!-- ═══ EN SUMA · Nuevo Estudio · Sobreescribir (CAMBIOS 1/3/4) ═══ -->
+<script>
+function _ergoNyhaByMets(m){
+  if(m>=7) return ['I','sin limitación funcional'];
+  if(m>=5) return ['II','limitación funcional leve'];
+  if(m>=3) return ['III','limitación funcional moderada'];
+  return ['IV','limitación funcional severa'];
+}
+function generarEnSuma(){
+  const L=[];
+  // 1) Resultado de isquemia
+  const res=document.getElementById('res')?.value;
+  if(res==='pos') L.push('Ergometría POSITIVA para isquemia miocárdica.');
+  else if(res==='neg') L.push('Ergometría negativa para isquemia miocárdica.');
+  else if(res==='nc') L.push('Ergometría no concluyente (prueba submáxima).');
+  else if(res==='nd') L.push('Ergometría no diagnóstica.');
+  // 2) Score de Duke (si está calculado)
+  const dv=parseFloat(String(document.getElementById('dval')?.textContent||'').replace(',','.'));
+  if(!isNaN(dv)){
+    const nivel = dv>=5 ? 'bajo riesgo' : (dv < -10 ? 'alto riesgo' : 'riesgo intermedio');
+    L.push('Score de Duke: '+nivel+' ('+dv+' pts).');
+  }
+  // 3) Respuesta presora (si está documentada)
+  const rp=document.getElementById('rpress')?.value;
+  if(rp==='normal') L.push('Respuesta presora normal.');
+  else if(rp) L.push('Respuesta presora alterada.');
+  // 4) Arritmias
+  const marc=document.querySelectorAll('.ari.chk').length;
+  const filasArr=Array.from(document.querySelectorAll('#tetb tr td:nth-child(14) input'))
+    .some(i=>(i.value||'').trim() && !/sin\s+arritmias/i.test(i.value));
+  const motint=document.getElementById('motint')?.value;
+  const huboArr = marc>0 || filasArr || motint==='arr';
+  L.push(huboArr ? 'Se registraron arritmias durante la prueba.' : 'Sin arritmias significativas.');
+  // 5) METs alcanzados
+  const mets=parseFloat(String(document.getElementById('metat')?.value||'').replace(',','.'));
+  if(!isNaN(mets) && mets>0){
+    const nyha=_ergoNyhaByMets(mets);
+    L.push('Capacidad funcional: '+mets+' METs (Clase funcional '+nyha[0]+' — '+nyha[1]+').');
+  }
+  const ta=document.getElementById('ergo_ensuma');
+  if(ta){ ta.value=L.join('\n'); if(typeof showToast==='function')showToast('EN SUMA generado ✓'); }
+}
+window.generarEnSuma=generarEnSuma;
+
+function nuevoEstudio(){
+  let ov=document.getElementById('modal-ergo-nuevo');
+  if(!ov){ ov=document.createElement('div'); ov.id='modal-ergo-nuevo'; ov.className='modal-overlay'; ov.style.display='none'; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="modal-box" style="max-width:460px">'+
+    '<h2 style="color:var(--accent2)">¿Iniciar nuevo estudio?</h2>'+
+    '<p>Los datos no guardados se perderán. ¿Deseás guardar el informe antes de continuar?</p>'+
+    '<div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px">'+
+      '<button type="button" class="btn btn-ghost" id="ne-cancel">Cancelar</button>'+
+      '<button type="button" class="btn btn-outline" id="ne-sin">Continuar sin guardar</button>'+
+      '<button type="button" class="btn btn-success" id="ne-guardar">Guardar y continuar</button>'+
+    '</div></div>';
+  ov.style.display='flex';
+  const close=function(){ ov.style.display='none'; };
+  document.getElementById('ne-cancel').onclick=close;
+  document.getElementById('ne-sin').onclick=function(){ close(); limpiarForm(); };
+  document.getElementById('ne-guardar').onclick=function(){ close(); guardar(); limpiarForm(); };
+}
+window.nuevoEstudio=nuevoEstudio;
+
+function ergoModalSobreescribir(previo, base, lista){
+  let ov=document.getElementById('modal-ergo-sobre');
+  if(!ov){ ov=document.createElement('div'); ov.id='modal-ergo-sobre'; ov.className='modal-overlay'; ov.style.display='none'; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="modal-box" style="max-width:480px">'+
+    '<h2 style="color:var(--accent2)">Estudio previo encontrado</h2>'+
+    '<p>Ya existe un informe de <strong>'+esc(previo.nombre||base.nombre)+'</strong> del <strong>'+esc(previo.fecha||'—')+'</strong>. ¿Qué deseás hacer?</p>'+
+    '<div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px">'+
+      '<button type="button" class="btn btn-ghost" id="es-cancel">Cancelar</button>'+
+      '<button type="button" class="btn btn-outline" id="es-nuevo">Guardar como nuevo</button>'+
+      '<button type="button" class="btn btn-primary" id="es-sobre">Sobreescribir</button>'+
+    '</div></div>';
+  ov.style.display='flex';
+  const close=function(){ ov.style.display='none'; };
+  document.getElementById('es-cancel').onclick=close;
+  document.getElementById('es-nuevo').onclick=function(){ close(); _ergoGuardarNuevo(base, lista); };
+  document.getElementById('es-sobre').onclick=function(){
+    close();
+    const idx=lista.findIndex(i=>i.id===previo.id);
+    if(idx>=0){ lista[idx]={...lista[idx],...base,id:previo.id}; }
+    else{ lista.unshift({...base,id:previo.id}); }
+    _ergoPersistLista(lista);
+  };
+}
+window.ergoModalSobreescribir=ergoModalSobreescribir;
+</script>
 </body></html>
