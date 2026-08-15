@@ -278,6 +278,22 @@ table.ecgc-grid td.ecgc-cell .ecgc-empty{color:#c99;font-size:12px}
 .ari.chk .adot{background:var(--danger);border-color:var(--danger);color:#fff;font-size:9px}
 .ar-res{background:var(--bg3);border:1px solid var(--danger);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:13px;display:none}
 .ar-res.show{display:block}
+/* ── Rediseño Resumen Hemodinámico ── */
+.hemo-cols{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px}
+.hemo-col{flex:1;min-width:210px;display:flex;flex-direction:column;gap:8px}
+.hemo-card{background:var(--card2);border:.5px solid var(--border);border-radius:10px;padding:9px 11px}
+.hemo-card label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);margin-bottom:4px}
+.hemo-card input,.hemo-card select{width:100%;margin:0}
+.hemo-duke{flex:0 0 170px;display:flex;flex-direction:column;gap:8px}
+.hemo-duke .duke-box{margin:0}
+.ar-acc{border:1px solid rgba(239,68,68,.35);border-radius:10px;margin-top:14px;overflow:hidden}
+.ar-acc-hd{display:flex;align-items:center;gap:8px;background:rgba(239,68,68,.1);color:var(--danger);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 13px;cursor:pointer}
+.ar-acc-hd svg{width:17px;height:17px;flex-shrink:0}
+.ar-acc-chev{margin-left:auto;transition:transform .2s;font-size:11px}
+.ar-acc.open .ar-acc-chev{transform:rotate(180deg)}
+.ar-acc-body{display:none;padding:12px 13px}
+.ar-acc.open .ar-acc-body{display:block}
+@media(max-width:768px){.hemo-duke{flex:1 1 100%}}
 /* RESUMEN AUTO */
 .resumen-auto{background:linear-gradient(135deg,rgba(14,165,233,.08),rgba(6,182,212,.05));border:1px solid rgba(14,165,233,.3);border-radius:10px;padding:16px 18px;margin-top:4px}
 .resumen-auto h3{font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
@@ -876,29 +892,28 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
 </div></div>
 
-<div class="sc" id="shemo"><div class="sh" onclick="tg('shemo')"><span class="st">💉 Resumen Hemodinámico y Score de Duke</span><span class="ci">▼</span></div><div class="sb">
-  <div class="fg fg4" style="margin-bottom:14px">
-    <div><label>METs alcanzados</label><input type="number" id="metat" placeholder="METs" step="0.1" oninput="updResumen();updComp()"></div>
-    <div><label>Duración ejercicio (min)</label><input type="number" id="durej" placeholder="min" step="0.5"></div>
-    <div><label>Descenso máximo ST (mm)</label><input type="number" id="mst" placeholder="mm" step="0.5"></div>
-    <div><label>Angina durante prueba</label>
-      <select id="angtp"><option value="0">Sin angina (0)</option><option value="1">Angina presente (1)</option><option value="2">Angina limitante (2)</option></select>
+<div class="sc" id="shemo"><div class="sh" onclick="tg('shemo')"><span class="st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M3 12h4l2 -4l3 8l2 -4h4"/></svg>Resumen Hemodinámico y Score de Duke</span><span class="ci">▼</span></div><div class="sb">
+  <div class="hemo-cols">
+    <!-- COLUMNA IZQUIERDA — variables hemodinámicas -->
+    <div class="hemo-col">
+      <div class="hemo-card"><label>METs alcanzados</label><input type="number" id="metat" placeholder="METs" step="0.1" oninput="updResumen();updComp()"></div>
+      <div class="hemo-card"><label>Duración ejercicio (min)</label><input type="number" id="durej" placeholder="min" step="0.5"></div>
+      <div class="hemo-card"><label>Descenso máximo ST (mm)</label><input type="number" id="mst" placeholder="mm" step="0.5"></div>
+      <div class="hemo-card"><label>Angina durante prueba</label><select id="angtp"><option value="0">Sin angina (0)</option><option value="1">Angina presente (1)</option><option value="2">Angina limitante (2)</option></select></div>
     </div>
-  </div>
-  <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-    <button class="btn btn-primary btn-sm" onclick="cDuke()">🧮 Calcular Duke</button>
-    <button class="btn btn-outline btn-sm" onclick="limpiarDuke()">✕ Limpiar Duke</button>
-  </div>
-  <div style="display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:start;margin-bottom:14px">
-    <div class="duke-box d-int" id="dbox"><div class="dv" id="dval">—</div><div class="dl" id="dlbl">Score de Duke</div><div class="dm" id="dmort">min − (5×ST) − (4×A)</div></div>
-    <div>
-      <div class="fg fg2">
-        <div><label>RFC al 1er min (lpm)</label><input type="number" id="rfc1" placeholder="lpm" oninput="eRFC();updResumen()"></div>
-        <div><label>RFC al 2do min (lpm)</label><input type="number" id="rfc2" placeholder="lpm"></div>
-        <div><label>Doble producto máximo</label><input type="text" id="dpmax" class="computed" readonly></div>
-        <div><label>Índice resp. cronotrópico</label><input type="text" id="ircdisp" class="computed" readonly></div>
-      </div>
-      <div id="rfcbdg" style="margin-top:8px;font-size:12px"></div>
+    <!-- COLUMNA CENTRAL — Score de Duke -->
+    <div class="hemo-duke">
+      <button class="btn btn-primary btn-sm no-print" style="width:100%" onclick="cDuke()">Calcular Duke</button>
+      <div class="duke-box d-int" id="dbox"><div class="dv" id="dval">—</div><div class="dl" id="dlbl">Score de Duke</div><div class="dm" id="dmort">min − (5×ST) − (4×A)</div></div>
+      <button class="btn btn-outline btn-sm no-print" style="width:100%" onclick="limpiarDuke()">Limpiar Duke</button>
+    </div>
+    <!-- COLUMNA DERECHA — RFC e índices -->
+    <div class="hemo-col">
+      <div class="hemo-card"><label>RFC 1er min (lpm)</label><input type="number" id="rfc1" placeholder="lpm" oninput="eRFC();updResumen()"></div>
+      <div class="hemo-card"><label>RFC 2do min (lpm)</label><input type="number" id="rfc2" placeholder="lpm"></div>
+      <div class="hemo-card"><label>Doble producto máx.</label><input type="text" id="dpmax" class="computed" readonly></div>
+      <div class="hemo-card"><label>Índice resp. cronotrópica</label><input type="text" id="ircdisp" class="computed" readonly></div>
+      <div id="rfcbdg" style="font-size:12px"></div>
     </div>
   </div>
   <div class="fg fg3">
@@ -912,8 +927,13 @@ body.printing-clean #clean-controls{display:none!important}
       <select id="motint"><option value="">—</option><option value="fatiga">Fatiga</option><option value="disnea">Disnea</option><option value="angor">Angina</option><option value="st">Cambios ST</option><option value="arr">Arritmia</option><option value="pa">Caída de PA</option><option value="prot">Completó protocolo</option><option value="pac">Solicitud del paciente</option></select>
     </div>
   </div>
-  <hr class="divider">
-  <p style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">⚠ Criterios ergométricos de alto riesgo</p>
+  <div class="ar-acc" id="ar-acc">
+    <div class="ar-acc-hd" onclick="document.getElementById('ar-acc').classList.toggle('open')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>
+      <span>Criterios ergométricos de alto riesgo</span>
+      <span class="ar-acc-chev">▾</span>
+    </div>
+    <div class="ar-acc-body">
   <div class="ar-grid">
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Isquemia a muy baja carga (&lt;3 METs o FC &lt;100 lpm)</span></div>
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Infradesnivel ST &gt;5 mm</span></div>
@@ -928,7 +948,9 @@ body.printing-clean #clean-controls{display:none!important}
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Score de Duke ≤ −11</span></div>
     <div class="ari" onclick="tAR(this)"><input type="checkbox"><div class="adot"></div><span>Síntomas de bajo gasto (palidez, cianosis, síncope)</span></div>
   </div>
-  <div class="ar-res" id="arres"></div>
+      <div class="ar-res" id="arres"></div>
+    </div>
+  </div>
 </div></div>
 
 </div></div><!-- /main ergo -->
