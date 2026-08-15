@@ -645,6 +645,18 @@ body.printing-clean #clean-controls{display:none!important}
 <nav class="ergo-drawer" id="ergoDrawer" aria-label="Secciones principales"></nav>
 
 <!-- MODAL FIRMA DEL PROFESIONAL -->
+<!-- MODAL CONFIRMAR ELIMINAR TODOS LOS INFORMES -->
+<div class="modal-overlay" id="modal-elim-todos" style="display:none" onclick="if(event.target===this)ergoCerrarEliminarTodos()">
+  <div class="modal-box" style="max-width:440px">
+    <h2 style="color:var(--danger)">🗑️ Eliminar todos los informes</h2>
+    <p>¿Eliminar todos los informes guardados? Esta acción no se puede deshacer.</p>
+    <div class="modal-footer" style="gap:8px">
+      <button type="button" class="btn btn-ghost" onclick="ergoCerrarEliminarTodos()">Cancelar</button>
+      <button type="button" class="btn" style="background:var(--danger);color:#fff;border:1px solid var(--danger)" onclick="ergoEliminarTodos()">Eliminar todos</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-firma" style="display:none">
   <div class="modal-box" style="max-width:420px">
     <h2 style="color:var(--accent)">🖊️ Firma del profesional</h2>
@@ -1192,6 +1204,7 @@ body.printing-clean #clean-controls{display:none!important}
     <button class="btn" onclick="exportarErgoJSON()">📤 Exportar JSON</button>
     <input type="file" id="ergo-import-file" accept=".json" style="display:none" onchange="importarErgoJSON(this.files[0]);this.value='';">
     <button class="btn" onclick="document.getElementById('ergo-import-file').click()">📥 Importar JSON</button>
+    <button class="btn" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.35)" onclick="ergoConfirmarEliminarTodos()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
   </div>
   <div style="background:var(--bg2);border-radius:10px;border:1px solid var(--border);padding:12px;margin-bottom:12px;">
     <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">
@@ -3025,6 +3038,20 @@ function elimInforme(id){
   cmpSel=cmpSel.filter(x=>x!==id);
   rGuard();showToast('Informe eliminado');
 }
+
+// ── Eliminar TODOS los informes (con modal de confirmación) ──
+function ergoConfirmarEliminarTodos(){const m=document.getElementById('modal-elim-todos');if(m)m.style.display='flex';}
+function ergoCerrarEliminarTodos(){const m=document.getElementById('modal-elim-todos');if(m)m.style.display='none';}
+function ergoEliminarTodos(){
+  localStorage.removeItem('ergo_informes');
+  cmpSel=[];
+  if(typeof ergoLimpiarFiltros==='function')ergoLimpiarFiltros();else rGuard();
+  ergoCerrarEliminarTodos();
+  showToast('Todos los informes eliminados');
+}
+window.ergoConfirmarEliminarTodos=ergoConfirmarEliminarTodos;
+window.ergoCerrarEliminarTodos=ergoCerrarEliminarTodos;
+window.ergoEliminarTodos=ergoEliminarTodos;
 
 function lBusq(){document.getElementById('bnom').value='';document.getElementById('bdes').value='';document.getElementById('bhas').value='';const br=document.getElementById('bres');if(br)br.value='';rGuard();}
 
