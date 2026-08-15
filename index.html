@@ -152,6 +152,11 @@ textarea{resize:vertical;min-height:56px}
 .antec-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
 .antec-chip.active{border-color:var(--accent);background:rgba(14,165,233,.1);color:var(--accent)}
 .antec-chip.active .dot{background:var(--accent)}
+.comp-chip{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;transition:all .15s}
+.comp-chip input{display:none}
+.comp-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+.comp-chip.active{border-color:var(--danger);background:rgba(239,68,68,.1);color:var(--danger)}
+.comp-chip.active .dot{background:var(--danger)}
 @media(max-width:640px){.chip-grid{grid-template-columns:1fr}}
 /* INDIC */
 .indic-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -953,6 +958,18 @@ body.printing-clean #clean-controls{display:none!important}
       <select id="motint"><option value="">—</option><option value="fatiga">Fatiga</option><option value="disnea">Disnea</option><option value="angor">Angina</option><option value="st">Cambios ST</option><option value="arr">Arritmia</option><option value="pa">Caída de PA</option><option value="prot">Completó protocolo</option><option value="pac">Solicitud del paciente</option></select>
     </div>
   </div>
+  <div class="sc collapsed" id="scomp" style="margin-top:10px"><div class="sh" onclick="tg('scomp')"><span class="st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>Complicaciones durante la prueba</span><span class="ci">▼</span></div><div class="sb">
+    <div class="chip-grid" id="comp-grid">
+      <div class="comp-chip" onclick="tMed(this)"><input type="checkbox" value="Sin complicaciones"><div class="dot"></div>Sin complicaciones</div>
+      <div class="comp-chip" onclick="tMed(this)"><input type="checkbox" value="Síncope"><div class="dot"></div>Síncope</div>
+      <div class="comp-chip" onclick="tMed(this)"><input type="checkbox" value="Arritmia severa (TV/FV)"><div class="dot"></div>Arritmia severa (TV/FV)</div>
+      <div class="comp-chip" onclick="tMed(this)"><input type="checkbox" value="PCR"><div class="dot"></div>PCR</div>
+      <div class="comp-chip" onclick="tMed(this)"><input type="checkbox" value="Angina limitante"><div class="dot"></div>Angina limitante</div>
+      <div class="comp-chip" onclick="tMed(this)"><input type="checkbox" value="Hipotensión severa (<90 mmHg)"><div class="dot"></div>Hipotensión severa (&lt;90 mmHg)</div>
+      <div class="comp-chip" onclick="tMed(this)"><input type="checkbox" value="Broncoespasmo"><div class="dot"></div>Broncoespasmo</div>
+      <div class="comp-chip" onclick="tMed(this)"><input type="checkbox" value="Otra"><div class="dot"></div>Otra</div>
+    </div>
+  </div></div>
   <div class="ar-acc" id="ar-acc">
     <div class="ar-acc-hd" onclick="document.getElementById('ar-acc').classList.toggle('open')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>
@@ -1440,6 +1457,24 @@ body.printing-clean #clean-controls{display:none!important}
         </table>
       </div>
     </div>
+
+    <div class="el-card">
+      <div class="el-hdr">⏱️ Tiempo de espera — distribución</div>
+      <div class="el-body">
+        <div class="el-grid">
+          <div>
+            <table class="el-table">
+              <thead><tr><th>Rango</th><th>N°</th><th>%</th></tr></thead>
+              <tbody id="el-espera-tbl"></tbody>
+            </table>
+          </div>
+          <div>
+            <div class="el-bar-wrap" id="el-espera-bars"></div>
+          </div>
+        </div>
+        <div id="el-espera-nota" style="font-size:.75rem;color:var(--text2);margin-top:10px;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- PANEL POBLACIÓN -->
@@ -1483,6 +1518,118 @@ body.printing-clean #clean-controls{display:none!important}
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Betabloqueante -->
+    <div class="el-card">
+      <div class="el-hdr">💊 Betabloqueante</div>
+      <div class="el-body">
+        <div class="el-grid">
+          <div>
+            <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">En BB (toma) vs no</div>
+            <div class="el-chart-wrap"><canvas id="el-bb-toma-chart"></canvas></div>
+          </div>
+          <div>
+            <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Suspendió vs no suspendió</div>
+            <div class="el-chart-wrap"><canvas id="el-bb-susp-chart"></canvas></div>
+          </div>
+        </div>
+        <div class="el-stat"><span class="el-lbl">% submáximos en BB sin suspender</span><span class="el-val" id="el-bb-submax">—</span></div>
+        <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px;">FC objetivo (85% FCME) alcanzada — BB vs sin BB</div>
+        <div class="el-bar-wrap" id="el-bb-fcobj-bars"></div>
+        <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px;">Duke Score promedio — BB vs sin BB</div>
+        <div class="el-bar-wrap" id="el-bb-duke-bars"></div>
+        <div id="el-bb-nota" style="font-size:.72rem;color:var(--text2);margin-top:10px;">Submáximo = no alcanzó 85% FCME. Con el selector único de BB, "suspendió" equivale a "toma BB".</div>
+      </div>
+    </div>
+
+    <!-- Respuesta hemodinámica -->
+    <div class="el-card">
+      <div class="el-hdr">🩺 Respuesta hemodinámica</div>
+      <div class="el-body">
+        <div class="el-grid">
+          <div>
+            <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Respuesta presora</div>
+            <div class="el-chart-wrap"><canvas id="el-rpress-chart"></canvas></div>
+          </div>
+          <div>
+            <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Competencia cronotrópica</div>
+            <div class="el-chart-wrap"><canvas id="el-rcrono-chart"></canvas></div>
+          </div>
+        </div>
+        <div class="el-stat"><span class="el-lbl">RFC promedio 1er min</span><span class="el-val" id="el-rfc1-prom">—</span></div>
+        <div class="el-stat"><span class="el-lbl">RFC promedio 2do min</span><span class="el-val" id="el-rfc2-prom">—</span></div>
+        <div class="el-stat"><span class="el-lbl">Doble producto máximo promedio</span><span class="el-val" id="el-dp-prom">—</span></div>
+        <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px;">RFC &lt;12 lpm al 1er min</div>
+        <div class="el-bar-wrap" id="el-rfc1-lt12-bar"></div>
+      </div>
+    </div>
+
+    <!-- Causa de interrupción -->
+    <div class="el-card">
+      <div class="el-hdr">🛑 Causa de interrupción</div>
+      <div class="el-body">
+        <div class="el-bar-wrap" id="el-interr-bars"></div>
+      </div>
+    </div>
+
+    <!-- Criterios de alto riesgo -->
+    <div class="el-card">
+      <div class="el-hdr">⚠️ Criterios de alto riesgo</div>
+      <div class="el-body">
+        <div class="el-bar-wrap" id="el-criterios-bars"></div>
+        <div class="el-stat" style="margin-top:10px;"><span class="el-lbl">% con ≥1 criterio de alto riesgo</span><span class="el-val" id="el-crit-1">—</span></div>
+        <div class="el-stat"><span class="el-lbl">% con ≥2 criterios</span><span class="el-val" id="el-crit-2">—</span></div>
+      </div>
+    </div>
+
+    <!-- Indicación -->
+    <div class="el-card">
+      <div class="el-hdr">🎯 Indicación</div>
+      <div class="el-body">
+        <div class="el-bar-wrap" id="el-indic-bars"></div>
+      </div>
+    </div>
+
+    <!-- Antecedentes CV -->
+    <div class="el-card">
+      <div class="el-hdr">❤️ Antecedentes cardiovasculares</div>
+      <div class="el-body">
+        <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Prevalencia</div>
+        <div class="el-bar-wrap" id="el-antec-bars"></div>
+        <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px;">% positivos según IAM previo</div>
+        <div class="el-bar-wrap" id="el-antec-iam-bars"></div>
+      </div>
+    </div>
+
+    <!-- Conducta sugerida -->
+    <div class="el-card">
+      <div class="el-hdr">🧭 Conducta sugerida</div>
+      <div class="el-body">
+        <div class="el-bar-wrap" id="el-conducta-bars"></div>
+        <div class="el-stat" style="margin-top:10px;"><span class="el-lbl">% derivados a cinecoronariografía</span><span class="el-val" id="el-cond-hemo">—</span></div>
+        <div class="el-stat"><span class="el-lbl">% derivados a rehabilitación CV</span><span class="el-val" id="el-cond-rehab">—</span></div>
+        <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px;">Resultado positivo → conducta</div>
+        <div id="el-cond-cruce"></div>
+      </div>
+    </div>
+
+    <!-- Complicaciones -->
+    <div class="el-card">
+      <div class="el-hdr">🚨 Complicaciones</div>
+      <div class="el-body">
+        <div class="el-grid">
+          <div>
+            <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Sin complicaciones vs con complicaciones</div>
+            <div class="el-chart-wrap"><canvas id="el-comp-chart"></canvas></div>
+          </div>
+          <div>
+            <div style="font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Distribución de complicaciones</div>
+            <div class="el-bar-wrap" id="el-comp-bars"></div>
+          </div>
+        </div>
+        <div class="el-stat" style="margin-top:10px;"><span class="el-lbl">% con ≥1 complicación</span><span class="el-val" id="el-comp-1">—</span></div>
       </div>
     </div>
   </div>
@@ -2750,7 +2897,7 @@ let cmpSel=[];                     // ids seleccionados para comparar (máx 2)
 const ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>ESC_MAP[c]);}
 // Campos restaurables (id -> valor)
-const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu','ergo_ensuma'];
+const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu','ergo_ensuma','bbs','rpress','rcrono','rfc1','rfc2','dpmax','ircdisp','motint','cond'];
 
 // Captura del snapshot del formulario en vivo
 function capturarForm(){
@@ -2760,6 +2907,7 @@ function capturarForm(){
   form.protoActual=protoActual;
   form.meds=Array.from(document.querySelectorAll('.med-chip.active input')).map(i=>i.value);
   form.antec_cv=Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value);
+  form.complicaciones=Array.from(document.querySelectorAll('.comp-chip.active input')).map(i=>i.value);
   form.indicacion_sel=Array.from(document.querySelectorAll('.indic-opt.selected input')).map(i=>i.value);
   form.indicText=Array.from(document.querySelectorAll('.indic-opt.selected .indic-text strong')).map(s=>s.textContent.trim());
   form.arritmias=[];document.querySelectorAll('.ari').forEach((el,i)=>{if(el.classList.contains('chk'))form.arritmias.push(i);});
@@ -2835,6 +2983,7 @@ function restoreForm(form){
   document.querySelectorAll('.med-chip').forEach(c=>{const v=c.querySelector('input')?.value;const on=(form.meds||[]).includes(v);c.classList.toggle('active',on);const cb=c.querySelector('input');if(cb)cb.checked=on;});
   // Antecedentes cardiovasculares
   document.querySelectorAll('.antec-chip').forEach(c=>{const v=c.querySelector('input')?.value;const on=(form.antec_cv||[]).includes(v);c.classList.toggle('active',on);const cb=c.querySelector('input');if(cb)cb.checked=on;});
+  document.querySelectorAll('.comp-chip').forEach(c=>{const v=c.querySelector('input')?.value;const on=(form.complicaciones||[]).includes(v);c.classList.toggle('active',on);const cb=c.querySelector('input');if(cb)cb.checked=on;});
   // Indicación
   // Indicación (multi-select). Retrocompat: registros viejos guardaban form.indic (string único)
   const _indicSel=form.indicacion_sel||(form.indic?[form.indic]:[]);
@@ -2874,6 +3023,19 @@ function guardar(){
     antec_cv_sel:Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value),
     med_activa_sel:Array.from(document.querySelectorAll('.med-chip.active input')).map(i=>i.value),
     indicacion_sel:Array.from(document.querySelectorAll('.indic-opt.selected input')).map(i=>i.value),
+    complicaciones:Array.from(document.querySelectorAll('.comp-chip.active input')).map(i=>i.value),
+    bbs:document.getElementById('bbs')?.value||'',
+    bb_toma:(document.getElementById('bbs')?.value==='si')?'si':'no',
+    bb_suspendio:(document.getElementById('bbs')?.value==='si')?'si':'no',
+    rpress:document.getElementById('rpress')?.value||'',
+    rcrono:document.getElementById('rcrono')?.value||'',
+    rfc1:document.getElementById('rfc1')?.value||'',
+    rfc2:document.getElementById('rfc2')?.value||'',
+    dpmax:document.getElementById('dpmax')?.value||'',
+    ircdisp:document.getElementById('ircdisp')?.value||'',
+    motivo_interrupcion:document.getElementById('motint')?.value||'',
+    conducta:document.getElementById('cond')?.value||'',
+    criterios_ar:Array.from(document.querySelectorAll('.ari.chk span')).map(s=>s.textContent.trim()),
     form:capturarForm()};
   let lista=safeLoadReports();
   if(editandoId){
@@ -3102,7 +3264,7 @@ function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,re
 function cFCobj(){const edad=parseInt(document.getElementById('cfced').value)||0,rep=parseInt(document.getElementById('cfcrep').value)||0;if(!edad){document.getElementById('crfc').textContent='Ingresá la edad';return;}const fcme=220-edad,p85=Math.round(fcme*0.85),p62=Math.round(fcme*0.62),kv=rep>0?Math.round(rep+0.85*(fcme-rep)):null;document.getElementById('crfc').innerHTML=`FCME (220−edad): <strong>${fcme} lpm</strong><br>85% FCME — prueba máxima sin BB: <strong>${p85} lpm</strong><br>62% FCME — prueba suficiente con BB: <strong>${p62} lpm</strong>${kv?`<br>Karvonen 85% (reserva FC): <strong>${kv} lpm</strong>`:''}`;}
 
 // LIMPIAR
-function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.antec-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.indic-opt').forEach(o=>{o.classList.remove('selected');const cb=o.querySelector('input');if(cb)cb.checked=false;});if(typeof updIndicResumen==='function')updIndicResumen();document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
+function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.antec-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.comp-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.indic-opt').forEach(o=>{o.classList.remove('selected');const cb=o.querySelector('input');if(cb)cb.checked=false;});if(typeof updIndicResumen==='function')updIndicResumen();document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
 // Resetear campos calculados automáticamente (displays con textContent, no inputs)
 ['vfcme','v85','virc','fcr','fc85r','fc62r','fcar','ccsd','nyhad','ptpv','ptpl','ptprec'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
 // Suficiencia de la prueba y badge PTP
@@ -4081,6 +4243,161 @@ function ergoLabBarras(containerId, datos) {
   }).join('');
 }
 
+// Torta/dona genérica. Si el total es 0, deja el canvas vacío.
+function ergoLabTorta(canvasId, labels, data, colors){
+  ergoLabDestroyChart(canvasId);
+  if (typeof Chart === 'undefined') return;
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  if (!data.reduce((a,b)=>a+b,0)) return;
+  new Chart(el, {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2 }] },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: { legend: { position:'bottom', labels:{ font:{size:11} } } } }
+  });
+}
+
+// ── Tiempo de espera: distribución por rangos (tabla + barras + nota) ──
+function ergoLabEsperaDist(infs){
+  const tbl=document.getElementById('el-espera-tbl');
+  const nota=document.getElementById('el-espera-nota');
+  const total=infs.length;
+  const dias=infs.filter(i=>i.fecha&&i.fecha_solicitud)
+    .map(i=>(new Date(i.fecha)-new Date(i.fecha_solicitud))/86400000)
+    .filter(d=>d>=0&&d<365);
+  const N=dias.length, excl=total-N;
+  const rangos=[
+    {lbl:'≤10 días',    f:d=>d<=10,          color:'#3ecf8e'},
+    {lbl:'11–20 días',  f:d=>d>10&&d<=20,    color:'#a3d977'},
+    {lbl:'21–30 días',  f:d=>d>20&&d<=30,    color:'#f5c842'},
+    {lbl:'31–45 días',  f:d=>d>30&&d<=45,    color:'#f0a04a'},
+    {lbl:'46–60 días',  f:d=>d>45&&d<=60,    color:'#f0774a'},
+    {lbl:'>60 días',    f:d=>d>60,           color:'#f05454'},
+  ];
+  const filas=rangos.map(r=>({lbl:r.lbl, n:dias.filter(r.f).length, total:N, color:r.color}));
+  if(tbl) tbl.innerHTML = N
+    ? filas.map(f=>`<tr><td>${f.lbl}</td><td style="font-weight:700;">${f.n}</td><td>${Math.round(f.n/N*100)}%</td></tr>`).join('')
+    : '<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:16px;">Sin datos</td></tr>';
+  ergoLabBarras('el-espera-bars', N ? filas : []);
+  if(nota) nota.textContent = N
+    ? `Calculado sobre ${N} estudio${N!==1?'s':''} con ambas fechas registradas. ${excl} estudio${excl!==1?'s':''} excluido${excl!==1?'s':''}.`
+    : `Sin estudios con fecha de solicitud y de estudio registradas. ${excl} excluido${excl!==1?'s':''}.`;
+}
+
+// ── Población ampliada: BB, hemodinámica, interrupción, criterios, indicación, antecedentes, conducta, complicaciones ──
+function ergoLabExtender(infs){
+  const n=infs.length;
+  const statIds=['el-bb-submax','el-rfc1-prom','el-rfc2-prom','el-dp-prom','el-crit-1','el-crit-2','el-cond-hemo','el-cond-rehab','el-comp-1'];
+  const barIds=['el-bb-fcobj-bars','el-bb-duke-bars','el-rfc1-lt12-bar','el-interr-bars','el-criterios-bars','el-indic-bars','el-antec-bars','el-antec-iam-bars','el-conducta-bars','el-comp-bars'];
+  const chartIds=['el-bb-toma-chart','el-bb-susp-chart','el-rpress-chart','el-rcrono-chart','el-comp-chart'];
+  const setStat=(id,txt)=>{const e=document.getElementById(id);if(e)e.textContent=txt;};
+  if(!n){
+    statIds.forEach(id=>setStat(id,'—'));
+    barIds.forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML='<div class="el-empty">Sin datos</div>';});
+    chartIds.forEach(ergoLabDestroyChart);
+    const cc=document.getElementById('el-cond-cruce');if(cc)cc.innerHTML='<div class="el-empty">Sin datos</div>';
+    return;
+  }
+  // Lectores con fallback top-level → form
+  const LV=(i,k,fk)=>{const v=i[k];if(v!==undefined&&v!==null&&v!=='')return v;return (i.form&&i.form[fk]!==undefined&&i.form[fk]!==null)?i.form[fk]:'';};
+  const arrOf=(i,k,fk)=>Array.isArray(i[k])?i[k]:((i.form&&Array.isArray(i.form[fk]))?i.form[fk]:[]);
+  const avgOf=(k,fk)=>{const v=infs.map(i=>parseFloat(LV(i,k,fk))).filter(x=>!isNaN(x));return v.length?{avg:v.reduce((a,b)=>a+b,0)/v.length,n:v.length}:null;};
+  const pct=(a,b)=>b>0?Math.round(a/b*100):0;
+
+  // ── BETABLOQUEANTE (derivado del selector único bbs) ──
+  const bbsOf=i=>{let b=LV(i,'bbs','bbs');if(!b){if(i.bb_toma==='si')b='si';else if(i.bb_toma==='no')b='no';}return b;};
+  const grpBB=infs.filter(i=>bbsOf(i)==='si'), grpNo=infs.filter(i=>bbsOf(i)==='no');
+  ergoLabTorta('el-bb-toma-chart',['En BB','Sin BB'],[grpBB.length,grpNo.length],['#63b3ed','#3ecf8e']);
+  ergoLabTorta('el-bb-susp-chart',['Suspendió','No suspendió'],[grpBB.length,0],['#f5c842','#3ecf8e']);
+  // submáximo = fcmax < 85% FCME (FCME = 220 - edad)
+  const esSubmax=i=>{const ped=parseFloat(LV(i,'ped','ped')),fc=parseFloat(i.fcmax);if(isNaN(ped)||isNaN(fc)||ped<=0)return null;return fc < 0.85*(220-ped);};
+  const submaxArr=grpBB.map(esSubmax).filter(v=>v!==null);
+  setStat('el-bb-submax', submaxArr.length?pct(submaxArr.filter(Boolean).length,submaxArr.length)+'% (n='+submaxArr.length+')':'— (n=0)');
+  const reachN=arr=>{const v=arr.map(esSubmax).filter(x=>x!==null);return {n:v.filter(x=>!x).length,total:v.length};};
+  const rBB=reachN(grpBB), rNo=reachN(grpNo);
+  ergoLabBarras('el-bb-fcobj-bars',[
+    {lbl:'En BB (n='+rBB.total+')', n:rBB.n, total:rBB.total, color:'#63b3ed'},
+    {lbl:'Sin BB (n='+rNo.total+')', n:rNo.n, total:rNo.total, color:'#3ecf8e'},
+  ]);
+  const dukeAvg=arr=>{const v=arr.map(i=>parseFloat(i.duke)).filter(x=>!isNaN(x));return v.length?{avg:v.reduce((a,b)=>a+b,0)/v.length,n:v.length}:null;};
+  const dukeRow=(lbl,d)=>{if(!d)return `<div class="el-bar-row"><div class="el-bar-lbl">${lbl}</div><div class="el-bar-bg"></div><div class="el-bar-pct">—</div></div>`;
+    const w=Math.max(2,Math.min(100,Math.round((d.avg+25)/40*100))),col=d.avg<-10?'#f05454':d.avg<=4?'#f5c842':'#3ecf8e';
+    return `<div class="el-bar-row"><div class="el-bar-lbl">${lbl} (n=${d.n})</div><div class="el-bar-bg"><div class="el-bar-fill" style="width:${w}%;background:${col}"></div></div><div class="el-bar-pct">${d.avg.toFixed(1)}</div></div>`;};
+  const dbb=dukeAvg(grpBB), dno=dukeAvg(grpNo), dEl=document.getElementById('el-bb-duke-bars');
+  if(dEl) dEl.innerHTML=(dbb||dno)?dukeRow('En BB',dbb)+dukeRow('Sin BB',dno):'<div class="el-empty">Sin datos</div>';
+
+  // ── RESPUESTA HEMODINÁMICA ──
+  const rp=infs.map(i=>LV(i,'rpress','rpress')).filter(Boolean);
+  ergoLabTorta('el-rpress-chart',['Normal','Alterada'],[rp.filter(v=>v==='normal').length, rp.filter(v=>v!=='normal').length],['#3ecf8e','#f05454']);
+  const rc=infs.map(i=>LV(i,'rcrono','rcrono')).filter(Boolean);
+  ergoLabTorta('el-rcrono-chart',['Incompetente','Competente'],[rc.filter(v=>v==='incomp').length, rc.filter(v=>v!=='incomp').length],['#f05454','#3ecf8e']);
+  const a1=avgOf('rfc1','rfc1'), a2=avgOf('rfc2','rfc2'), adp=avgOf('dpmax','dpmax');
+  setStat('el-rfc1-prom', a1?a1.avg.toFixed(1)+' lpm (n='+a1.n+')':'—');
+  setStat('el-rfc2-prom', a2?a2.avg.toFixed(1)+' lpm (n='+a2.n+')':'—');
+  setStat('el-dp-prom', adp?Math.round(adp.avg)+' (n='+adp.n+')':'—');
+  const rfc1v=infs.map(i=>parseFloat(LV(i,'rfc1','rfc1'))).filter(x=>!isNaN(x)), lt12=rfc1v.filter(x=>x<12).length;
+  ergoLabBarras('el-rfc1-lt12-bar', rfc1v.length?[{lbl:'RFC <12 lpm (n='+lt12+')', n:lt12, total:rfc1v.length, color:'#f05454'}]:[]);
+
+  // ── CAUSA DE INTERRUPCIÓN ──
+  const MOTINT_LBL={fatiga:'Fatiga',disnea:'Disnea',angor:'Angina',st:'Cambios ST',arr:'Arritmia',pa:'Caída de PA',prot:'Completó protocolo',pac:'Solicitud del paciente'};
+  const mi=infs.map(i=>LV(i,'motivo_interrupcion','motint')).filter(Boolean), miCount={};
+  mi.forEach(v=>miCount[v]=(miCount[v]||0)+1);
+  ergoLabBarras('el-interr-bars', Object.keys(miCount).map(k=>({lbl:(MOTINT_LBL[k]||esc(k))+' (n='+miCount[k]+')', n:miCount[k], total:mi.length, color:'#63b3ed'})).sort((a,b)=>b.n-a.n));
+
+  // ── CRITERIOS DE ALTO RIESGO ──
+  const ARI_LABELS=Array.from(document.querySelectorAll('.ari span')).map(s=>s.textContent.trim());
+  const critOf=i=>{if(Array.isArray(i.criterios_ar)&&i.criterios_ar.length)return i.criterios_ar;const ar=(i.form&&i.form.arritmias)||[];return ar.map(idx=>ARI_LABELS[idx]).filter(Boolean);};
+  const critLists=infs.map(critOf), critCount={};
+  critLists.forEach(l=>l.forEach(c=>critCount[c]=(critCount[c]||0)+1));
+  ergoLabBarras('el-criterios-bars', Object.keys(critCount).map(k=>({lbl:esc(k)+' (n='+critCount[k]+')', n:critCount[k], total:n, color:'#f05454'})).sort((a,b)=>b.n-a.n));
+  setStat('el-crit-1', pct(critLists.filter(l=>l.length>=1).length,n)+'% (n='+critLists.filter(l=>l.length>=1).length+')');
+  setStat('el-crit-2', pct(critLists.filter(l=>l.length>=2).length,n)+'% (n='+critLists.filter(l=>l.length>=2).length+')');
+
+  // ── INDICACIÓN ──
+  const INDIC_LBL={dg_isq:'Diagnóstico de isquemia',eac:'EAC conocida / Evaluativa',piam:'Post-IAM',prev:'Post-Revascularización',udt:'Unidad de dolor torácico',valv:'Valvulopatía',arr:'Arritmias / Dispositivos',ic:'Insuficiencia cardíaca',preop:'PreOP cirugía no cardíaca',cheq:'Chequeo preventivo',rehab:'Rehabilitación CV',dep:'Evaluación deportiva'};
+  const indicCount={};
+  infs.forEach(i=>arrOf(i,'indicacion_sel','indicacion_sel').forEach(c=>indicCount[c]=(indicCount[c]||0)+1));
+  ergoLabBarras('el-indic-bars', Object.keys(indicCount).map(k=>({lbl:(INDIC_LBL[k]||esc(k))+' (n='+indicCount[k]+')', n:indicCount[k], total:n, color:'#63b3ed'})).sort((a,b)=>b.n-a.n));
+
+  // ── ANTECEDENTES CV ──
+  const antecOf=i=>arrOf(i,'antec_cv_sel','antec_cv');
+  const antecCount={};
+  infs.forEach(i=>antecOf(i).forEach(c=>antecCount[c]=(antecCount[c]||0)+1));
+  ergoLabBarras('el-antec-bars', Object.keys(antecCount).map(k=>({lbl:esc(k)+' (n='+antecCount[k]+')', n:antecCount[k], total:n, color:'#f0774a'})).sort((a,b)=>b.n-a.n));
+  const conIAM=infs.filter(i=>antecOf(i).includes('IAM previo')), sinIAM=infs.filter(i=>!antecOf(i).includes('IAM previo'));
+  const posPct=arr=>({n:arr.filter(i=>i.resultadoVal==='pos').length,total:arr.length});
+  const pI=posPct(conIAM), pS=posPct(sinIAM);
+  ergoLabBarras('el-antec-iam-bars',[
+    {lbl:'Con IAM previo (n='+pI.total+')', n:pI.n, total:pI.total||1, color:'#f05454'},
+    {lbl:'Sin IAM previo (n='+pS.total+')', n:pS.n, total:pS.total||1, color:'#3ecf8e'},
+  ]);
+
+  // ── CONDUCTA SUGERIDA ──
+  const COND_LBL={ctrl:'Control clínico periódico',tto:'Optimizar tratamiento médico',img:'Imagen de estrés (eco/SPECT)',rehab:'Rehabilitación cardiovascular',hemo:'Cinecoronariografía'};
+  const condVals=infs.map(i=>LV(i,'conducta','cond')).filter(Boolean), condCount={};
+  condVals.forEach(v=>condCount[v]=(condCount[v]||0)+1);
+  ergoLabBarras('el-conducta-bars', Object.keys(condCount).map(k=>({lbl:(COND_LBL[k]||esc(k))+' (n='+condCount[k]+')', n:condCount[k], total:condVals.length, color:'#a78bfa'})).sort((a,b)=>b.n-a.n));
+  setStat('el-cond-hemo', pct(condVals.filter(v=>v==='hemo').length,n)+'% (n='+condVals.filter(v=>v==='hemo').length+')');
+  setStat('el-cond-rehab', pct(condVals.filter(v=>v==='rehab').length,n)+'% (n='+condVals.filter(v=>v==='rehab').length+')');
+  const posStudies=infs.filter(i=>i.resultadoVal==='pos'), posCond={};
+  posStudies.forEach(i=>{const c=LV(i,'conducta','cond');if(c)posCond[c]=(posCond[c]||0)+1;});
+  const cruceEl=document.getElementById('el-cond-cruce'), cRows=Object.keys(posCond).sort((a,b)=>posCond[b]-posCond[a]);
+  if(cruceEl) cruceEl.innerHTML=(posStudies.length&&cRows.length)
+    ? `<table class="el-table"><thead><tr><th>Conducta</th><th>N°</th><th>%</th></tr></thead><tbody>${cRows.map(k=>`<tr><td>${COND_LBL[k]||esc(k)}</td><td style="font-weight:700;">${posCond[k]}</td><td>${pct(posCond[k],posStudies.length)}%</td></tr>`).join('')}</tbody></table>`
+    : '<div class="el-empty">Sin positivos con conducta registrada</div>';
+
+  // ── COMPLICACIONES ──
+  const compOf=i=>arrOf(i,'complicaciones','complicaciones');
+  const realComp=l=>l.filter(c=>c&&c!=='Sin complicaciones');
+  const sinComp=infs.filter(i=>realComp(compOf(i)).length===0).length, conComp=n-sinComp;
+  ergoLabTorta('el-comp-chart',['Sin complicaciones','Con complicaciones'],[sinComp,conComp],['#3ecf8e','#f05454']);
+  const compCount={};
+  infs.forEach(i=>realComp(compOf(i)).forEach(c=>compCount[c]=(compCount[c]||0)+1));
+  ergoLabBarras('el-comp-bars', Object.keys(compCount).map(k=>({lbl:esc(k)+' (n='+compCount[k]+')', n:compCount[k], total:n, color:'#f05454'})).sort((a,b)=>b.n-a.n));
+  setStat('el-comp-1', pct(conComp,n)+'% (n='+conComp+')');
+}
+
 function ergoLabDestroyChart(id) {
   if (typeof Chart === 'undefined') return;
   const el = document.getElementById(id);
@@ -4096,6 +4413,10 @@ function ergoLabInit() {
   document.getElementById('el-resumen').textContent = n === 0
     ? 'Sin estudios en el período.'
     : `${n} estudio${n !== 1 ? 's' : ''} en el período.`;
+
+  // Secciones extendidas (tiempo de espera + población ampliada). Self-contained: manejan n=0.
+  ergoLabEsperaDist(infs);
+  ergoLabExtender(infs);
 
   if (!n) {
     ['el-total','el-positivas','el-negativas','el-indet',
@@ -4313,6 +4634,18 @@ function ergoLabInit() {
     { lbl: 'Capacidad funcional', fn: i => !!i.cf },
     { lbl: 'Fecha de solicitud',
       fn: i => !!i.fecha_solicitud },
+    { lbl: 'Indicación registrada',
+      fn: i => ((i.indicacion_sel||(i.form&&i.form.indicacion_sel))||[]).length > 0 },
+    { lbl: 'Conducta sugerida registrada',
+      fn: i => !!(i.conducta || (i.form&&i.form.cond)) },
+    { lbl: 'Causa de interrupción registrada',
+      fn: i => !!(i.motivo_interrupcion || (i.form&&i.form.motint)) },
+    { lbl: 'RFC documentada',
+      fn: i => !!(i.rfc1 || (i.form&&i.form.rfc1)) },
+    { lbl: 'Respuesta presora registrada',
+      fn: i => !!(i.rpress || (i.form&&i.form.rpress)) },
+    { lbl: 'Complicaciones registradas',
+      fn: i => ((i.complicaciones||(i.form&&i.form.complicaciones))||[]).length > 0 },
   ];
   const calDatos = calidadItems.map(item => {
     const con = infs.filter(item.fn).length;
