@@ -997,10 +997,8 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
   <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
     <label style="margin-bottom:8px;display:block;font-weight:700;color:var(--accent2)">✅ EN SUMA / Conclusión rápida</label>
-    <textarea id="ergo_ensuma" placeholder="Resumen rápido, una línea por ítem..." style="min-height:110px"></textarea>
-    <div style="margin-top:8px">
-      <button type="button" class="btn btn-primary btn-sm" onclick="generarEnSuma()">✅ Generar EN SUMA</button>
-    </div>
+    <textarea id="ergo_ensuma" placeholder="Se genera automáticamente al presionar «Regenerar Informe». También podés editarlo a mano." style="min-height:110px"></textarea>
+    <div style="margin-top:6px;font-size:11px;color:var(--text2)">Se genera automáticamente junto con el informe.</div>
   </div>
   <div class="fg fg2" style="margin-top:10px">
     <div><label>Conducta sugerida</label>
@@ -1011,9 +1009,9 @@ body.printing-clean #clean-controls{display:none!important}
 
   <div class="report-foot" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
     <button type="button" class="btn btn-primary" onclick="generarConclusion()">📝 Regenerar Informe</button>
-    <button type="button" class="btn" onclick="generarEnSuma()">✅ Generar EN SUMA</button>
     <button type="button" class="btn btn-primary" onclick="exportPDF()">📄 Exportar PDF</button>
     <button type="button" class="btn btn-success" onclick="guardar()">💾 Guardar Informe</button>
+    <button type="button" class="btn" onclick="abrirModoComparativoErgo()">🔀 Modo Comparativo</button>
   </div>
 </div></div>
 
@@ -1784,7 +1782,9 @@ function generarConclusion(){
   var _sc=document.getElementById('sconcl'); if(_sc) _sc.classList.remove('collapsed');
   if(ta){ try{ ta.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} }
   if(typeof updComp==='function') updComp();
-  showToast('✅ Conclusión generada (8 puntos)');
+  // Generar también el EN SUMA automáticamente (ya no hay botón separado)
+  if(typeof generarEnSuma==='function'){ try{ generarEnSuma(); }catch(e){ console.warn('generarEnSuma:', e); } }
+  showToast('✅ Informe y EN SUMA generados');
 }
 window.generarConclusion=generarConclusion;
 
@@ -3897,6 +3897,17 @@ function ergoLabSubTab(id, el) {
   document.getElementById('el-sub-' + id).classList.add('active');
   if (id === 'comparar') ergoLabCompararInit();
 }
+
+// Modo Comparativo (desde la barra del informe): abre el Laboratorio y su sub-pestaña Comparar
+function abrirModoComparativoErgo() {
+  if (typeof swTab === 'function') swTab('lab', null);
+  if (window.ergoLabInit) ergoLabInit();
+  const btn = Array.from(document.querySelectorAll('#tab-lab .el-subtab'))
+    .find(b => ((b.getAttribute('onclick') || '').indexOf("'comparar'") !== -1));
+  if (btn) ergoLabSubTab('comparar', btn);
+  else if (typeof ergoLabCompararInit === 'function') ergoLabCompararInit();
+}
+window.abrirModoComparativoErgo = abrirModoComparativoErgo;
 
 function ergoLabBarras(containerId, datos) {
   const el = document.getElementById(containerId);
