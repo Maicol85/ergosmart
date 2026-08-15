@@ -1783,7 +1783,7 @@ function generarConclusion(){
   if(ta){ try{ ta.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} }
   if(typeof updComp==='function') updComp();
   // Generar también el EN SUMA automáticamente (ya no hay botón separado)
-  if(typeof generarEnSuma==='function'){ try{ generarEnSuma(); }catch(e){ console.warn('generarEnSuma:', e); } }
+  if(typeof generarEnSuma==='function'){ try{ generarEnSuma(true); }catch(e){ console.warn('generarEnSuma:', e); } }
   showToast('✅ Informe y EN SUMA generados');
 }
 window.generarConclusion=generarConclusion;
@@ -5356,7 +5356,7 @@ function _ergoNyhaByMets(m){
   if(m>=3) return ['III','limitación funcional moderada'];
   return ['IV','limitación funcional severa'];
 }
-function generarEnSuma(){
+function generarEnSuma(silent){
   const L=[];
   // 1) Resultado de isquemia
   const res=document.getElementById('res')?.value;
@@ -5388,7 +5388,7 @@ function generarEnSuma(){
     L.push('Capacidad funcional: '+mets+' METs (Clase funcional '+nyha[0]+' — '+nyha[1]+').');
   }
   const ta=document.getElementById('ergo_ensuma');
-  if(ta){ ta.value=L.join('\n'); if(typeof showToast==='function')showToast('EN SUMA generado ✓'); }
+  if(ta){ ta.value=L.join('\n'); if(!silent && typeof showToast==='function')showToast('EN SUMA generado ✓'); }
 }
 window.generarEnSuma=generarEnSuma;
 
