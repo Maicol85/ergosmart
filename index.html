@@ -350,7 +350,14 @@ table.ecgc-grid td.ecgc-cell .ecgc-empty{color:#c99;font-size:12px}
 .sv-tbl tbody tr:hover{background:var(--card2)}
 .sv-tbl tbody tr.sv-selected{background:rgba(14,165,233,.10)}
 .sv-tbl .sv-pn{font-weight:700}
-.sv-acts{display:flex;gap:5px;flex-wrap:wrap}
+.sv-acts{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.sv-star{background:none;border:none;cursor:pointer;font-size:19px;line-height:1;color:var(--text3);padding:0 3px;transition:color .15s;flex-shrink:0}
+.sv-star:hover{color:#f5b301}
+.sv-star.on{color:#f5b301}
+.sv-note{display:flex;gap:6px;align-items:center;margin-top:7px;font-weight:400}
+.sv-note-in{flex:1;min-width:150px;padding:5px 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-family:inherit}
+.sv-acts .del-ic{display:inline-flex;align-items:center;justify-content:center}
+.sv-acts .del-ic svg{width:15px;height:15px}
 .sv-cmpbar{margin-top:12px;display:flex;justify-content:flex-end}
 .sv-cmpbar .btn:disabled{opacity:.45;cursor:not-allowed}
 .cmp-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -606,7 +613,7 @@ body.printing-clean #clean-controls{display:none!important}
       style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text2,#94A3B8);cursor:pointer;display:flex;align-items:center;gap:4px;">
       📤 Exportar para Analytics
     </button>
-    <button onclick="document.getElementById('ergo-import-file-cfg').click()" title="Importar estudios desde JSON"
+    <button onclick="document.getElementById('ergo-import-file').click()" title="Importar estudios desde JSON"
       style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text2,#94A3B8);cursor:pointer;display:flex;align-items:center;gap:4px;">
       📥 Importar
     </button>
@@ -630,7 +637,6 @@ body.printing-clean #clean-controls{display:none!important}
     <button class="btn btn-outline" onclick="abrirAyudaErgo()" title="Ayuda / Manual" style="padding:6px 10px;font-size:14px;">?</button>
     <button class="tr-mob-only" onclick="document.querySelector('.topbar-right').classList.remove('open');swTab('calc',null)">🧮 Calculadoras</button>
     <button class="tr-mob-only" onclick="document.querySelector('.topbar-right').classList.remove('open');swTab('ref',null)">📚 Referencias</button>
-    <button class="tr-mob-only" onclick="document.querySelector('.topbar-right').classList.remove('open');swTab('config',null)">⚙️ Config</button>
     <button class="btn btn-outline" onclick="cerrarSesion()" title="Cerrar informe">🔒 Cerrar</button>
   </div>
 </div>
@@ -665,12 +671,12 @@ body.printing-clean #clean-controls{display:none!important}
     <button class="tab-btn" onclick="swTab('analisis',this)">📊 Análisis</button>
     <button class="tab-btn" onclick="swTab('concl',this)">📝 Conclusión</button>
     <button class="tab-btn" onclick="swTab('img',this)">🖼️ Imágenes</button>
+    <button class="tab-btn" onclick="swTab('config',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0"><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><circle cx="12" cy="12" r="3"/></svg>Config</button>
   </nav>
   <div class="app-content">
     <div class="subtab-bar no-print" aria-label="Herramientas">
       <button class="tab-btn" onclick="swTab('calc',this)">🧮 Calculadoras</button>
       <button class="tab-btn" onclick="swTab('ref',this)">📚 Referencias</button>
-      <button class="tab-btn" onclick="swTab('config',this)">⚙️ Config</button>
     </div>
 
 <!-- ═══ TAB PACIENTE ═══ -->
@@ -691,25 +697,6 @@ body.printing-clean #clean-controls{display:none!important}
       <input type="checkbox" id="ergo-modo-inst" onchange="ergoInstModeToggle(this.checked)" style="width:16px;height:16px;cursor:pointer">
       <span style="font-size:12.5px;color:var(--text)"><b>🏛️ Modo institucional</b> — el PDF muestra sólo la institución en el encabezado (sin CeiboMed)</span>
     </label>
-  </div>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
-    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔬 Laboratorio</div>
-    <div style="font-size:11px;color:var(--text2);margin:6px 0 0" style="margin:0 0 10px">Módulo de análisis y estadística de los estudios guardados.</div>
-    <button class="btn btn-primary" onclick="swTab('lab',null);if(window.ergoLabInit)ergoLabInit()">🔬 Abrir Laboratorio</button>
-  </div>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
-    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">💾 Exportar / Importar</div>
-    <div style="font-size:11px;color:var(--text2);margin:6px 0 0" style="margin:0 0 10px">Respaldo de los informes guardados en formato JSON.</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn" onclick="exportarErgoJSON()">📤 Exportar JSON</button>
-      <input type="file" id="ergo-import-file-cfg" accept=".json" style="display:none" onchange="importarErgoJSON(this.files[0]);this.value='';">
-      <button class="btn" onclick="document.getElementById('ergo-import-file-cfg').click()">📥 Importar JSON</button>
-    </div>
-  </div>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
-    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">♻️ Restablecer</div>
-    <div style="font-size:11px;color:var(--text2);margin:6px 0 0" style="margin:0 0 10px">Limpia el formulario actual para comenzar un nuevo estudio. Los datos de institución y firma se conservan.</div>
-    <button class="btn btn-outline" onclick="nuevoEstudio()">🆕 Nuevo estudio</button>
   </div>
 </div></div>
 <div class="tab-panel active" id="tab-paciente"><div class="main">
@@ -1205,17 +1192,6 @@ body.printing-clean #clean-controls{display:none!important}
     <button class="btn" onclick="exportarErgoJSON()">📤 Exportar JSON</button>
     <input type="file" id="ergo-import-file" accept=".json" style="display:none" onchange="importarErgoJSON(this.files[0]);this.value='';">
     <button class="btn" onclick="document.getElementById('ergo-import-file').click()">📥 Importar JSON</button>
-    <button class="btn" onclick="
-      const k = prompt('API key de Anthropic (se guarda solo durante esta sesión):',
-        sessionStorage.getItem('ecg_api_key') || '');
-      if (k !== null) {
-        sessionStorage.setItem('ecg_api_key', k.trim());
-        try { if (typeof ECGC === 'object' && ECGC) ECGC.apiKey = k.trim(); } catch(e) {}
-        if (typeof showToast === 'function') showToast('✅ API key guardada');
-      }
-    " title="Configurar API key para importar PDFs">⚙️ API key</button>
-    <button class="btn" onclick="document.getElementById('ergo-pdf-import-file').click()" title="Importar PDFs históricos de ergometría">📄 Importar PDFs históricos</button>
-    <input type="file" id="ergo-pdf-import-file" accept=".pdf" multiple style="display:none" onchange="if(this.files&&this.files.length){importarErgoPDFs(this.files);this.value='';}">
   </div>
   <div style="background:var(--bg2);border-radius:10px;border:1px solid var(--border);padding:12px;margin-bottom:12px;">
     <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">
@@ -2924,7 +2900,7 @@ function safeLoadReports(){
 document.addEventListener('click', function(e){
   var b = e.target && e.target.closest ? e.target.closest('#svlist [data-act][data-id]') : null; if(!b) return;
   var id = parseInt(b.getAttribute('data-id'), 10); if(!Number.isInteger(id) || id <= 0) return;
-  var fn = window[{ver:'verInforme',editar:'editarInforme',pdf:'pdfInforme',cmp:'toggleCmp',elim:'elimInforme'}[b.getAttribute('data-act')]];
+  var fn = window[{ver:'verInforme',editar:'editarInforme',pdf:'pdfInforme',cmp:'toggleCmp',elim:'elimInforme',star:'ergoToggleInteres',savenote:'ergoGuardarNota'}[b.getAttribute('data-act')]];
   if(typeof fn === 'function') fn(id);
 });
 function rGuard(){
@@ -2943,10 +2919,17 @@ function rGuard(){
     return true;
   });
   if(!f.length){container.innerHTML='<div class="sv-empty">'+(lista.length?'Sin resultados para los filtros aplicados.':'No hay informes guardados aún.')+'</div>';actualizarCmpBar();return;}
-  const rows=f.map(inf=>{
-    const selCls=cmpSel.includes(inf.id)?' sv-selected':'';
-    return `<tr class="${selCls}">
-<td class="sv-pn">${esc(inf.nombre)||'—'}</td>
+  container.innerHTML=ergoSvTableHTML(f, cmpSel);
+  actualizarCmpBar();
+}
+
+// Render compartido de una fila de estudio guardado (estrella caso interés + nota inline + acciones)
+function ergoSvRowHTML(inf, selArr){
+  const selCls=selArr.includes(inf.id)?' sv-selected':'';
+  const starOn=inf.caso_interes==='1';
+  const noteRow=`<div class="sv-note" data-note-for="${inf.id}" style="${starOn?'':'display:none'}"><input type="text" class="sv-note-in" data-id="${inf.id}" placeholder="Motivo del caso de interés (opcional)..." value="${esc(inf.nota_interes||'')}"><button class="btn btn-outline btn-sm" data-act="savenote" data-id="${inf.id}">Guardar nota</button></div>`;
+  return `<tr class="${selCls}">
+<td class="sv-pn"><span>${esc(inf.nombre)||'—'}</span>${noteRow}</td>
 <td>${esc(inf.ci)||'—'}</td>
 <td>${esc(inf.fecha)||'—'}</td>
 <td>${esc(inf.protocolo)||'—'} <span style="color:var(--text3)">(${inf.ergometro==='cinta'?'cinta':'bici'})</span></td>
@@ -2954,16 +2937,41 @@ function rGuard(){
 <td>${esc(inf.duke)}</td>
 <td>${esc(inf.resultado)}</td>
 <td><div class="sv-acts">
-<button class="btn btn-outline btn-sm" data-act="ver" data-id="${inf.id}" title="Ver">👁</button>
-<button class="btn btn-outline btn-sm" data-act="editar" data-id="${inf.id}" title="Editar">✎</button>
-<button class="btn btn-outline btn-sm" data-act="pdf" data-id="${inf.id}" title="PDF">📄</button>
-<button class="btn btn-sm ${cmpSel.includes(inf.id)?'btn-primary':'btn-outline'}" data-act="cmp" data-id="${inf.id}" title="Comparar">⇄</button>
-<button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" data-act="elim" data-id="${inf.id}" title="Eliminar">✕</button>
+<button class="sv-star${starOn?' on':''}" data-act="star" data-id="${inf.id}" title="Caso de interés" aria-label="Marcar como caso de interés">${starOn?'★':'☆'}</button>
+<button class="btn btn-outline btn-sm" data-act="ver" data-id="${inf.id}">Ver</button>
+<button class="btn btn-outline btn-sm" data-act="editar" data-id="${inf.id}">Editar</button>
+<button class="btn btn-outline btn-sm" data-act="pdf" data-id="${inf.id}">PDF</button>
+<button class="btn btn-sm ${selArr.includes(inf.id)?'btn-primary':'btn-outline'}" data-act="cmp" data-id="${inf.id}">Comparar</button>
+<button class="btn btn-sm del-ic" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" data-act="elim" data-id="${inf.id}" title="Eliminar" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg></button>
 </div></td></tr>`;
-  }).join('');
-  container.innerHTML=`<table class="sv-tbl"><thead><tr><th>Paciente</th><th>CI</th><th>Fecha</th><th>Protocolo</th><th>METs</th><th>Duke</th><th>Resultado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table>`;
-  actualizarCmpBar();
 }
+function ergoSvTableHTML(f, selArr){
+  const rows=f.map(inf=>ergoSvRowHTML(inf, selArr)).join('');
+  return `<table class="sv-tbl"><thead><tr><th>Paciente</th><th>CI</th><th>Fecha</th><th>Protocolo</th><th>METs</th><th>Duke</th><th>Resultado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+// Re-render de Guardados respetando el sistema de filtro activo (búsqueda header vs panel ef-*)
+function ergoRefreshSvlist(){
+  const anyEf=['ef-resultado','ef-mets','ef-duke','ef-interes'].some(id=>{const el=document.getElementById(id);return el&&el.value;});
+  if(anyEf&&typeof ergoAplicarFiltros==='function')ergoAplicarFiltros();else rGuard();
+}
+// Estrella: alterna caso de interés (al desmarcar limpia la nota)
+function ergoToggleInteres(id){
+  const lista=safeLoadReports();const inf=lista.find(i=>i.id===id);if(!inf)return;
+  if(inf.caso_interes==='1'){inf.caso_interes='0';inf.nota_interes='';}
+  else{inf.caso_interes='1';}
+  try{localStorage.setItem('ergo_informes',JSON.stringify(lista));}catch(e){showToast('⚠ No se pudo guardar');return;}
+  ergoRefreshSvlist();
+  if(inf.caso_interes==='1'){const inp=document.querySelector('#svlist .sv-note-in[data-id="'+id+'"]');if(inp)inp.focus();}
+}
+// Guardar la nota del caso de interés
+function ergoGuardarNota(id){
+  const inp=document.querySelector('#svlist .sv-note-in[data-id="'+id+'"]');if(!inp)return;
+  const lista=safeLoadReports();const inf=lista.find(i=>i.id===id);if(!inf)return;
+  inf.nota_interes=inp.value.trim();
+  try{localStorage.setItem('ergo_informes',JSON.stringify(lista));showToast('Nota guardada ✓');}
+  catch(e){showToast('⚠ No se pudo guardar');}
+}
+window.ergoToggleInteres=ergoToggleInteres;window.ergoGuardarNota=ergoGuardarNota;
 
 function verInforme(id){
   const inf=safeLoadReports().find(i=>i.id===id);if(!inf)return;
@@ -3870,25 +3878,7 @@ function ergoRenderSvlist(f, totalCount) {
     if (typeof actualizarCmpBar === 'function') actualizarCmpBar();
     return;
   }
-  const rows = f.map(inf => {
-    const selCls = _sel.includes(inf.id) ? ' sv-selected' : '';
-    return `<tr class="${selCls}">
-<td class="sv-pn">${esc(inf.nombre)||'—'}</td>
-<td>${esc(inf.ci)||'—'}</td>
-<td>${esc(inf.fecha)||'—'}</td>
-<td>${esc(inf.protocolo)||'—'} <span style="color:var(--text3)">(${inf.ergometro==='cinta'?'cinta':'bici'})</span></td>
-<td>${esc(inf.mets)}</td>
-<td>${esc(inf.duke)}</td>
-<td>${esc(inf.resultado)}</td>
-<td><div class="sv-acts">
-<button class="btn btn-outline btn-sm" data-act="ver" data-id="${inf.id}" title="Ver">👁</button>
-<button class="btn btn-outline btn-sm" data-act="editar" data-id="${inf.id}" title="Editar">✎</button>
-<button class="btn btn-outline btn-sm" data-act="pdf" data-id="${inf.id}" title="PDF">📄</button>
-<button class="btn btn-sm ${_sel.includes(inf.id)?'btn-primary':'btn-outline'}" data-act="cmp" data-id="${inf.id}" title="Comparar">⇄</button>
-<button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" data-act="elim" data-id="${inf.id}" title="Eliminar">✕</button>
-</div></td></tr>`;
-  }).join('');
-  container.innerHTML = `<table class="sv-tbl"><thead><tr><th>Paciente</th><th>CI</th><th>Fecha</th><th>Protocolo</th><th>METs</th><th>Duke</th><th>Resultado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table>`;
+  container.innerHTML = ergoSvTableHTML(f, _sel);
   if (typeof actualizarCmpBar === 'function') actualizarCmpBar();
 }
 
@@ -4318,16 +4308,21 @@ function ergoLabInit() {
       docEl.innerHTML =
         '<div class="el-empty">Sin casos marcados</div>';
     } else {
+      const resumenDe = i => {
+        const nota = (i.nota_interes||'').trim();
+        if (nota) return esc(nota);
+        const base = (i.ensuma||i.concl||'').trim();
+        if (!base) return '—';
+        return esc(base.length>80 ? base.slice(0,80)+'…' : base);
+      };
       docEl.innerHTML = `<table class="el-table">
         <thead><tr>
-          <th>Paciente</th><th>Fecha</th>
-          <th>METs</th><th>Resultado</th>
+          <th>Paciente</th><th>Fecha</th><th>Resumen</th>
         </tr></thead>
         <tbody>${docentes.map(i => `<tr>
-          <td>${i.nombre}</td>
-          <td>${i.fecha||'—'}</td>
-          <td>${i.mets||'—'}</td>
-          <td>${i.resultado||'—'}</td>
+          <td>${esc(i.nombre)||'—'}</td>
+          <td>${esc(i.fecha)||'—'}</td>
+          <td>${resumenDe(i)}</td>
         </tr>`).join('')}</tbody>
       </table>`;
     }
