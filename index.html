@@ -805,6 +805,15 @@ body.printing-clean #clean-controls{display:none!important}
       <span style="font-size:12.5px;color:var(--text)"><b>🏛️ Modo institucional</b> — el PDF muestra sólo la institución en el encabezado (sin CeiboMed)</span>
     </label>
   </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🏥 Centros de trabajo</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Definí tus centros (máx. 10). El centro <strong>principal</strong> se selecciona por defecto en cada estudio nuevo.</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" id="cfg-centro-nuevo" placeholder="Nombre del centro (ej: GREMEDA)" onkeydown="if(event.key==='Enter'){event.preventDefault();cfgAddCentro();}" style="flex:1;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;box-sizing:border-box;font-family:inherit">
+      <button type="button" class="btn btn-primary" onclick="cfgAddCentro()">+ Agregar</button>
+    </div>
+    <div id="cfg-centros-lista"></div>
+  </div>
 </div></div>
 <div class="tab-panel active" id="tab-paciente"><div class="main">
 
@@ -828,7 +837,7 @@ body.printing-clean #clean-controls{display:none!important}
   <div class="fg fg4" style="margin-bottom:12px">
     <div><label>Fecha del estudio</label><input type="date" id="fe" oninput="updComp()"></div>
     <div><label>Fecha de solicitud</label><input type="date" id="fecha_solicitud_ergo"></div>
-    <div><label>Centro / Institución</label><input type="text" id="pcentro" placeholder="Ej: Hospital Regional de Artigas"></div>
+    <div><label>Centro / Institución</label><div id="centro-field-wrap"></div><div id="centro-field-hint" style="font-size:10px;color:var(--text2);margin-top:3px;display:none;">Configurá tus centros en Configuración →</div></div>
     <div><label>Médico solicitante</label><input type="text" id="psolicitante" placeholder="Dr./Dra. Nombre Apellido"></div>
   </div>
   <div class="fg fg4" style="margin-bottom:12px">
@@ -1385,6 +1394,8 @@ body.printing-clean #clean-controls{display:none!important}
   #tab-lab .el-stat:last-child{border-bottom:none;}
   #tab-lab .el-lbl{color:var(--text2);}
   #tab-lab .el-val{font-weight:700;color:var(--accent);}
+  #tab-lab .lab-centro-lbl{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;color:var(--text);margin:0 16px 6px 0;cursor:pointer;}
+  #tab-lab .lab-centro-lbl input{width:auto;cursor:pointer;}
   #tab-lab .el-bar-wrap{display:flex;flex-direction:column;gap:6px;}
   #tab-lab .el-bar-row{display:flex;align-items:center;gap:8px;
     font-size:.78rem;}
@@ -1477,6 +1488,7 @@ body.printing-clean #clean-controls{display:none!important}
           📊 Exportar CSV
         </button>
       </div>
+      <div id="lab-centro-filtro" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);"></div>
       <div id="el-resumen" style="font-size:.78rem;color:var(--text2);
         margin-top:8px;"></div>
     </div>
@@ -2725,6 +2737,7 @@ function ergoCfgOpen(){
   ['fn','fesp','fmat','finst','fciu','is'].forEach(function(k){ var c=document.getElementById('cfg-'+k), h=document.getElementById(k); if(c&&h)c.value=h.value||''; });
   var q=document.getElementById('ergo-qr-enabled'); if(q){ try{ q.checked=(localStorage.getItem('ergo_qr_enabled')!=='0'); }catch(e){ q.checked=true; } }
   var mi=document.getElementById('ergo-modo-inst'); if(mi){ mi.checked=(localStorage.getItem('ergo_modo_institucional')==='1'); }
+  if(typeof cfgRenderCentros==='function')cfgRenderCentros();
 }
 /* Botón "🏥 Centro": abre el panel del médico y edita la institución (finst) */
 function ergoCentroBtn(){
@@ -2739,6 +2752,69 @@ function ergoInstModeToggle(on){
 }
 window.ergoInstModeToggle=ergoInstModeToggle;
 window.ergoCfgOpen=ergoCfgOpen;
+
+// ══════════════════════════════════════════════════════════════
+// CENTROS PREDEFINIDOS (ErgoSmart) — Config · select en form (pcentro) · filtro Lab
+// ══════════════════════════════════════════════════════════════
+const ERGO_CENTROS_KEY='ergo_centros', ERGO_CENTRO_PR_KEY='ergo_centro_principal';
+function ergoGetCentros(){ try{ const a=JSON.parse(localStorage.getItem(ERGO_CENTROS_KEY)||'[]'); return Array.isArray(a)?a.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()):[]; }catch(e){ return []; } }
+function ergoSetCentros(a){ try{ localStorage.setItem(ERGO_CENTROS_KEY, JSON.stringify(a.slice(0,10))); }catch(e){} }
+function ergoGetCentroPrincipal(){ return (localStorage.getItem(ERGO_CENTRO_PR_KEY)||'').trim(); }
+function ergoSetCentroPrincipal(n){ try{ localStorage.setItem(ERGO_CENTRO_PR_KEY,(n||'').trim()); }catch(e){} }
+function ergoInitCentros(){
+  let c=ergoGetCentros();
+  if(!c.length){ const prev=((localStorage.getItem('pcentro')||'').trim())||((document.getElementById('finst')?.value||'').trim()); if(prev){ c=[prev]; ergoSetCentros(c); if(!ergoGetCentroPrincipal())ergoSetCentroPrincipal(prev);} }
+  if(c.length && !ergoGetCentroPrincipal())ergoSetCentroPrincipal(c[0]);
+}
+// Campo de centro en el formulario (select o texto libre) — id sigue siendo pcentro
+function renderCentroField(forceVal){
+  const wrap=document.getElementById('centro-field-wrap'); if(!wrap)return;
+  const hint=document.getElementById('centro-field-hint');
+  const centros=ergoGetCentros();
+  let cur=(forceVal!=null)?forceVal:(document.getElementById('pcentro')?.value||'');
+  cur=String(cur==null?'':cur).trim();
+  if(centros.length){
+    const opts=centros.slice(); if(cur && !opts.some(c=>c.toLowerCase()===cur.toLowerCase()))opts.push(cur);
+    let def=cur; if(!def){ const pr=ergoGetCentroPrincipal(); if(pr && opts.some(c=>c.toLowerCase()===pr.toLowerCase()))def=pr; }
+    wrap.innerHTML='<select id="pcentro"><option value="">— Sin centro —</option>'+opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select>';
+    const s=document.getElementById('pcentro'); if(s)s.value=def||'';
+    if(hint)hint.style.display='none';
+  } else {
+    wrap.innerHTML='<input type="text" id="pcentro" placeholder="Ej: Hospital Regional de Artigas">';
+    const i=document.getElementById('pcentro'); if(i&&cur)i.value=cur;
+    if(hint)hint.style.display='block';
+  }
+}
+window.renderCentroField=renderCentroField;
+// Gestión en Configuración
+function cfgRenderCentros(){
+  const box=document.getElementById('cfg-centros-lista'); if(!box)return;
+  const centros=ergoGetCentros(), pr=ergoGetCentroPrincipal();
+  if(!centros.length){ box.innerHTML='<div style="font-size:12px;color:var(--text2);padding:6px 0;">No hay centros configurados. Agregá el primero arriba.</div>'; return; }
+  box.innerHTML=centros.map((c,i)=>{ const isPr=pr&&c.toLowerCase()===pr.toLowerCase();
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'+
+    '<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap;"><input type="radio" name="ergo-cfg-centro-pr" '+(isPr?'checked':'')+' onchange="cfgSetPrincipal('+i+')" style="width:auto;cursor:pointer;">Principal</label>'+
+    '<span style="flex:1;font-size:13px;color:var(--text);">'+esc(c)+(isPr?' ★':'')+'</span>'+
+    '<button type="button" onclick="cfgEditCentro('+i+')" title="Editar" style="padding:3px 9px;font-size:11px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;">✏️</button>'+
+    '<button type="button" onclick="cfgDelCentro('+i+')" title="Eliminar" style="padding:3px 9px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--danger);cursor:pointer;">×</button>'+
+    '</div>'; }).join('');
+}
+function cfgAddCentro(){ const inp=document.getElementById('cfg-centro-nuevo'); if(!inp)return; const val=(inp.value||'').trim(); if(!val){showToast('⚠ Ingresá un nombre de centro');return;} let c=ergoGetCentros(); if(c.length>=10){showToast('⚠ Máximo 10 centros');return;} if(c.some(x=>x.toLowerCase()===val.toLowerCase())){showToast('⚠ Ese centro ya existe');return;} c.push(val); ergoSetCentros(c); if(!ergoGetCentroPrincipal())ergoSetCentroPrincipal(val); inp.value=''; cfgRenderCentros(); renderCentroField(); showToast('✅ Centro agregado'); }
+function cfgDelCentro(i){ let c=ergoGetCentros(); if(i<0||i>=c.length)return; const del=c[i]; c.splice(i,1); ergoSetCentros(c); if(ergoGetCentroPrincipal().toLowerCase()===del.toLowerCase())ergoSetCentroPrincipal(c[0]||''); cfgRenderCentros(); renderCentroField(); }
+function cfgEditCentro(i){ let c=ergoGetCentros(); if(i<0||i>=c.length)return; const actual=c[i], nuevo=prompt('Editar nombre del centro:',actual); if(nuevo==null)return; const v=nuevo.trim(); if(!v){showToast('⚠ Nombre vacío');return;} if(c.some((x,idx)=>idx!==i&&x.toLowerCase()===v.toLowerCase())){showToast('⚠ Ya existe un centro con ese nombre');return;} const eraPr=ergoGetCentroPrincipal().toLowerCase()===actual.toLowerCase(); c[i]=v; ergoSetCentros(c); if(eraPr)ergoSetCentroPrincipal(v); cfgRenderCentros(); renderCentroField(); }
+function cfgSetPrincipal(i){ const c=ergoGetCentros(); if(i<0||i>=c.length)return; ergoSetCentroPrincipal(c[i]); cfgRenderCentros(); }
+window.cfgAddCentro=cfgAddCentro; window.cfgDelCentro=cfgDelCentro; window.cfgEditCentro=cfgEditCentro; window.cfgSetPrincipal=cfgSetPrincipal;
+// Filtro múltiple por centro en el Lab (lee inf.form.pcentro)
+function _labCentrosUnicos(){ const map=new Map(); safeLoadReports().forEach(i=>{ const t=String((i.form&&i.form.pcentro)==null?'':(i.form.pcentro)).trim(); if(t){ const k=t.toLowerCase(); if(!map.has(k))map.set(k,t);} }); return Array.from(map.entries()).sort((a,b)=>a[1].localeCompare(b[1])); }
+function labRenderCentroFilter(){ const box=document.getElementById('lab-centro-filtro'); if(!box)return; const centros=_labCentrosUnicos(); const prev={}; let had=false; box.querySelectorAll('.lab-centro-item').forEach(c=>{prev[c.value]=c.checked; had=true;}); const st=v=>had?(prev[v]!==undefined?prev[v]:true):true; let html='<div style="font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Filtrar por centro</div>'; html+='<label class="lab-centro-lbl"><input type="checkbox" id="lab-centro-todos" onchange="labCentroTodos(this)"> <strong>Todos</strong></label>'; centros.forEach(([norm,disp])=>{ html+='<label class="lab-centro-lbl"><input type="checkbox" class="lab-centro-item" value="'+esc(norm)+'" '+(st(norm)?'checked':'')+' onchange="labCentroItemChange()"> '+esc(disp)+'</label>'; }); html+='<label class="lab-centro-lbl"><input type="checkbox" class="lab-centro-item" value="__none__" '+(st('__none__')?'checked':'')+' onchange="labCentroItemChange()"> <span style="color:var(--text2)">Sin centro identificado</span></label>'; box.innerHTML=html; _labCentroSyncTodos(); }
+function _labCentroSyncTodos(){ const box=document.getElementById('lab-centro-filtro'); if(!box)return; const items=[...box.querySelectorAll('.lab-centro-item')], todos=box.querySelector('#lab-centro-todos'); if(todos)todos.checked=items.length>0&&items.every(c=>c.checked); }
+function labCentroTodos(el){ const box=document.getElementById('lab-centro-filtro'); if(!box)return; box.querySelectorAll('.lab-centro-item').forEach(c=>c.checked=el.checked); ergoLabInit(); }
+function labCentroItemChange(){ _labCentroSyncTodos(); ergoLabInit(); }
+window.labCentroTodos=labCentroTodos; window.labCentroItemChange=labCentroItemChange;
+function _labCentroSeleccion(){ const box=document.getElementById('lab-centro-filtro'); if(!box)return null; const items=[...box.querySelectorAll('.lab-centro-item')]; if(!items.length)return null; return {total:items.length, sel:items.filter(c=>c.checked).map(c=>c.value)}; }
+window._labCentroSeleccion=_labCentroSeleccion;
+// Arranque
+ergoInitCentros(); renderCentroField();
 function ergoQrToggle(){ var q=document.getElementById('ergo-qr-enabled'); try{ localStorage.setItem('ergo_qr_enabled',(q&&q.checked)?'1':'0'); }catch(e){} if(typeof showToast==='function')showToast((q&&q.checked)?'✅ QR activado en el PDF':'QR desactivado en el PDF'); }
 window.ergoQrToggle=ergoQrToggle;
 function ergoConfigInit(){
@@ -3072,7 +3148,7 @@ let cmpSel=[];                     // ids seleccionados para comparar (máx 2)
 const ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>ESC_MAP[c]);}
 // Campos restaurables (id -> valor)
-const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu','ergo_ensuma','bbs','rpress','rcrono','rfc1','rfc2','dpmax','ircdisp','motint','cond'];
+const FORM_FIELDS=['pn','pci','pnac','ped','psex','pp','pt','pimc','psc','aot','moto','idet','fcrep','fcmax','metat','durej','mst','angtp','res','cf','rerg','concltxt','obs','is','fe','finst','fciu','ergo_ensuma','bbs','rpress','rcrono','rfc1','rfc2','dpmax','ircdisp','motint','cond','pcentro','psolicitante'];
 
 // Captura del snapshot del formulario en vivo
 function capturarForm(){
@@ -3154,6 +3230,7 @@ function restoreForm(form){
   if(protos[wantProto]&&pbtns[pos])setProto(wantProto,pbtns[pos]);
   // Campos simples
   FORM_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el&&form[id]!==undefined)el.value=form[id];});
+  if(typeof renderCentroField==='function')renderCentroField(form.pcentro);   // preserva centro en el select
   // Medicaciones
   document.querySelectorAll('.med-chip').forEach(c=>{const v=c.querySelector('input')?.value;const on=(form.meds||[]).includes(v);c.classList.toggle('active',on);const cb=c.querySelector('input');if(cb)cb.checked=on;});
   // Antecedentes cardiovasculares
@@ -3440,7 +3517,7 @@ function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,re
 function cFCobj(){const edad=parseInt(document.getElementById('cfced').value)||0,rep=parseInt(document.getElementById('cfcrep').value)||0;if(!edad){document.getElementById('crfc').textContent='Ingresá la edad';return;}const fcme=220-edad,p85=Math.round(fcme*0.85),p62=Math.round(fcme*0.62),kv=rep>0?Math.round(rep+0.85*(fcme-rep)):null;document.getElementById('crfc').innerHTML=`FCME (220−edad): <strong>${fcme} lpm</strong><br>85% FCME — prueba máxima sin BB: <strong>${p85} lpm</strong><br>62% FCME — prueba suficiente con BB: <strong>${p62} lpm</strong>${kv?`<br>Karvonen 85% (reserva FC): <strong>${kv} lpm</strong>`:''}`;}
 
 // LIMPIAR
-function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.antec-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.comp-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.indic-opt').forEach(o=>{o.classList.remove('selected');const cb=o.querySelector('input');if(cb)cb.checked=false;});if(typeof updIndicResumen==='function')updIndicResumen();document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
+function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.antec-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.comp-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.indic-opt').forEach(o=>{o.classList.remove('selected');const cb=o.querySelector('input');if(cb)cb.checked=false;});if(typeof updIndicResumen==='function')updIndicResumen();document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}if(typeof renderCentroField==='function')renderCentroField('');
 // Resetear campos calculados automáticamente (displays con textContent, no inputs)
 ['vfcme','v85','virc','fcr','fc85r','fc62r','fcar','ccsd','nyhad','ptpv','ptpl','ptprec'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
 // Suficiencia de la prueba y badge PTP
@@ -4269,6 +4346,14 @@ function ergoLabGetInfs() {
   const desde = document.getElementById('el-desde')?.value;
   const hasta = document.getElementById('el-hasta')?.value;
   const hoy = new Date();
+  // Filtro múltiple por centro (checkboxes). Normaliza a minúsculas/trim. Centro en inf.form.pcentro.
+  const _cSel = (typeof _labCentroSeleccion === 'function') ? _labCentroSeleccion() : null;
+  const _centroOk = (inf) => {
+    if (!_cSel || _cSel.sel.length >= _cSel.total) return true;
+    const t = String((inf.form && inf.form.pcentro) == null ? '' : inf.form.pcentro).trim();
+    if (!t) return _cSel.sel.includes('__none__');
+    return _cSel.sel.includes(t.toLowerCase());
+  };
   return todos.filter(inf => {
     const fStr = inf.fecha || inf.fecha_estudio;   // importados usan 'fecha_estudio'
     const f = fStr ? new Date(fStr) : null;
@@ -4280,6 +4365,7 @@ function ergoLabGetInfs() {
       lim.setDate(lim.getDate() - periodo);
       if (f < lim) return false;
     }
+    if (!_centroOk(inf)) return false;
     return true;
   });
 }
@@ -4908,6 +4994,7 @@ function ergoLabDestroyChart(id) {
 }
 
 function ergoLabInit() {
+  if (typeof labRenderCentroFilter === 'function') labRenderCentroFilter();
   const infs = ergoLabGetInfs();
   const n = infs.length;
 
