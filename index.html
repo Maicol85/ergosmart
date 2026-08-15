@@ -154,13 +154,17 @@ textarea{resize:vertical;min-height:56px}
 .antec-chip.active .dot{background:var(--accent)}
 @media(max-width:640px){.chip-grid{grid-template-columns:1fr}}
 /* INDIC */
-.indic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
-.indic-opt{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:9px}
+.indic-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.indic-opt{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px}
+.indic-opt input[type=checkbox]{display:none}
 .indic-opt:hover{border-color:var(--accent)}
 .indic-opt.selected{border-color:var(--accent);background:rgba(14,165,233,.07)}
-.indic-ico{font-size:18px;flex-shrink:0}
-.indic-text strong{display:block;font-size:12px;color:var(--text);margin-bottom:2px}
-.indic-text span{font-size:11px;color:var(--text2)}
+.indic-box{width:15px;height:15px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;position:relative;transition:all .15s}
+.indic-opt.selected .indic-box{background:var(--accent);border-color:var(--accent)}
+.indic-opt.selected .indic-box::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.indic-text strong{display:block;font-size:12px;color:var(--text);margin-bottom:1px}
+.indic-text span{font-size:10px;color:var(--text3)}
+@media(max-width:640px){.indic-grid{grid-template-columns:1fr}}
 /* PTP */
 .ptp-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 .ptp-tbl th{background:var(--bg3);color:var(--text2);padding:6px 8px;text-align:center;border:1px solid var(--border);font-size:10px;text-transform:uppercase}
@@ -804,40 +808,25 @@ body.printing-clean #clean-controls{display:none!important}
 <!-- ═══ TAB INDICACIÓN ═══ -->
 <div class="tab-panel" id="tab-indic"><div class="main">
 
-<div class="sc" id="sind"><div class="sh" onclick="tg('sind')"><span class="st">🎯 Indicación, Clasificación Funcional y Probabilidad Pretest</span><span class="ci">▼</span></div><div class="sb">
-  <div class="fg" style="margin-bottom:12px;max-width:360px">
-    <label>Motivo de la prueba</label>
-    <select id="pac-motivo-prueba">
-      <option value="">Seleccionar motivo...</option>
-      <option value="Dolor torácico">Dolor torácico</option>
-      <option value="Disnea de esfuerzo">Disnea de esfuerzo</option>
-      <option value="Ambos">Ambos</option>
-      <option value="Control / seguimiento">Control / seguimiento</option>
-      <option value="Preoperatorio">Preoperatorio</option>
-      <option value="Diagnóstico de isquemia">Diagnóstico de isquemia</option>
-      <option value="Otro">Otro</option>
-    </select>
-  </div>
-  <hr class="divider">
-  <div class="sc collapsed" id="sindic" style="margin-bottom:12px"><div class="sh" onclick="tg('sindic')"><span class="st">🎯 Indicación</span><span class="ci">▼</span></div><div class="sb">
+<div class="sc" id="sind"><div class="sh" onclick="tg('sind')"><span class="st">Indicación, Clasificación Funcional y Probabilidad Pretest</span><span class="ci">▼</span></div><div class="sb">
+  <div class="sc" id="sindic" style="margin-bottom:12px"><div class="sh" onclick="tg('sindic')"><span class="st">Indicación <span id="indic-resumen" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(ninguna seleccionada)</span></span><span class="ci">▼</span></div><div class="sb">
   <div class="indic-grid">
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="dg_isq"><span class="indic-ico">🔍</span><div class="indic-text"><strong>Diagnóstico de isquemia</strong><span>PTP intermedia de EAC</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="eac"><span class="indic-ico">📊</span><div class="indic-text"><strong>EAC conocida / Evaluativa</strong><span>Estratificación pronóstica</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="piam"><span class="indic-ico">❤️‍🩹</span><div class="indic-text"><strong>Post-IAM</strong><span>Estratificación (días 5-14)</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="prev"><span class="indic-ico">🔧</span><div class="indic-text"><strong>Post-Revascularización</strong><span>ATC / CRM</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="udt"><span class="indic-ico">🏥</span><div class="indic-text"><strong>Unidad de dolor torácico</strong><span>Alta precoz o ambulatoria</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="valv"><span class="indic-ico">💓</span><div class="indic-text"><strong>Valvulopatía</strong><span>Capacidad funcional / síntomas</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="arr"><span class="indic-ico">⚡</span><div class="indic-text"><strong>Arritmias / dispositivos</strong><span>WPW, MP, CDI, TRC</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="ic"><span class="indic-ico">🫀</span><div class="indic-text"><strong>Insuficiencia cardíaca</strong><span>CF / trasplante / rehab.</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="preop"><span class="indic-ico">🔬</span><div class="indic-text"><strong>PreOP cirugía no cardíaca</strong><span>Evaluación funcional</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="cheq"><span class="indic-ico">✅</span><div class="indic-text"><strong>Chequeo preventivo</strong><span>Riesgo CV, deporte, laboral</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="rehab"><span class="indic-ico">🏃</span><div class="indic-text"><strong>Rehabilitación CV</strong><span>Prescripción de ejercicio</span></div></label>
-    <label class="indic-opt" onclick="sInd(this);updComp()"><input type="radio" name="ind" value="dep"><span class="indic-ico">🏅</span><div class="indic-text"><strong>Evaluación deportiva</strong><span>VO₂ máx / aptitud</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="dg_isq"><span class="indic-box"></span><div class="indic-text"><strong>Diagnóstico de isquemia</strong><span>PTP intermedia EAC</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="eac"><span class="indic-box"></span><div class="indic-text"><strong>EAC conocida / Evaluativa</strong><span>Estratificación pronóstica</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="piam"><span class="indic-box"></span><div class="indic-text"><strong>Post-IAM</strong><span>Días 5–14</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="prev"><span class="indic-box"></span><div class="indic-text"><strong>Post-Revascularización</strong><span>ATC / CRM</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="udt"><span class="indic-box"></span><div class="indic-text"><strong>Unidad de dolor torácico</strong><span>Alta precoz o ambulatoria</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="valv"><span class="indic-box"></span><div class="indic-text"><strong>Valvulopatía</strong><span>CF / síntomas</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="arr"><span class="indic-box"></span><div class="indic-text"><strong>Arritmias / Dispositivos</strong><span>WPW, MP, CDI, TRC</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="ic"><span class="indic-box"></span><div class="indic-text"><strong>Insuficiencia cardíaca</strong><span>CF / trasplante / rehab.</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="preop"><span class="indic-box"></span><div class="indic-text"><strong>PreOP cirugía no cardíaca</strong><span>Evaluación funcional</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="cheq"><span class="indic-box"></span><div class="indic-text"><strong>Chequeo preventivo</strong><span>Riesgo CV, deporte, laboral</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="rehab"><span class="indic-box"></span><div class="indic-text"><strong>Rehabilitación CV</strong><span>Prescripción de ejercicio</span></div></label>
+    <label class="indic-opt" onclick="sInd(this)"><input type="checkbox" value="dep"><span class="indic-box"></span><div class="indic-text"><strong>Evaluación deportiva</strong><span>VO₂ máx / aptitud</span></div></label>
   </div>
+  <div style="margin-top:12px"><label>Detalle clínico</label><textarea id="idet" placeholder="Descripción clínica del motivo, síntomas, etc."></textarea></div>
   </div></div>
-  <div style="margin-top:12px"><label>Detalle clínico / motivo específico</label><textarea id="idet" placeholder="Descripción clínica del motivo, síntomas, etc."></textarea></div>
-  <hr class="divider">
-  <p style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">Clasificación funcional</p>
+  <div class="sc collapsed" id="sclasf" style="margin-bottom:12px"><div class="sh" onclick="tg('sclasf')"><span class="st">Clasificación funcional</span><span class="ci">▼</span></div><div class="sb">
   <div class="ccs-g">
     <div><label>Angor — CCS</label>
       <div class="class-sel"><button class="cls-btn" onclick="sCls('ccs',this,'I')">I</button><button class="cls-btn" onclick="sCls('ccs',this,'II')">II</button><button class="cls-btn" onclick="sCls('ccs',this,'III')">III</button><button class="cls-btn" onclick="sCls('ccs',this,'IV')">IV</button><button class="cls-btn" onclick="sCls('ccs',this,'—')" style="flex:.5;font-size:10px">S/A</button></div>
@@ -848,15 +837,15 @@ body.printing-clean #clean-controls{display:none!important}
       <div class="cls-desc" id="nyhad">—</div>
     </div>
   </div>
-  <hr class="divider">
-  <p style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">Probabilidad Pretest EAC — ESC 2019 / Winther 2020</p>
+  </div></div>
+  <div class="sc collapsed" id="sptp" style="margin-bottom:0"><div class="sh" onclick="tg('sptp')"><span class="st">Probabilidad Pretest EAC — ESC 2019 / Winther 2020</span><span class="ci">▼</span></div><div class="sb">
   <div class="fg fg3" style="margin-bottom:10px">
     <div><label>Tipo de dolor torácico</label>
       <select id="tdol" onchange="cPTP()"><option value="">— Seleccionar —</option><option value="tipico">Angor típico (3/3)</option><option value="atipico">Angor atípico (2/3)</option><option value="no_anginoso">Dolor no anginoso (1/3)</option><option value="disnea">Disnea de esfuerzo</option></select>
       <div style="margin-top:5px;font-size:10px;color:var(--text3);line-height:1.4">① Opresivo retroesternal ② Con esfuerzo ③ Cede con reposo o NTG</div>
     </div>
     <div><label>Sexo (PTP)</label>
-      <div style="display:flex;gap:6px;margin-top:4px"><button class="cls-btn" id="ptpm" onclick="sPsex('M')">♂ Masculino</button><button class="cls-btn" id="ptpf" onclick="sPsex('F')">♀ Femenino</button></div>
+      <div style="display:flex;gap:6px;margin-top:4px"><button class="cls-btn" id="ptpm" onclick="sPsex('M')">Masculino</button><button class="cls-btn" id="ptpf" onclick="sPsex('F')">Femenino</button></div>
     </div>
     <div><label>Rango etario</label>
       <select id="ptpe" onchange="cPTP()"><option value="">— Seleccionar —</option><option value="30">30–39 años</option><option value="40">40–49 años</option><option value="50">50–59 años</option><option value="60">60–69 años</option><option value="70">≥70 años</option></select>
@@ -864,7 +853,7 @@ body.printing-clean #clean-controls{display:none!important}
   </div>
   <div style="overflow-x:auto"><table class="ptp-tbl"><thead>
     <tr><th rowspan="2">Edad</th><th colspan="2">Angor típico</th><th colspan="2">Angor atípico</th><th colspan="2">Dolor no anginoso</th><th colspan="2">Disnea</th></tr>
-    <tr><th>♂ H</th><th>♀ M</th><th>♂ H</th><th>♀ M</th><th>♂ H</th><th>♀ M</th><th>♂ H</th><th>♀ M</th></tr>
+    <tr><th>H</th><th>M</th><th>H</th><th>M</th><th>H</th><th>M</th><th>H</th><th>M</th></tr>
   </thead><tbody id="ptpb"></tbody></table></div>
   <div class="ptp-res" id="ptpr">
     <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
@@ -873,7 +862,8 @@ body.printing-clean #clean-controls{display:none!important}
       <span class="badge" id="ptpbdg">—</span>
     </div>
   </div>
-</div></div>
+  </div></div><!-- /#sptp -->
+</div></div><!-- /#sind -->
 
 </div></div><!-- /main indic -->
 
@@ -2021,7 +2011,7 @@ function exportPDF(){
   const sexo = sval('psex');
   const sexoTxt = sexo==='M'?'Masculino':sexo==='F'?'Femenino':'';
   const motivo = sval('idet');
-  const indic = (document.querySelector('.indic-opt.selected strong')||{}).textContent || '';
+  const indic = Array.from(document.querySelectorAll('.indic-opt.selected .indic-text strong')).map(s=>s.textContent.trim()).join(', ');
   drawInfoBox([
     [{lbl:'Nombre', val:sval('pn')}, {lbl:'CI / Nro. Historia', val:sval('pci')}, {lbl:'Edad', val:sval('ped')?sval('ped')+' años':''}, {lbl:'Sexo', val:sexoTxt}],
     [{lbl:'Centro / Institución', val:sval('pcentro')}, {lbl:'Fecha', val:fechaTxt}, {lbl:'Médico solicitante', val:sval('psolicitante')}],
@@ -2047,7 +2037,6 @@ function exportPDF(){
   drawInfoBox([
     [{lbl:'FC basal (reposo)', val:sval('fcrep')?sval('fcrep')+' lpm':''}, {lbl:'Betabloqueante', val:g('bbs')?selTxt('bbs'):''}],
     [{lbl:'Probabilidad pre-test', val:ptp}, {lbl:'Medicación', val:meds.join(', ')}],
-    [{lbl:'Motivo de la prueba', val:sval('pac-motivo-prueba')}],
     [{lbl:'Ergómetro', val:ergTxt}, {lbl:'Protocolo', val:protoNom}],
     [{lbl:'FCME teórica', val:clean(stxt('vfcme'))?clean(stxt('vfcme'))+' lpm':''}, {lbl:'85% FCME', val:clean(stxt('v85')||stxt('fc85r'))?clean(stxt('v85')||stxt('fc85r'))+' lpm':''}, {lbl:'62% FCME', val:clean(stxt('fc62r'))?clean(stxt('fc62r'))+' lpm':''}, {lbl:'FC máx. alcanzada', val:sval('fcmax')?sval('fcmax')+' lpm':''}],
   ]);
@@ -2506,7 +2495,15 @@ function eFM(){const fcme=parseInt(document.getElementById('vfcme').textContent)
 
 // MEDS / INDIC
 function tMed(c){c.classList.toggle('active');c.querySelector('input').checked=c.classList.contains('active');}
-function sInd(el){document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');}
+function sInd(el){el.classList.toggle('selected');const cb=el.querySelector('input');if(cb)cb.checked=el.classList.contains('selected');updIndicResumen();}
+// Resumen de indicaciones seleccionadas en el header del acordeón (truncado a 40 chars)
+function updIndicResumen(){
+  const el=document.getElementById('indic-resumen');if(!el)return;
+  const sel=Array.from(document.querySelectorAll('.indic-opt.selected .indic-text strong')).map(s=>s.textContent.trim());
+  if(!sel.length){el.textContent='(ninguna seleccionada)';return;}
+  let txt=sel.join(', ');if(txt.length>40)txt=txt.slice(0,40).replace(/[,\s]+$/,'')+'…';
+  el.textContent=txt;
+}
 function sCls(tipo,btn,cls){btn.closest('.class-sel').querySelectorAll('.cls-btn').forEach(b=>b.className='cls-btn');btn.className='cls-btn s'+cls;document.getElementById(tipo==='ccs'?'ccsd':'nyhad').textContent=(tipo==='ccs'?CCS_DESC:NYHA_DESC)[cls]||'—';}
 
 // PTP
@@ -2774,9 +2771,8 @@ function capturarForm(){
   form.protoActual=protoActual;
   form.meds=Array.from(document.querySelectorAll('.med-chip.active input')).map(i=>i.value);
   form.antec_cv=Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value);
-  const indSel=document.querySelector('.indic-opt.selected');
-  form.indic=indSel?indSel.querySelector('input')?.value:'';
-  form.indicText=indSel?(indSel.querySelector('strong')?.textContent||''):'';
+  form.indicacion_sel=Array.from(document.querySelectorAll('.indic-opt.selected input')).map(i=>i.value);
+  form.indicText=Array.from(document.querySelectorAll('.indic-opt.selected .indic-text strong')).map(s=>s.textContent.trim());
   form.arritmias=[];document.querySelectorAll('.ari').forEach((el,i)=>{if(el.classList.contains('chk'))form.arritmias.push(i);});
   form.rows=[];
   document.querySelectorAll('#tetb tr').forEach(tr=>{
@@ -2851,7 +2847,10 @@ function restoreForm(form){
   // Antecedentes cardiovasculares
   document.querySelectorAll('.antec-chip').forEach(c=>{const v=c.querySelector('input')?.value;const on=(form.antec_cv||[]).includes(v);c.classList.toggle('active',on);const cb=c.querySelector('input');if(cb)cb.checked=on;});
   // Indicación
-  document.querySelectorAll('.indic-opt').forEach(o=>{const v=o.querySelector('input')?.value;const on=v===form.indic;o.classList.toggle('selected',on);const r=o.querySelector('input');if(r)r.checked=on;});
+  // Indicación (multi-select). Retrocompat: registros viejos guardaban form.indic (string único)
+  const _indicSel=form.indicacion_sel||(form.indic?[form.indic]:[]);
+  document.querySelectorAll('.indic-opt').forEach(o=>{const v=o.querySelector('input')?.value;const on=_indicSel.includes(v);o.classList.toggle('selected',on);const r=o.querySelector('input');if(r)r.checked=on;});
+  updIndicResumen();
   // Arritmias alto riesgo
   document.querySelectorAll('.ari').forEach((el,i)=>{const on=(form.arritmias||[]).includes(i);el.classList.toggle('chk',on);const dot=el.querySelector('.adot');if(dot)dot.textContent=on?'✓':'';const cb=el.querySelector('input');if(cb)cb.checked=on;});
   // Tabla de etapas
@@ -2885,6 +2884,7 @@ function guardar(){
     fecha_solicitud:document.getElementById('fecha_solicitud_ergo')?.value||'',
     antec_cv_sel:Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value),
     med_activa_sel:Array.from(document.querySelectorAll('.med-chip.active input')).map(i=>i.value),
+    indicacion_sel:Array.from(document.querySelectorAll('.indic-opt.selected input')).map(i=>i.value),
     form:capturarForm()};
   let lista=safeLoadReports();
   if(editandoId){
@@ -3067,7 +3067,7 @@ function cIRC(){const edad=parseInt(document.getElementById('cied').value)||0,re
 function cFCobj(){const edad=parseInt(document.getElementById('cfced').value)||0,rep=parseInt(document.getElementById('cfcrep').value)||0;if(!edad){document.getElementById('crfc').textContent='Ingresá la edad';return;}const fcme=220-edad,p85=Math.round(fcme*0.85),p62=Math.round(fcme*0.62),kv=rep>0?Math.round(rep+0.85*(fcme-rep)):null;document.getElementById('crfc').innerHTML=`FCME (220−edad): <strong>${fcme} lpm</strong><br>85% FCME — prueba máxima sin BB: <strong>${p85} lpm</strong><br>62% FCME — prueba suficiente con BB: <strong>${p62} lpm</strong>${kv?`<br>Karvonen 85% (reserva FC): <strong>${kv} lpm</strong>`:''}`;}
 
 // LIMPIAR
-function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.antec-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.indic-opt').forEach(o=>o.classList.remove('selected'));document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
+function limpiarForm(){const INFORME_SEL='#tab-paciente,#tab-ergo,#tab-analisis,#tab-img,#tab-concl';document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' input[type=text],'+p+' input[type=number],'+p+' input[type=date],'+p+' textarea').join(',')).forEach(i=>{if(!FIRMA_KEYS.includes(i.id))i.value='';});document.querySelectorAll(INFORME_SEL.split(',').map(p=>p+' select').join(',')).forEach(s=>s.selectedIndex=0);document.querySelectorAll('.med-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.antec-chip').forEach(c=>{c.classList.remove('active');const cb=c.querySelector('input');if(cb)cb.checked=false;});document.querySelectorAll('.indic-opt').forEach(o=>{o.classList.remove('selected');const cb=o.querySelector('input');if(cb)cb.checked=false;});if(typeof updIndicResumen==='function')updIndicResumen();document.querySelectorAll('.ari').forEach(i=>{i.classList.remove('chk');i.querySelector('.adot').textContent='';});document.getElementById('arres').classList.remove('show');document.getElementById('bb-target-info').style.display='none';document.getElementById('tetb').innerHTML='';document.getElementById('egrid').innerHTML='';etapaCount=0;ecgCount=0;_protoIdx=0;_recIdx=0;ecgPasteTarget=null;ensureReposo();sEcgQ(4,document.querySelectorAll('.qb')[1]);ecgcReset();{const _ci=document.getElementById('caso_interes_ergo');if(_ci)_ci.checked=false;}
 // Resetear campos calculados automáticamente (displays con textContent, no inputs)
 ['vfcme','v85','virc','fcr','fc85r','fc62r','fcar','ccsd','nyhad','ptpv','ptpl','ptprec'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
 // Suficiencia de la prueba y badge PTP
@@ -3118,8 +3118,8 @@ function imprimirLimpio(){
   const peso=d('pp'), talla=d('pt'), imc=d('pimc'), sc=d('psc');
   const acv=Array.from(document.querySelectorAll('.antec-chip.active input')).map(i=>i.value).join(', '), aot=d('aot'), moto=d('moto');
   const meds=Array.from(document.querySelectorAll('.med-chip.active input')).map(i=>i.value).join(', ')||'No referidas';
-  const indicEl=document.querySelector('.indic-opt.selected strong');
-  const indicacion=indicEl?indicEl.textContent:'No especificada';
+  const _indicList=Array.from(document.querySelectorAll('.indic-opt.selected .indic-text strong')).map(s=>s.textContent.trim());
+  const indicacion=_indicList.length?_indicList.join(', '):'No especificada';
   const idet=d('idet');
   const ccsD=document.getElementById('ccsd')?.textContent||'—';
   const nyhaD=document.getElementById('nyhad')?.textContent||'—';
