@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ErgoSmart – Prueba Ergométrica Graduada</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer onload="pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'"></script>
 <style>
@@ -1502,6 +1503,10 @@ body.printing-clean #clean-controls{display:none!important}
     <button class="el-subtab"
       onclick="ergoLabSubTab('poblacion',this)">👥 Población</button>
     <button class="el-subtab"
+      onclick="ergoLabSubTab('mediciones',this)">📏 Mediciones</button>
+    <button class="el-subtab"
+      onclick="ergoLabSubTab('asociaciones',this)">📊 Asociaciones</button>
+    <button class="el-subtab"
       onclick="ergoLabSubTab('calidad',this)">✅ Calidad</button>
     <button class="el-subtab"
       onclick="ergoLabSubTab('comparar',this)">🔀 Comparar</button>
@@ -1829,6 +1834,36 @@ body.printing-clean #clean-controls{display:none!important}
         </div>
         <div class="el-stat" style="margin-top:10px;"><span class="el-lbl">% con ≥1 complicación</span><span class="el-val" id="el-comp-1">—</span></div>
       </div>
+    </div>
+  </div>
+
+  <!-- PANEL MEDICIONES -->
+  <div id="el-sub-mediciones" class="el-subpanel">
+    <div class="el-card">
+      <div class="el-hdr">📏 Estadística descriptiva</div>
+      <div style="font-size:.8rem;color:var(--text2);margin:4px 0 12px;">Resumen por variable continua (todos los estudios guardados). N&lt;5 → datos insuficientes.</div>
+      <div id="el-desc-tabla" style="overflow-x:auto;"></div>
+    </div>
+  </div>
+
+  <!-- PANEL ASOCIACIONES -->
+  <div id="el-sub-asociaciones" class="el-subpanel">
+    <div class="el-card">
+      <div class="el-hdr">📊 Asociaciones estadísticas</div>
+      <div style="font-size:.8rem;color:var(--text2);margin:4px 0 12px;">Test elegido automáticamente según el tipo de variables. Semáforo: 🟢 significativo con N suficiente · 🟡 significativo pero N bajo · ⚫ no significativo. Cálculo en JS puro sobre los estudios guardados.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:14px;">
+        <div><label style="font-size:.72rem;color:var(--text2);display:block;margin-bottom:3px;">Significancia</label>
+          <select id="easoc-f-sig" onchange="if(window.ergoAsocRender)ergoAsocRender()"><option value="all">Todos</option><option value="05">p&lt;0.05</option><option value="01">p&lt;0.01</option></select></div>
+        <div><label style="font-size:.72rem;color:var(--text2);display:block;margin-bottom:3px;">N mínimo</label>
+          <select id="easoc-f-n" onchange="if(window.ergoAsocRender)ergoAsocRender()"><option value="0">Todos</option><option value="15">≥15</option><option value="30">≥30</option></select></div>
+        <div><label style="font-size:.72rem;color:var(--text2);display:block;margin-bottom:3px;">Categoría</label>
+          <select id="easoc-f-cat" onchange="if(window.ergoAsocRender)ergoAsocRender()"><option value="all">Todas</option><option value="METs y variables">METs y variables</option><option value="Ergometría positiva">Ergometría positiva</option></select></div>
+        <div style="display:flex;gap:8px;margin-left:auto;">
+          <button class="btn btn-outline" onclick="if(window.ergoAsocExportPDF)ergoAsocExportPDF()">📄 Exportar → PDF</button>
+          <button class="btn btn-outline" onclick="if(window.ergoAsocExportXLSX)ergoAsocExportXLSX()">📊 Exportar → Excel</button>
+        </div>
+      </div>
+      <div id="el-asoc-tabla" style="overflow-x:auto;"></div>
     </div>
   </div>
 
@@ -4912,7 +4947,173 @@ function ergoLabSubTab(id, el) {
   document.getElementById('el-sub-' + id).classList.add('active');
   if (id === 'comparar') ergoLabCompararInit();
   if (id === 'poblacion' && typeof ergoVizRender === 'function') { ergoVizRender(); if (typeof _ergoRunner === 'function') _ergoRunner(ergoLabGetInfs()); }
+  if (id === 'mediciones' && typeof ergoDescRender === 'function') ergoDescRender();
+  if (id === 'asociaciones' && typeof ergoAsocInit === 'function') ergoAsocInit();
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Laboratorio ErgoSmart — estadística descriptiva + asociaciones (JS puro)
+// ══════════════════════════════════════════════════════════════════════════
+(function(){
+  const infos = () => (typeof ergoLabGetInfs==='function' ? ergoLabGetInfs() : (typeof safeLoadReports==='function'?safeLoadReports():[]));
+  const F = (i,k) => (i.form && i.form[k]!=null) ? i.form[k] : null;
+  const pf = v => { if(v==null||String(v).trim()==='')return null; const x=parseFloat(String(v).replace(',','.')); return isNaN(x)?null:x; };
+  const pint = v => { if(v==null||String(v).trim()==='')return null; const x=parseInt(String(v).replace(',','.'),10); return isNaN(x)?null:x; };
+  const rows = i => (i.form && Array.isArray(i.form.rows)) ? i.form.rows : [];
+
+  const V = {
+    mets:  {lbl:'METs alcanzados', get:i=>pf(i.mets)},
+    fcmax: {lbl:'FC máxima (lpm)', get:i=>pint(F(i,'fcmax')!=null?F(i,'fcmax'):i.fcmax)},
+    fcrep: {lbl:'FC reposo (lpm)', get:i=>pint(F(i,'fcrep'))},
+    pasrep:{lbl:'PAS reposo (mmHg)', get:i=>{ const r=rows(i); return r.length?pf(r[0].pas):null; }},
+    pasmax:{lbl:'PAS máxima (mmHg)', get:i=>{ const v=rows(i).map(x=>pf(x.pas)).filter(x=>x!=null); return v.length?Math.max.apply(null,v):null; }},
+    durej: {lbl:'Duración ejercicio (min)', get:i=>pf(F(i,'durej'))},
+    dpmax: {lbl:'Doble producto máximo', get:i=>pf(F(i,'dpmax')!=null?F(i,'dpmax'):i.dpmax)},
+    metsp: {lbl:'METs por protocolo', get:i=>pf(i.mets)},
+    edad:  {lbl:'Edad', get:i=>pint(F(i,'ped'))},
+    imc:   {lbl:'IMC', get:i=>pf(F(i,'pimc'))},
+  };
+  const DESC_ORDER = ['mets','fcmax','fcrep','pasrep','pasmax','durej','dpmax','metsp'];
+
+  // Categóricas / dicotómicas
+  const antec = (i,re) => { const a=i.antec_cv_sel; return Array.isArray(a)?(a.some(s=>re.test(String(s)))?1:0):null; };
+  const HTA=i=>antec(i,/^HTA$/i), DM=i=>antec(i,/^DM$|diabet/i), TAB=i=>antec(i,/tabaqu/i), DLP=i=>antec(i,/dislipem/i);
+  const BB=i=>{ const b=F(i,'bbs')!=null?F(i,'bbs'):i.bbs; return b==null?null:(String(b).toLowerCase()==='si'?1:0); };
+  const SEXO=i=>{ const s=String(F(i,'psex')||'').toUpperCase(); return s==='M'?'M':(s==='F'?'F':null); };
+  const POS=i=>i.resultadoVal==='pos'?'Sí':(i.resultadoVal==='neg'?'No':null);
+  const POSbin=i=>i.resultadoVal==='pos'?1:(i.resultadoVal==='neg'?0:null);
+  const YN=v=>v==null?null:(v?'Sí':'No');
+
+  // ── Distribuciones (p en JS puro) ──
+  const erf = x => { const s=x<0?-1:1; x=Math.abs(x); const t=1/(1+0.3275911*x); const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return s*y; };
+  const normCdf = z => 0.5*(1+erf(z/Math.SQRT2));
+  const gln = x => { const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5]; let y=x,tmp=x+5.5; tmp-=(x+0.5)*Math.log(tmp); let ser=1.000000000190015; for(let j=0;j<6;j++){y++;ser+=c[j]/y;} return -tmp+Math.log(2.5066282746310005*ser/x); };
+  const gammaP = (a,x) => { if(x<=0)return 0; if(x<a+1){ let ap=a,sum=1/a,del=sum; for(let i=0;i<300;i++){ ap++; del*=x/ap; sum+=del; if(Math.abs(del)<Math.abs(sum)*1e-13)break; } return sum*Math.exp(-x+a*Math.log(x)-gln(a)); } let b=x+1-a,c=1e300,d=1/b,h=d; for(let i=1;i<300;i++){ const an=-i*(i-a); b+=2; d=an*d+b; if(Math.abs(d)<1e-300)d=1e-300; c=b+an/c; if(Math.abs(c)<1e-300)c=1e-300; d=1/d; const del=d*c; h*=del; if(Math.abs(del-1)<1e-13)break; } return 1-Math.exp(-x+a*Math.log(x)-gln(a))*h; };
+  const chi2p = (x,k) => x<=0?1:1-gammaP(k/2,x/2);
+  const ranks = arr => { const idx=arr.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]); const r=new Array(arr.length); let i=0; while(i<idx.length){ let j=i; while(j+1<idx.length&&idx[j+1][0]===idx[i][0])j++; const avg=(i+j)/2+1; for(let k=i;k<=j;k++)r[idx[k][1]]=avg; i=j+1; } return r; };
+
+  // Spearman — p por aproximación normal (z = rho·√(n-1))
+  const spearman = pairs => { const n=pairs.length; if(n<3)return null; const rx=ranks(pairs.map(p=>p[0])), ry=ranks(pairs.map(p=>p[1])); const mx=rx.reduce((a,b)=>a+b,0)/n, my=ry.reduce((a,b)=>a+b,0)/n; let sxy=0,sxx=0,syy=0; for(let i=0;i<n;i++){ const dx=rx[i]-mx,dy=ry[i]-my; sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy; } if(sxx===0||syy===0)return {rho:0,p:1,n}; const rho=sxy/Math.sqrt(sxx*syy); const z=Math.abs(rho)*Math.sqrt(n-1); return {rho,p:Math.max(0,Math.min(1,2*(1-normCdf(z)))),n}; };
+  // Mann-Whitney U — aproximación normal con corrección de continuidad + empates
+  const mannwhitney = (g1,g2) => { const n1=g1.length,n2=g2.length,N=n1+n2; if(n1<1||n2<1)return null; const all=g1.map(v=>[v,0]).concat(g2.map(v=>[v,1])); const r=ranks(all.map(a=>a[0])); let R1=0; for(let i=0;i<N;i++)if(all[i][1]===0)R1+=r[i]; const U1=R1-n1*(n1+1)/2, U2=n1*n2-U1, U=Math.min(U1,U2); const mU=n1*n2/2; const sv=all.map(a=>a[0]).sort((a,b)=>a-b); let tie=0,i=0; while(i<N){ let j=i; while(j+1<N&&sv[j+1]===sv[i])j++; const t=j-i+1; if(t>1)tie+=t*t*t-t; i=j+1; } const sU=Math.sqrt((n1*n2/12)*((N+1)-tie/(N*(N-1)||1))); if(sU===0)return {U,p:1,n1,n2}; const z=(Math.abs(U-mU)-0.5)/sU; return {U,p:Math.max(0,Math.min(1,2*(1-normCdf(z)))),n1,n2}; };
+  // Chi² — con CDF de distribución integrada (gamma incompleta)
+  const chi2test = tbl => { const R=tbl.length, C=tbl[0].length; const rt=tbl.map(r=>r.reduce((a,b)=>a+b,0)); const ct=[]; for(let c=0;c<C;c++){let s=0;for(let r=0;r<R;r++)s+=tbl[r][c];ct.push(s);} const N=rt.reduce((a,b)=>a+b,0); if(N===0)return null; let chi2=0,minE=Infinity; for(let r=0;r<R;r++)for(let c=0;c<C;c++){ const e=rt[r]*ct[c]/N; if(e>0){minE=Math.min(minE,e); chi2+=(tbl[r][c]-e)*(tbl[r][c]-e)/e;} } const df=(R-1)*(C-1); if(df<1)return null; return {chi2,p:chi2p(chi2,df),df,N,minE}; };
+
+  const sigLight = (p,ok) => p==null?'⚫':(p<0.05?(ok?'🟢':'🟡'):'⚫');
+  const pTxt = p => p==null?'—':(p<0.001?'<0.001':p.toFixed(3));
+
+  const A = [
+    {cat:'METs y variables', lbl:'METs – edad', t:'sp', a:'mets', b:'edad'},
+    {cat:'METs y variables', lbl:'METs → sexo (M vs F)', t:'mw', a:'mets', g:i=>{const s=SEXO(i);return s==null?null:(s==='M'?1:0);}},
+    {cat:'METs y variables', lbl:'METs → HTA', t:'mw', a:'mets', g:HTA},
+    {cat:'METs y variables', lbl:'METs → DM', t:'mw', a:'mets', g:DM},
+    {cat:'METs y variables', lbl:'METs – IMC', t:'sp', a:'mets', b:'imc'},
+    {cat:'METs y variables', lbl:'METs – FC máxima', t:'sp', a:'mets', b:'fcmax'},
+    {cat:'METs y variables', lbl:'METs → betabloqueante', t:'mw', a:'mets', g:BB},
+    {cat:'METs y variables', lbl:'METs – duración ejercicio', t:'sp', a:'mets', b:'durej'},
+    {cat:'Ergometría positiva', lbl:'Positivo → HTA', t:'chi', ca:POS, cb:i=>YN(HTA(i))},
+    {cat:'Ergometría positiva', lbl:'Positivo → DM', t:'chi', ca:POS, cb:i=>YN(DM(i))},
+    {cat:'Ergometría positiva', lbl:'Positivo → sexo', t:'chi', ca:POS, cb:SEXO},
+    {cat:'Ergometría positiva', lbl:'Positivo → tabaquismo', t:'chi', ca:POS, cb:i=>YN(TAB(i))},
+    {cat:'Ergometría positiva', lbl:'Positivo → dislipemia', t:'chi', ca:POS, cb:i=>YN(DLP(i))},
+    {cat:'Ergometría positiva', lbl:'METs: positivos vs negativos', t:'mw', a:'mets', g:POSbin},
+    {cat:'Ergometría positiva', lbl:'FC máxima: positivos vs negativos', t:'mw', a:'fcmax', g:POSbin},
+  ];
+
+  function runOne(def, list){
+    const base={cat:def.cat, lbl:def.lbl};
+    if(def.t==='sp'){
+      const ga=V[def.a].get, gb=V[def.b].get, pairs=[];
+      list.forEach(i=>{ const x=ga(i),y=gb(i); if(x!=null&&y!=null&&!isNaN(x)&&!isNaN(y))pairs.push([x,y]); });
+      const r=spearman(pairs);
+      if(!r)return {...base,n:pairs.length,method:'Spearman',stat:'—',p:null,sig:'⚫'};
+      return {...base,n:r.n,method:'Spearman',stat:'ρ='+r.rho.toFixed(2),p:r.p,sig:sigLight(r.p,r.n>=15)};
+    }
+    if(def.t==='mw'){
+      const ga=V[def.a].get, g1=[],g2=[];
+      list.forEach(i=>{ const x=ga(i),gr=def.g(i); if(x!=null&&!isNaN(x)&&gr!=null){ (gr?g1:g2).push(x); } });
+      const r=mannwhitney(g1,g2);
+      if(!r)return {...base,n:g1.length+g2.length,method:'Mann-Whitney U',stat:'—',p:null,sig:'⚫'};
+      return {...base,n:r.n1+r.n2,method:'Mann-Whitney U',stat:'U='+r.U+' ('+r.n1+'/'+r.n2+')',p:r.p,sig:sigLight(r.p,r.n1>=8&&r.n2>=8)};
+    }
+    const data=[];
+    list.forEach(i=>{ const av=def.ca(i), bv=def.cb(i); if(av!=null&&bv!=null)data.push([String(av),String(bv)]); });
+    if(!data.length)return {...base,n:0,method:'Chi²',stat:'—',p:null,sig:'⚫'};
+    const aV=[...new Set(data.map(d=>d[0]))], bV=[...new Set(data.map(d=>d[1]))];
+    const tbl=aV.map(a=>bV.map(b=>data.filter(d=>d[0]===a&&d[1]===b).length));
+    const r=chi2test(tbl);
+    if(!r)return {...base,n:data.length,method:'Chi²',stat:'—',p:null,sig:'⚫'};
+    return {...base,n:r.N,method:'Chi²',stat:'χ²='+r.chi2.toFixed(2)+(r.minE<5?' ⚠fe<5':''),p:r.p,sig:sigLight(r.p,r.N>=20&&r.minE>=5)};
+  }
+  const computeAll = () => { const list=infos(); return A.map(d=>runOne(d,list)); };
+
+  // ── Descriptiva ──
+  const desc = arr => { arr=arr.filter(v=>v!=null&&!isNaN(v)).sort((a,b)=>a-b); const n=arr.length; if(!n)return {n:0}; const mean=arr.reduce((a,b)=>a+b,0)/n; const q=p=>{ const idx=(n-1)*p, lo=Math.floor(idx), hi=Math.ceil(idx); return lo===hi?arr[lo]:arr[lo]+(arr[hi]-arr[lo])*(idx-lo); }; const sd=n>1?Math.sqrt(arr.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(n-1)):0; return {n,mean,median:q(0.5),sd,p25:q(0.25),p75:q(0.75),min:arr[0],max:arr[n-1]}; };
+  const f1 = v => v==null?'—':(Math.round(v*10)/10).toString();
+
+  window.ergoDescRender = function(){
+    const host=document.getElementById('el-desc-tabla'); if(!host)return; const list=infos();
+    let rws='';
+    DESC_ORDER.forEach(k=>{ const d=desc(list.map(V[k].get));
+      if(d.n<5) rws+='<tr><td>'+V[k].lbl+'</td><td style="text-align:center;">'+d.n+'</td><td colspan="7" style="color:var(--text2);font-style:italic;">Datos insuficientes (N&lt;5)</td></tr>';
+      else rws+='<tr><td>'+V[k].lbl+'</td><td style="text-align:center;">'+d.n+'</td><td style="text-align:right;">'+f1(d.mean)+'</td><td style="text-align:right;">'+f1(d.median)+'</td><td style="text-align:right;">'+f1(d.sd)+'</td><td style="text-align:right;">'+f1(d.p25)+'</td><td style="text-align:right;">'+f1(d.p75)+'</td><td style="text-align:right;">'+f1(d.min)+'</td><td style="text-align:right;">'+f1(d.max)+'</td></tr>';
+    });
+    host.innerHTML='<table class="el-table"><thead><tr><th>Variable</th><th>N</th><th>Media</th><th>Mediana</th><th>DS</th><th>P25</th><th>P75</th><th>Mín</th><th>Máx</th></tr></thead><tbody>'+rws+'</tbody></table>';
+  };
+
+  function filtered(){
+    const res=computeAll();
+    const fs=(document.getElementById('easoc-f-sig')||{}).value||'all';
+    const fn=parseInt((document.getElementById('easoc-f-n')||{}).value||'0');
+    const fc=(document.getElementById('easoc-f-cat')||{}).value||'all';
+    return res.filter(r=>{
+      if(fs==='05' && !(r.p!=null&&r.p<0.05))return false;
+      if(fs==='01' && !(r.p!=null&&r.p<0.01))return false;
+      if(fn && r.n<fn)return false;
+      if(fc!=='all' && r.cat!==fc)return false;
+      return true;
+    });
+  }
+  window.ergoAsocRender = function(){
+    const host=document.getElementById('el-asoc-tabla'); if(!host)return;
+    const rws=filtered();
+    if(!rws.length){ host.innerHTML='<div style="padding:16px;color:var(--text2);text-align:center;">Sin asociaciones que cumplan los filtros (o pocos estudios guardados).</div>'; return; }
+    let body='';
+    rws.forEach(r=>{ body+='<tr><td>'+r.cat+'</td><td style="font-weight:600;">'+r.lbl+'</td><td style="text-align:center;">'+r.n+'</td><td>'+r.method+'</td><td>'+r.stat+'</td><td style="text-align:right;">'+pTxt(r.p)+'</td><td style="text-align:center;font-size:15px;">'+r.sig+'</td></tr>'; });
+    host.innerHTML='<table class="el-table"><thead><tr><th>Categoría</th><th>Asociación</th><th>N</th><th>Método</th><th>Estadístico</th><th>p</th><th>Sig.</th></tr></thead><tbody>'+body+'</tbody></table>';
+  };
+  window.ergoAsocInit = function(){ if(window.ergoDescRender)ergoDescRender(); ergoAsocRender(); };
+
+  window.ergoAsocExportXLSX = function(){
+    if(typeof XLSX==='undefined'){ if(typeof showToast==='function')showToast('❌ Excel (XLSX) no disponible'); return; }
+    const rws=filtered(); if(!rws.length){ if(typeof showToast==='function')showToast('⚠️ Sin filas para exportar'); return; }
+    const headers=['Categoría','Asociación','N','Método','Estadístico','p','Significativo'];
+    const aoa=[headers, ...rws.map(r=>[r.cat,r.lbl,r.n,r.method,r.stat,pTxt(r.p), r.sig==='🟢'?'Sí':(r.sig==='🟡'?'Sí (N bajo)':'No')])];
+    const ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=headers.map(h=>({wch:Math.max(12,h.length+2)}));
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Asociaciones');
+    XLSX.writeFile(wb,'ergosmart_asociaciones.xlsx');
+    if(typeof showToast==='function')showToast('✅ Excel exportado — '+rws.length+' asociaciones');
+  };
+  window.ergoAsocExportPDF = function(){
+    if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){ if(typeof showToast==='function')showToast('❌ PDF (jsPDF) no disponible'); return; }
+    const rws=filtered(); if(!rws.length){ if(typeof showToast==='function')showToast('⚠️ Sin filas para exportar'); return; }
+    const { jsPDF }=window.jspdf; const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    const mL=10; let y=16;
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(20,40,80); doc.text('ErgoSmart — Asociaciones estadísticas',mL,y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(90,90,90);
+    doc.text('Semaforo: Verde = significativo (p<0.05) con N suficiente / Amarillo = significativo pero N bajo / Negro = no significativo.',mL,y); y+=7;
+    const cols=[['Categoria',42],['Asociacion',74],['N',12],['Metodo',36],['Estadistico',42],['p',20],['Sig.',18]];
+    const head=()=>{ doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(20,40,80); let x=mL; cols.forEach(c=>{doc.text(c[0],x,y);x+=c[1];}); y+=1.5; doc.setDrawColor(200,200,200); doc.line(mL,y,mL+cols.reduce((a,c)=>a+c[1],0),y); y+=4; };
+    head(); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(30,30,30);
+    rws.forEach(r=>{ if(y>195){ doc.addPage(); y=16; head(); doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30); }
+      const sg=r.sig==='🟢'?'SI':(r.sig==='🟡'?'si*':'no');
+      const vals=[r.cat,r.lbl,String(r.n),r.method,r.stat.replace(/[χ²ρ→⚠]/g,m=>({'χ':'X','²':'2','ρ':'r','→':'->','⚠':'!'}[m]||m)),pTxt(r.p),sg];
+      let x=mL; vals.forEach((v,idx)=>{ doc.text(String(v).substring(0,Math.floor(cols[idx][1]/1.7)),x,y); x+=cols[idx][1]; }); y+=5;
+    });
+    doc.save('ergosmart_asociaciones.pdf');
+    if(typeof showToast==='function')showToast('✅ PDF exportado — '+rws.length+' asociaciones');
+  };
+})();
 
 // Modo Comparativo (desde la barra del informe): abre el Laboratorio y su sub-pestaña Comparar
 function abrirModoComparativoErgo() {
