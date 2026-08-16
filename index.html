@@ -2218,6 +2218,80 @@ function initPdfColor(){
   const fmtEl=document.getElementById('pdf-fmt-sel');
   if(fmtEl)fmtEl.value=localStorage.getItem('ergo_pdf_fmt')||'0';
 }
+// ═══════════════════════════════════════════════════════════════
+// GRÁFICAS EVOLUTIVAS EN CANVAS (para el PDF) — CAMBIO 3/4/5
+// ═══════════════════════════════════════════════════════════════
+function _egDiamond(ctx,x,y,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(x,y-4); ctx.lineTo(x+4,y); ctx.lineTo(x,y+4); ctx.lineTo(x-4,y); ctx.closePath(); ctx.fill(); }
+function _egStar(ctx,cx,cy,c){ ctx.fillStyle=c; ctx.beginPath(); const outer=4.8,inner=2.1; for(let i=0;i<10;i++){ const r=i%2===0?outer:inner; const a=Math.PI*i/5-Math.PI/2; const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); } ctx.closePath(); ctx.fill(); }
+function _egArrow(ctx,x,y,c,dir){ ctx.strokeStyle=c; ctx.fillStyle=c; ctx.lineWidth=1.4; const d=dir==='down'?1:-1; ctx.beginPath(); ctx.moveTo(x,y-4*d); ctx.lineTo(x,y+4*d); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x,y+4*d); ctx.lineTo(x-2.6,y+1*d); ctx.lineTo(x+2.6,y+1*d); ctx.closePath(); ctx.fill(); }
+function _egDash(ctx,x,y,c){ ctx.strokeStyle=c; ctx.lineWidth=1.8; ctx.beginPath(); ctx.moveTo(x-4,y); ctx.lineTo(x+4,y); ctx.stroke(); }
+// Dibuja símbolos de eventos apilados encima del punto (x,pyTop)
+function _egEvents(ctx, x, pyTop, ev){
+  if(!ev) return;
+  let py = pyTop - 6;
+  const step = 9;
+  if(ev.sint==='ang_no_lim'||ev.sint==='ang_lim'){ _egDiamond(ctx,x,py,'#c0392b'); py-=step; }
+  if(ev.arr){ _egStar(ctx,x,py,'#f39c12'); py-=step; }
+  if(ev.st==='hort'||ev.st==='desc'||ev.st==='asc_l'){ _egArrow(ctx,x,py,'#e34948','down'); py-=step; }
+  else if(ev.st==='supra_sinQ'||ev.st==='supra_conQ'){ _egArrow(ctx,x,py,'#e34948','up'); py-=step; }
+  else if(ev.stNormalRet){ _egDash(ctx,x,py,'#7f8c8d'); py-=step; }
+}
+// Gráfica genérica en canvas → dataURL PNG (fondo blanco)
+function ergoChartCanvas(o){
+  const W=o.W||700, H=o.H||200, cats=o.cats||[], lines=o.lines||[], bars=o.bars||null, refs=o.refs||[], events=o.events||[];
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const ctx=cv.getContext('2d');
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const padL=44, padR=bars?46:16, padT=42, padB=30;
+  const x0=padL, x1=W-padR, y0=padT, y1=H-padB;
+  ctx.fillStyle='#185fa5'; ctx.font='bold 15px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(o.title||'', 8, 22);
+  let vmin=Infinity, vmax=-Infinity;
+  lines.forEach(s=>s.vals.forEach(v=>{ if(v!=null){ vmin=Math.min(vmin,v); vmax=Math.max(vmax,v); } }));
+  refs.forEach(r=>{ vmin=Math.min(vmin,r.y); vmax=Math.max(vmax,r.y); });
+  if(!isFinite(vmin)){ vmin=0; vmax=100; }
+  if(vmin===vmax){ vmin-=10; vmax+=10; }
+  const rp=(vmax-vmin)*0.15||5; vmin=Math.floor((vmin-rp)/10)*10; vmax=Math.ceil((vmax+rp)/10)*10;
+  const yOf=v=> y1-(v-vmin)/(vmax-vmin)*(y1-y0);
+  let rmax=0; if(bars){ bars.vals.forEach(v=>{ if(v!=null) rmax=Math.max(rmax,v); }); rmax=Math.max(2,Math.ceil((rmax*1.2||10)/2)*2); }
+  const yOfR=v=> y1-(v/rmax)*(y1-y0);
+  const N=cats.length; const xOf=i=> N>1? x0+i*(x1-x0)/(N-1) : (x0+x1)/2;
+  // gridlines + left labels
+  ctx.strokeStyle='#e3e8f0'; ctx.lineWidth=1;
+  for(let t=0;t<=3;t++){ const vv=vmin+(vmax-vmin)*t/3, yy=yOf(vv); ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke(); ctx.fillStyle='#78828f'; ctx.font='10px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(String(Math.round(vv)), x0-4, yy); }
+  if(bars){ ctx.fillStyle='#c07d1a'; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='10px sans-serif'; for(let t=0;t<=2;t++){ const vv=rmax*t/2, yy=yOfR(vv); ctx.fillText(String(Math.round(vv)), x1+4, yy); } }
+  ctx.strokeStyle='#9aa4b2'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+  // barras (METs) detrás de las líneas
+  if(bars){ const bw=Math.min(28,(x1-x0)/Math.max(1,N*1.7)); bars.vals.forEach((v,i)=>{ if(v==null)return; const bx=xOf(i)-bw/2, by=yOfR(v); ctx.fillStyle='rgba(250,199,117,0.7)'; ctx.fillRect(bx,by,bw,y1-by); ctx.fillStyle='#8a5e13'; ctx.font='bold 9px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(v.toFixed(1), xOf(i), by-1.5); }); }
+  // líneas de referencia
+  refs.forEach(r=>{ const yy=yOf(r.y); ctx.strokeStyle=r.color; ctx.lineWidth=r.width||1.5; ctx.setLineDash(r.dash||[6,3]); ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=r.color; ctx.font='bold 9px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText(r.label, x1-2, yy-1.5); });
+  // líneas de datos
+  lines.forEach(s=>{ ctx.strokeStyle=s.color; ctx.lineWidth=s.width||2; let prev=null; s.vals.forEach((v,i)=>{ if(v==null){ prev=null; return; } const px=xOf(i), py=yOf(v); if(prev){ ctx.beginPath(); ctx.moveTo(prev[0],prev[1]); ctx.lineTo(px,py); ctx.stroke(); } prev=[px,py]; });
+    ctx.fillStyle=s.color; s.vals.forEach((v,i)=>{ if(v==null)return; const px=xOf(i), py=yOf(v); ctx.beginPath(); ctx.arc(px,py,2.3,0,7); ctx.fill(); if(s.labelVals){ ctx.font='bold 9px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillStyle=s.color; ctx.fillText(String(Math.round(v)), px, py-3.5); ctx.fillStyle=s.color; } }); });
+  // símbolos de eventos sobre el punto de la serie primaria
+  const prim=lines[0];
+  if(prim) events.forEach((ev,i)=>{ const v=prim.vals[i]; const py=(v!=null?yOf(v):y0); _egEvents(ctx, xOf(i), py, ev); });
+  // etiquetas del eje X
+  ctx.fillStyle='#5a6472'; ctx.font='10px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top';
+  cats.forEach((c,i)=>{ if(!c)return; const lbl=c.length>11?c.slice(0,10)+'…':c; ctx.fillText(lbl, xOf(i), y1+4); });
+  return cv.toDataURL('image/png');
+}
+// Leyenda compartida en canvas → dataURL PNG
+function ergoLegendCanvas(W){
+  const H=26; const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const ctx=cv.getContext('2d');
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  ctx.textBaseline='middle'; ctx.font='10px sans-serif';
+  let x=8; const cy=H/2;
+  const item=(drawSym, txt)=>{ drawSym(x+5,cy); ctx.fillStyle='#333'; ctx.textAlign='left'; ctx.fillText(txt, x+13, cy+0.5); x+=13+ctx.measureText(txt).width+16; };
+  item((px,py)=>_egDiamond(ctx,px,py,'#c0392b'),'Angor');
+  item((px,py)=>_egStar(ctx,px,py,'#f39c12'),'Arritmia');
+  item((px,py)=>_egArrow(ctx,px,py,'#e34948','down'),'Infra ST');
+  item((px,py)=>_egArrow(ctx,px,py,'#e34948','up'),'Supra ST');
+  item((px,py)=>_egDash(ctx,px,py,'#7f8c8d'),'Normal ST');
+  item((px,py)=>{ ctx.strokeStyle='#185fa5'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(px-6,py); ctx.lineTo(px+6,py); ctx.stroke(); },'Doble producto');
+  item((px,py)=>{ ctx.fillStyle='rgba(250,199,117,0.9)'; ctx.fillRect(px-5,py-4,10,8); },'METs');
+  return cv.toDataURL('image/png');
+}
+
 // ═══ GENERADOR PDF CLÍNICO (jsPDF) — estilo index.html ═══
 function exportPDF(){
   if(typeof window.jspdf==='undefined'||!window.jspdf.jsPDF){
@@ -2439,50 +2513,64 @@ function exportPDF(){
   const hasFC = gFC.some(v=>v!=null);
   const hasPA = gPAS.some(v=>v!=null) || gPAD.some(v=>v!=null);
 
-  // chX0,chX1: límites x del gráfico; chY: y de inicio; retorna y final
-  function drawChart(titulo, series, unidad, chX0, chX1, chY){
-    const plotH=34, padL=15, padR=4, topGap=6, xLabH=9;
-    fb(8); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(titulo, chX0+1, chY+4);
-    const cyPlot = chY + topGap;
-    const x0=chX0+padL, x1=chX1-padR, pt=cyPlot, pb=cyPlot+plotH;
-    let vmin=Infinity, vmax=-Infinity;
-    series.forEach(s=>s.vals.forEach(v=>{ if(v!=null){ if(v<vmin)vmin=v; if(v>vmax)vmax=v; } }));
-    if(!isFinite(vmin)){ return cyPlot+plotH+xLabH+3; }
-    if(vmin===vmax){ vmin-=10; vmax+=10; }
-    const rpad=(vmax-vmin)*0.12||5; vmin=Math.floor((vmin-rpad)/10)*10; vmax=Math.ceil((vmax+rpad)/10)*10;
-    const yOf=v=> pb-(v-vmin)/(vmax-vmin)*plotH;
-    const N=series[0].vals.length, xstep=N>1?(x1-x0)/(N-1):0;
-    const xOf=i=> N>1? x0+i*xstep : (x0+x1)/2;
-    fn(5.5); tc(120,120,120);
-    for(let t=0;t<=2;t++){ const vv=vmin+(vmax-vmin)*t/2, yy=yOf(vv); dc(216,223,236); doc.setLineWidth(0.2); doc.line(x0,yy,x1,yy); doc.text(String(Math.round(vv)), x0-2, yy+1.5, {align:'right'}); }
-    dc(150,160,180); doc.setLineWidth(0.4); doc.line(x0,pt,x0,pb); doc.line(x0,pb,x1,pb);
-    series.forEach(s=>{
-      dc(s.color[0],s.color[1],s.color[2]); fc(s.color[0],s.color[1],s.color[2]); doc.setLineWidth(0.6);
-      let prev=null;
-      s.vals.forEach((v,i)=>{ if(v==null){ prev=null; return; } const px=xOf(i), py=yOf(v); if(prev) doc.line(prev[0],prev[1],px,py); doc.circle(px,py,0.85,'F'); prev=[px,py]; });
-    });
-    fn(5); tc(90,90,90);
-    gCats.forEach((c,i)=>{ if(!c) return; const lbl=c.length>11?c.slice(0,10)+'…':c; doc.text(lbl, xOf(i), pb+3.2, {align:'center', maxWidth:(xstep||30)}); });
-    let lx=x0; const ly=pb+xLabH-1; fn(5.5);
-    series.forEach(s=>{ const t=s.label+' ('+unidad+')'; fc(s.color[0],s.color[1],s.color[2]); doc.rect(lx,ly-2,2.5,2.5,'F'); tc(60,60,60); doc.text(t, lx+3.5, ly); lx+=doc.getTextWidth(t)+8; });
-    return cyPlot + plotH + xLabH + 3;
-  }
+  // Eventos por etapa (síntoma · arritmia · ST · retorno a normal) + METs + doble producto — para símbolos
+  const _trs = Array.from(document.querySelectorAll('#tetb tr'));
+  let _priorAlt = false;
+  const stageEvents = _trs.map(tr => {
+    const sint = tr.querySelector('td:nth-child(12) select')?.value || '';
+    const arr  = (tr.querySelector('.td-arr-sel')?.value || '') === 'con';
+    const st   = tr.querySelector('td:nth-child(13) select')?.value || 'normal';
+    const metsN = parseFloat((tr.querySelector('.metsc')?.textContent||'').replace(',','.'));
+    const stNormalRet = (st==='normal' && _priorAlt);
+    if(st!=='normal') _priorAlt = true;
+    return { sint, arr, st, stNormalRet, mets: isNaN(metsN)?null:metsN };
+  });
+  const gMETs = stageEvents.map(e => e.mets);
+  const gDP = gFC.map((v,i) => (v!=null && gPAS[i]!=null) ? v*gPAS[i] : null);
+  const hasDP = gDP.some(v=>v!=null);
 
-  if(hasFC || hasPA){
+  // Líneas de referencia: FC (100/85/62% FCME) y PA (según sexo)
+  const _fcme = parseInt(stxt('vfcme'))||0;
+  const _bbs = (g('bbs') ? g('bbs').value : 'no');
+  const fcRefs = [];
+  if(_fcme>0){
+    fcRefs.push({ y:_fcme, color:'#e34948', dash:[6,3], width:1.5, label:_fcme+' lpm · 100% FCME' });
+    fcRefs.push({ y:Math.round(_fcme*0.85), color:'#eb6834', dash:[6,3], width:1.5, label:Math.round(_fcme*0.85)+' lpm · 85%' });
+    if(_bbs==='si') fcRefs.push({ y:Math.round(_fcme*0.62), color:'#7f8c8d', dash:[3,6], width:1, label:Math.round(_fcme*0.62)+' lpm · 62%' });
+  }
+  const _paLim = (sexo==='F') ? 190 : 210;
+  const paRefs = [{ y:_paLim, color:'#e34948', dash:[5,3], width:1.5, label:'Límite resp. presora ('+_paLim+')' }];
+
+  if(hasFC || hasPA || hasDP){
     drawBar('GRÁFICOS EVOLUTIVOS');
-    const _chH = 6+34+9+3;
-    checkPage(_chH+4);
-    const _startY = y;
-    if(hasFC && hasPA){
-      const _half = pgW/2 - 2, _midX = mL + pgW/2 + 2;
-      const _e1 = drawChart('FC vs tiempo', [{label:'FC', color:[220,38,38], vals:gFC}], 'lpm', mL, mL+_half, _startY);
-      const _e2 = drawChart('PA vs tiempo', [{label:'PAS', color:[TEMA[0],TEMA[1],TEMA[2]], vals:gPAS},{label:'PAD', color:[100,116,139], vals:gPAD}], 'mmHg', _midX, mR, _startY);
-      y = Math.max(_e1, _e2);
-    } else if(hasFC){
-      y = drawChart('Frecuencia cardíaca vs tiempo (por etapa y recuperación)', [{label:'FC', color:[220,38,38], vals:gFC}], 'lpm', mL, mR, _startY);
-    } else {
-      y = drawChart('Presión arterial vs tiempo (por etapa y recuperación)', [{label:'PAS', color:[TEMA[0],TEMA[1],TEMA[2]], vals:gPAS},{label:'PAD', color:[100,116,139], vals:gPAD}], 'mmHg', mL, mR, _startY);
+    const AR = 200/700;                          // proporción canvas
+    const halfW = (pgW-4)/2, halfH = halfW*AR;
+    checkPage(halfH + 4);
+    const rowY = y;
+    // Fila superior: FC (izq) + PA (der), 50% cada una
+    if(hasFC){
+      try{ doc.addImage(ergoChartCanvas({ title:'FC vs tiempo', cats:gCats,
+        lines:[{label:'FC', color:'#dc2626', vals:gFC, width:2}], refs:fcRefs, events:stageEvents }),'PNG', mL, rowY, halfW, halfH); }catch(_e){}
     }
+    if(hasPA){
+      try{ doc.addImage(ergoChartCanvas({ title:'PA vs tiempo', cats:gCats,
+        lines:[{label:'PAS', color:'rgb('+TEMA.join(',')+')', vals:gPAS, width:2},{label:'PAD', color:'#64748b', vals:gPAD, width:1.5}], refs:paRefs, events:stageEvents }),'PNG', mL+halfW+4, rowY, halfW, halfH); }catch(_e){}
+    }
+    y = rowY + halfH + 4;
+    // Fila inferior: Doble producto + METs, centrada (~62%)
+    if(hasDP){
+      const dpW = pgW*0.62, dpH = dpW*AR, dpX = mL + (pgW-dpW)/2;
+      checkPage(dpH + 4);
+      try{ doc.addImage(ergoChartCanvas({ title:'Doble producto (FC×PAS) + METs', cats:gCats,
+        lines:[{label:'Doble producto', color:'#185fa5', vals:gDP, width:2, labelVals:true}],
+        bars:{ vals:gMETs }, events:stageEvents }),'PNG', dpX, y, dpW, dpH); }catch(_e){}
+      y += dpH + 3;
+    }
+    // Leyenda compartida
+    const _legPxW = 900, _legMmH = 26*(pgW/_legPxW);
+    checkPage(_legMmH + 3);
+    try{ doc.addImage(ergoLegendCanvas(_legPxW),'PNG', mL, y, pgW, _legMmH); }catch(_e){}
+    y += _legMmH + 3;
   }
 
   // ════════════════════════════════════════════════════════════
