@@ -3464,9 +3464,79 @@ function guardar(){
   if(previo){ ergoModalSobreescribir(previo, base, lista); return; }
   _ergoGuardarNuevo(base, lista);
 }
+// ══════════════════════════════════════════════════════════════════════
+// ALMACENAMIENTO — IndexedDB con respaldo automático a localStorage
+// ══════════════════════════════════════════════════════════════════════
+// Base `ceibomed` COMPARTIDA con el resto de la suite: CeiboMed Analytics lee
+// los estudios de todas las apps desde acá, filtrando por el campo `app`.
+// Híbrido y no IndexedDB a secas porque estas apps también se abren con doble
+// clic sobre el archivo (file://), donde Chrome y Safari pueden negar
+// IndexedDB; sin respaldo la app se quedaría sin poder guardar.
+// La caché en memoria mantiene las lecturas SÍNCRONAS: los puntos que ya
+// llamaban a safeLoadReports() no cambian.
+const CeiboStore = (function () {
+  const DB_NAME='ceibomed', DB_VER=1, STORE='informes', APP='ergo', LSKEY='ergo_informes';
+  let _db=null, _cache=[], _lista=false;
+
+  function _ls(){ try{ const r=localStorage.getItem(LSKEY); const p=r?JSON.parse(r):[]; return Array.isArray(p)?p:[]; }catch(e){ console.warn(LSKEY+' corrupto:',e); return []; } }
+  function _lsSet(a){ try{ localStorage.setItem(LSKEY, JSON.stringify(a)); return true; }catch(e){ console.error(e); return false; } }
+  function _abrir(){ return new Promise(res=>{ let f=false; const fin=v=>{ if(!f){f=true;res(v);} }; let q;
+    try{ if(!window.indexedDB) return fin(null); q=indexedDB.open(DB_NAME,DB_VER); }catch(e){ return fin(null); }
+    q.onupgradeneeded=ev=>{ const db=ev.target.result;
+      if(!db.objectStoreNames.contains(STORE)){ const os=db.createObjectStore(STORE,{keyPath:'_pk'}); os.createIndex('app','app',{unique:false}); } };
+    q.onsuccess=()=>fin(q.result); q.onerror=()=>fin(null); q.onblocked=()=>fin(null);
+    setTimeout(()=>fin(null),3000); }); }
+  function _leer(){ return new Promise(res=>{ if(!_db) return res(null);
+    try{ const tx=_db.transaction(STORE,'readonly'); const r=tx.objectStore(STORE).index('app').getAll(APP);
+      r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res(null); }catch(e){ res(null); } }); }
+  const _pk = (d,i) => APP+':'+(d && d.id!=null ? d.id : 'i'+i);
+  function _escribir(arr){ return new Promise(res=>{ if(!_db) return res(false);
+    const nuevos=arr.map((d,i)=>({_pk:_pk(d,i),app:APP,data:d}));
+    const vivas=new Set(nuevos.map(r=>r._pk));
+    try{ const txR=_db.transaction(STORE,'readonly'); const kr=txR.objectStore(STORE).index('app').getAllKeys(APP);
+      kr.onerror=()=>res(false);
+      kr.onsuccess=()=>{ const borrar=(kr.result||[]).filter(k=>!vivas.has(k));
+        try{ const tx=_db.transaction(STORE,'readwrite'); const os=tx.objectStore(STORE);
+          borrar.forEach(k=>os.delete(k)); nuevos.forEach(r=>os.put(r));
+          tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); tx.onabort=()=>res(false);
+        }catch(e){ res(false); } };
+    }catch(e){ res(false); } }); }
+
+  _cache = _ls();   // arranque síncrono: nunca hay una ventana con la caché vacía
+
+  const ready = (async function(){
+    _db = await _abrir();
+    if(!_db){ _lista=true; return {modo:'localStorage'}; }
+    const enIDB = await _leer();
+    if(enIDB===null){ _db=null; _lista=true; return {modo:'localStorage'}; }
+    if(enIDB.length){ _cache=enIDB.map(r=>r.data); if(_ls().length) localStorage.removeItem(LSKEY); _lista=true; return {modo:'indexedDB',estudios:_cache.length}; }
+    const ls=_ls();
+    if(!ls.length){ _lista=true; return {modo:'indexedDB',estudios:0}; }
+    // MIGRACIÓN: escribir, RELEER y verificar; recién ahí limpiar localStorage
+    const ok = await _escribir(ls);
+    const ver = ok ? await _leer() : null;
+    const esp = new Set(ls.map((d,i)=>_pk(d,i)));
+    if(ok && ver && ver.length===esp.size && ver.every(r=>esp.has(r._pk))){
+      localStorage.removeItem(LSKEY); _lista=true; return {modo:'indexedDB',migrados:esp.size};
+    }
+    console.error('Migración a IndexedDB fallida; se conserva localStorage');
+    _db=null; _lista=true; return {modo:'localStorage',motivo:'migración fallida'};
+  })();
+
+  function _persistir(){
+    const a=_cache;
+    if(!_db) return _lsSet(a);
+    _escribir(a).then(ok=>{ if(!ok){ console.error('IndexedDB rechazó la escritura; respaldo en localStorage'); _lsSet(a); } });
+    return true;
+  }
+  return { ready, modo:()=>(_db?'indexedDB':'localStorage'),
+           getAll:()=>_cache, setAll(a){ _cache=Array.isArray(a)?a.slice():[]; return _persistir(); } };
+})();
+window.CeiboStore = CeiboStore;
+
 function _ergoPersistLista(lista){
-  try{localStorage.setItem('ergo_informes',JSON.stringify(lista));showToast('Informe guardado ✓');}
-  catch(e){showToast('⚠ No se pudo guardar (almacenamiento lleno)');}
+  if(CeiboStore.setAll(lista)) showToast('Informe guardado ✓');
+  else showToast('⚠ No se pudo guardar (almacenamiento lleno)');
   rGuard();
 }
 function _ergoGuardarNuevo(base, lista){
@@ -3476,8 +3546,7 @@ function _ergoGuardarNuevo(base, lista){
 }
 
 function safeLoadReports(){
-  try { const data = JSON.parse(localStorage.getItem('ergo_informes') || '[]'); return Array.isArray(data) ? data : []; }
-  catch(e){ console.warn('ergo_informes corrupto:', e); return []; }
+  return CeiboStore.getAll().slice();
 }
 // FIX 8B: delegación de acciones del listado (sin handlers inline con datos externos)
 document.addEventListener('click', function(e){
@@ -3542,7 +3611,7 @@ function ergoToggleInteres(id){
   const lista=safeLoadReports();const inf=lista.find(i=>i.id===id);if(!inf)return;
   if(inf.caso_interes==='1'){inf.caso_interes='0';inf.nota_interes='';}
   else{inf.caso_interes='1';}
-  try{localStorage.setItem('ergo_informes',JSON.stringify(lista));}catch(e){showToast('⚠ No se pudo guardar');return;}
+  if(!CeiboStore.setAll(lista)){showToast('⚠ No se pudo guardar');return;}
   ergoRefreshSvlist();
   if(inf.caso_interes==='1'){const inp=document.querySelector('#svlist .sv-note-in[data-id="'+id+'"]');if(inp)inp.focus();}
 }
@@ -3551,8 +3620,8 @@ function ergoGuardarNota(id){
   const inp=document.querySelector('#svlist .sv-note-in[data-id="'+id+'"]');if(!inp)return;
   const lista=safeLoadReports();const inf=lista.find(i=>i.id===id);if(!inf)return;
   inf.nota_interes=inp.value.trim();
-  try{localStorage.setItem('ergo_informes',JSON.stringify(lista));showToast('Nota guardada ✓');}
-  catch(e){showToast('⚠ No se pudo guardar');}
+  if(CeiboStore.setAll(lista)) showToast('Nota guardada ✓');
+  else showToast('⚠ No se pudo guardar');
 }
 window.ergoToggleInteres=ergoToggleInteres;window.ergoGuardarNota=ergoGuardarNota;
 
@@ -3604,7 +3673,7 @@ function pdfInforme(id){
 function elimInforme(id){
   if(!confirm('¿Eliminar este informe?'))return;
   let lista=safeLoadReports();
-  localStorage.setItem('ergo_informes',JSON.stringify(lista.filter(i=>i.id!==id)));
+  CeiboStore.setAll(lista.filter(i=>i.id!==id));
   cmpSel=cmpSel.filter(x=>x!==id);
   rGuard();showToast('Informe eliminado');
 }
@@ -3613,7 +3682,7 @@ function elimInforme(id){
 function ergoConfirmarEliminarTodos(){const m=document.getElementById('modal-elim-todos');if(m)m.style.display='flex';}
 function ergoCerrarEliminarTodos(){const m=document.getElementById('modal-elim-todos');if(m)m.style.display='none';}
 function ergoEliminarTodos(){
-  localStorage.removeItem('ergo_informes');
+  CeiboStore.setAll([]);
   cmpSel=[];
   if(typeof ergoLimpiarFiltros==='function')ergoLimpiarFiltros();else rGuard();
   ergoCerrarEliminarTodos();
@@ -4402,7 +4471,7 @@ function importarErgoJSON(file) {
       const idsExist = new Set(existentes.map(i => i.id));
       const sinDup = nuevos.filter(i => !idsExist.has(i.id));
       const merged = [...existentes, ...sinDup];
-      localStorage.setItem('ergo_informes', JSON.stringify(merged));
+      CeiboStore.setAll(merged);
       showToast('✅ ' + sinDup.length + ' informes importados (' +
         (nuevos.length - sinDup.length) + ' duplicados omitidos)');
       if (typeof rGuard === 'function') rGuard();
@@ -5780,7 +5849,7 @@ async function importarErgoPDFs(files) {
     return;
   }
   const KEY = 'ergo_informes';
-  const existentes = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const existentes = CeiboStore.getAll().slice();
   const idsExistentes = new Set(existentes.map(i => i.id));
   document.getElementById('modal-ergo-pdf-import').style.display = '';
   const progressBar = document.getElementById('ergo-pdf-progress');
