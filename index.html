@@ -3523,21 +3523,31 @@ const CeiboStore = (function () {
     _db=null; _lista=true; return {modo:'localStorage',motivo:'migración fallida'};
   })();
 
+  // Devuelve una PROMESA con el resultado REAL. Antes devolvía true en el acto
+  // porque la escritura a IndexedDB es asíncrona, y el llamador cantaba
+  // "guardado ✓" sin saber si había funcionado. Si nada se pudo persistir, el
+  // error lo avisa la propia capa: ninguna ruta puede fallar en silencio.
   function _persistir(){
     const a=_cache;
-    if(!_db) return _lsSet(a);
-    _escribir(a).then(ok=>{ if(!ok){ console.error('IndexedDB rechazó la escritura; respaldo en localStorage'); _lsSet(a); } });
-    return true;
+    if(!_db) return Promise.resolve(_avisar(_lsSet(a)));
+    return _escribir(a).then(function(ok){
+      if(ok) return true;
+      console.error('IndexedDB rechazó la escritura; se intenta el respaldo en localStorage');
+      var back=_lsSet(a);
+      if(back && typeof showToast==='function') showToast('⚠ Guardado en el respaldo local (IndexedDB no respondió)');
+      return _avisar(back);
+    });
   }
+  function _avisar(ok){ if(!ok && typeof showToast==='function') showToast('❌ Error al guardar'); return ok; }
   return { ready, modo:()=>(_db?'indexedDB':'localStorage'),
            getAll:()=>_cache, setAll(a){ _cache=Array.isArray(a)?a.slice():[]; return _persistir(); } };
 })();
 window.CeiboStore = CeiboStore;
 
 function _ergoPersistLista(lista){
-  if(CeiboStore.setAll(lista)) showToast('Informe guardado ✓');
-  else showToast('⚠ No se pudo guardar (almacenamiento lleno)');
-  rGuard();
+  // El éxito se canta recién con el resultado confirmado; el error lo avisa CeiboStore.
+  CeiboStore.setAll(lista).then(function(ok){ if(ok) showToast('Informe guardado ✓'); });
+  rGuard();   // la caché ya refleja el cambio
 }
 function _ergoGuardarNuevo(base, lista){
   base.id=Date.now(); lista.unshift(base);
@@ -3611,7 +3621,7 @@ function ergoToggleInteres(id){
   const lista=safeLoadReports();const inf=lista.find(i=>i.id===id);if(!inf)return;
   if(inf.caso_interes==='1'){inf.caso_interes='0';inf.nota_interes='';}
   else{inf.caso_interes='1';}
-  if(!CeiboStore.setAll(lista)){showToast('⚠ No se pudo guardar');return;}
+  CeiboStore.setAll(lista);   // si falla, CeiboStore avisa el error
   ergoRefreshSvlist();
   if(inf.caso_interes==='1'){const inp=document.querySelector('#svlist .sv-note-in[data-id="'+id+'"]');if(inp)inp.focus();}
 }
@@ -3620,8 +3630,7 @@ function ergoGuardarNota(id){
   const inp=document.querySelector('#svlist .sv-note-in[data-id="'+id+'"]');if(!inp)return;
   const lista=safeLoadReports();const inf=lista.find(i=>i.id===id);if(!inf)return;
   inf.nota_interes=inp.value.trim();
-  if(CeiboStore.setAll(lista)) showToast('Nota guardada ✓');
-  else showToast('⚠ No se pudo guardar');
+  CeiboStore.setAll(lista).then(function(ok){ if(ok) showToast('Nota guardada ✓'); });
 }
 window.ergoToggleInteres=ergoToggleInteres;window.ergoGuardarNota=ergoGuardarNota;
 
