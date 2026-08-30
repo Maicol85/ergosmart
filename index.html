@@ -353,6 +353,24 @@ table.ecgc-grid td.ecgc-cell .ecgc-empty{color:#c99;font-size:12px}
 .rt td{padding:5px 8px;border:1px solid var(--border);color:var(--text)}
 /* GUARDADOS */
 .sv-search{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+/* ── Desplegables 📤 Exportar ▾ / 📥 Importar ▾ ── */
+.eio-wrap{position:relative;display:inline-block}
+.eio-btn{display:inline-flex;align-items:center;gap:5px;min-height:36px}
+.eio-chev{font-size:.6rem;transition:transform .15s}
+.eio-btn[aria-expanded="true"] .eio-chev{transform:rotate(180deg)}
+.eio-menu{display:none;position:absolute;top:calc(100% + 5px);right:0;z-index:120;width:270px;
+  max-width:calc(100vw - 24px);background:var(--card);border:1px solid var(--border);
+  border-radius:9px;padding:5px;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.eio-menu.open{display:block}
+.eio-op{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);
+  font-family:inherit;font-size:12.5px;font-weight:600;padding:9px 10px;border-radius:6px;cursor:pointer;line-height:1.3}
+.eio-op:hover{background:var(--bg3)}
+.eio-op small{display:block;color:var(--text2);font-size:10.5px;font-weight:400;margin-top:2px}
+.eio-sep{height:1px;background:var(--border);margin:4px 6px}
+/* Capa invisible que cierra al tocar afuera: sin ella el menú se queda abierto tapando
+   la lista de estudios en celular, donde no hay Escape ni "clic afuera" evidente. */
+#eio-ov{display:none;position:fixed;inset:0;z-index:119;background:transparent}
+#eio-ov.open{display:block}
 .sv-list{display:flex;flex-direction:column;gap:8px}
 .sv-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;transition:border-color .15s}
 .sv-item:hover{border-color:var(--accent)}
@@ -1318,9 +1336,27 @@ body.printing-clean #clean-controls{display:none!important}
     <input type="date" id="bhas" oninput="rGuard()">
     <select id="bres" onchange="rGuard()" style="min-width:150px"><option value="">Todos los resultados</option><option value="pos">Positivo</option><option value="neg">Negativo</option><option value="nc">No concluyente</option></select>
     <button class="btn btn-outline btn-sm" onclick="lBusq()">✕ Limpiar</button>
-    <button class="btn" onclick="exportarErgoJSON()">📤 Exportar JSON</button>
     <input type="file" id="ergo-import-file" accept=".json" style="display:none" onchange="importarErgoJSON(this.files[0]);this.value='';">
-    <button class="btn" onclick="document.getElementById('ergo-import-file').click()">📥 Importar JSON</button>
+    <input type="file" id="ergo-import-xlsx" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="if(this.files&&this.files[0]){ergoImportarXLSX(this.files[0]);this.value='';}">
+    <div class="eio-wrap">
+      <button type="button" class="btn eio-btn" id="eio-btn-exp" aria-haspopup="true" aria-expanded="false" aria-controls="eio-menu-exp" onclick="eioToggle('exp')">📤 Exportar <span class="eio-chev">▾</span></button>
+      <div class="eio-menu" id="eio-menu-exp" role="menu">
+        <button type="button" class="eio-op" role="menuitem" onclick="eioCerrar();exportarErgoJSON()">📋 JSON<small>Backup completo — todos los campos de cada estudio</small></button>
+        <button type="button" class="eio-op" role="menuitem" onclick="eioCerrar();ergoExportarXLSX()">📊 Excel<small>Las mismas columnas que la plantilla, para reimportar</small></button>
+        <div class="eio-sep"></div>
+        <button type="button" class="eio-op" role="menuitem" onclick="eioCerrar();exportarErgoAnalytics()">📈 Para Analytics<small>Abrir después en CeiboAnalytics</small></button>
+      </div>
+    </div>
+    <div class="eio-wrap">
+      <button type="button" class="btn eio-btn" id="eio-btn-imp" aria-haspopup="true" aria-expanded="false" aria-controls="eio-menu-imp" onclick="eioToggle('imp')">📥 Importar <span class="eio-chev">▾</span></button>
+      <div class="eio-menu" id="eio-menu-imp" role="menu">
+        <button type="button" class="eio-op" role="menuitem" onclick="eioCerrar();document.getElementById('ergo-import-file').click()">📋 JSON<small>Backup exportado por ErgoSmart</small></button>
+        <button type="button" class="eio-op" role="menuitem" onclick="eioCerrar();document.getElementById('ergo-import-xlsx').click()">📊 Excel<small>Planilla con las columnas de la plantilla</small></button>
+        <div class="eio-sep"></div>
+        <button type="button" class="eio-op" role="menuitem" onclick="eioCerrar();ergoPlantillaXLSX()">📋 Descargar plantilla Excel<small>Excel vacío con las columnas correctas, una fila de ejemplo y hoja de instrucciones</small></button>
+      </div>
+    </div>
+    <div id="eio-ov" onclick="eioCerrar()"></div>
     <button class="btn" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.35)" onclick="ergoConfirmarEliminarTodos()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
   </div>
   <div style="background:var(--bg2);border-radius:10px;border:1px solid var(--border);padding:12px;margin-bottom:12px;">
@@ -5806,11 +5842,551 @@ function ergoLabComparar() {
 // Listas canónicas para las columnas binarias (deben coincidir con el markup de #sant)
 const LAB_ANTEC = ['IAM previo','HTA','CRM / By-pass','DM','ATC / Stent','Dislipemia','Valvulopatía','Tabaquismo','MCH','FA / Flutter','IC previa','ACV / AIT','ERC','EPOC / Asma','Dispositivo (MPP/CDI/CRT)','Otro'];
 const LAB_MED   = ['Betabloqueante','Nitratos','Antiarrítmico','IECA / ARA II','Diurético','Estatina','Antiagregante','Anticoagulante','Calcioantagonista','Digoxina','Hipoglucemiante','Otro'];
+/* ══════════════════════════════════════════════════════════════════════════════
+   PLANTILLA E IMPORTACIÓN DESDE EXCEL
+
+   Misma lógica que el importador de EcoSmart, portada campo por campo: validación por
+   fila con el número de fila de Excel, vista previa antes de escribir nada y
+   deduplicación COMPARTIDA con el importador JSON — si cada vía comparara distinto,
+   mezclar las dos duplicaría la base.
+
+   Las columnas son las mismas que exporta ergoLabCSV más una de ID adelante, así lo
+   que sale del Laboratorio se puede reimportar sin reordenar nada.
+
+   Lo que NO se importa: `form` (el volcado completo del formulario), `resultadoVal`,
+   `fcObj`, `ergometro`, y las listas de indicación, complicaciones y criterios de alto
+   riesgo. Son campos derivados o estructurados que arma el formulario; una planilla no
+   puede reconstruirlos y escribirlos a medias deja el informe inconsistente consigo
+   mismo. Está dicho en la hoja de Instrucciones y en la vista previa.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* [columna, campo destino, tipo]. El orden es el de la plantilla. */
+const ERGO_XLS_MAP = [
+  ['ID',                    'id',                  'id'],
+  ['Nombre',                'nombre',              'texto'],
+  ['CI',                    'ci',                  'texto'],
+  ['Fecha',                 'fecha',               'fecha'],
+  ['METs',                  'mets',                'texto'],
+  ['Resultado',             'resultado',           'texto'],
+  ['Duke',                  'duke',                'texto'],
+  ['Duke nivel',            'dukeNivel',           'texto'],
+  ['FC máx',                'fcmax',               'num'],
+  ['Protocolo',             'protocolo',           'texto'],
+  ['Clase funcional',       'cf',                  'texto'],
+  ['Conclusión',            'concl',               'texto'],
+  ['En suma',               'ensuma',              'texto'],
+  ['Caso de interés',       'caso_interes',        'bin01'],
+  ['Fecha solicitud',       'fecha_solicitud',     'fecha'],
+  ['Motivo interrupción',   'motivo_interrupcion', 'texto'],
+  ['Conducta',              'conducta',            'texto'],
+  ['Respuesta presora',     'rpress',              'texto'],
+  ['Respuesta cronotrópica','rcrono',              'texto'],
+  ['Recuperación FC 1min',  'rfc1',                'num'],
+  ['Recuperación FC 2min',  'rfc2',                'num'],
+  ['Doble producto máx',    'dpmax',               'num']
+];
+const ERGO_XLS_EJEMPLO = '— FILA DE EJEMPLO: borrala antes de importar —';
+const ERGO_XLS_LARGO_MAX = 4000;   // tope por celda de texto
+const _ergoNormCab = h => String(h).trim().replace(/\s+/g,' ').toLowerCase();
+
+/* Número: acepta coma o punto decimal y RECHAZA cualquier otra cosa. Sin el rechazo,
+   parseFloat('152 lpm') devuelve 152 y el error entra como dato bueno. */
+function _ergoXlsNum(v){
+  if (v === null || v === undefined || String(v).trim() === '') return null;
+  if (typeof v === 'number') return isFinite(v) ? v : NaN;
+  const t = String(v).trim().replace(/\s/g,'');
+  if (!/^-?\d+(?:[.,]\d+)?$/.test(t)) return NaN;
+  const n = parseFloat(t.replace(',', '.'));
+  return isNaN(n) ? NaN : n;
+}
+/* Fecha: ISO, DD/MM/AAAA y el serial de Excel, VALIDANDO que exista. Sin validar, un
+   archivo hecho en un Excel en inglés entrega "3/15/2026" y quedaría "2026-15-03": los
+   filtros de Guardados hacen new Date(fecha) y descartan lo que no parsea, así que el
+   estudio quedaría guardado e invisible en la lista. */
+function _ergoXlsFecha(v){
+  if (v === null || v === undefined || String(v).trim() === '') return '';
+  const arma = (y,m,d) => {
+    if (!(y>=1900 && y<=2200 && m>=1 && m<=12 && d>=1 && d<=31)) return null;
+    const dt = new Date(y, m-1, d);
+    if (dt.getFullYear()!==y || dt.getMonth()!==m-1 || dt.getDate()!==d) return null;  // 31 de febrero
+    return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  };
+  if (v instanceof Date && !isNaN(v)) return arma(v.getFullYear(), v.getMonth()+1, v.getDate());
+  if (typeof v === 'number' && isFinite(v)) {
+    const d = new Date(Date.UTC(1899,11,30) + v*86400000);      // serial de Excel
+    return isNaN(d) ? null : arma(d.getUTCFullYear(), d.getUTCMonth()+1, d.getUTCDate());
+  }
+  const t = String(v).trim();
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\D|$)/);
+  if (m) return arma(+m[1], +m[2], +m[3]);
+  m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\D|$)/);
+  if (m) return arma(+m[3], +m[2], +m[1]);                       // DD/MM/AAAA
+  return null;
+}
+function _ergoXlsBin(v){
+  const t = String(v==null?'':v).trim().toLowerCase();
+  if (t==='') return '';
+  if (t==='1'||t==='si'||t==='sí'||t==='x'||t==='true') return '1';
+  if (t==='0'||t==='no'||t==='false') return '0';
+  return null;
+}
+
+/* Identidad de un estudio para deduplicar. La usan el importador de Excel y el de JSON:
+   tiene que ser LA MISMA en los dos o mezclar las dos vías duplica.
+   Documento + fecha cuando el registro trae documento; si no, nombre + fecha. Sólo por
+   nombre+fecha, dos pacientes distintos con el mismo apellido estudiados el mismo día
+   contarían como el mismo estudio y uno pisaría al otro. */
+function _ergoDupKeys(i){
+  const f = String(i.fecha || '').trim();
+  const ci = String(i.ci || '').trim().replace(/[.\-\s]/g,'').toLowerCase();
+  const nom = String(i.nombre || '').trim().toLowerCase();
+  const ks = [];
+  if (ci)  ks.push('D:'+ci+'|'+f);
+  if (nom) ks.push('N:'+nom+'|'+f);
+  return ks;
+}
+function _ergoNuevoId(usados){
+  let id; do { id = Date.now() + Math.floor(Math.random()*1000000); } while (usados.has(id));
+  usados.add(id); return id;
+}
+
+/* ── Plantilla ── */
+function ergoPlantillaXLSX(){
+  if (typeof XLSX === 'undefined') { showToast('❌ Librería Excel (XLSX) no disponible'); return; }
+  const antCols = LAB_ANTEC.map(a => 'ant: '+a);
+  const medCols = LAB_MED.map(m => 'med: '+m);
+  const headers = ERGO_XLS_MAP.map(m => m[0]).concat(antCols, medCols);
+  const ejemplo = {
+    'ID':'', 'Nombre':ERGO_XLS_EJEMPLO, 'CI':'1.234.567-8', 'Fecha':'2026-08-30',
+    'METs':'10.1', 'Resultado':'Negativo', 'Duke':'5', 'Duke nivel':'Riesgo bajo',
+    'FC máx':'152', 'Protocolo':'Bruce', 'Clase funcional':'I',
+    'Conclusión':'Prueba ergométrica negativa para isquemia.',
+    'En suma':'Buena capacidad funcional, sin isquemia inducible.',
+    'Caso de interés':'0', 'Fecha solicitud':'2026-08-20',
+    'Motivo interrupción':'Fatiga', 'Conducta':'Control habitual',
+    'Respuesta presora':'normal', 'Respuesta cronotrópica':'normal',
+    'Recuperación FC 1min':'22', 'Recuperación FC 2min':'40', 'Doble producto máx':'28000'
+  };
+  antCols.forEach((c,i) => ejemplo[c] = i===1 ? '1' : '0');   // HTA marcada, a modo de muestra
+  medCols.forEach((c,i) => ejemplo[c] = i===0 ? '1' : '0');   // Betabloqueante
+  const ws = XLSX.utils.aoa_to_sheet([headers, headers.map(h => ejemplo[h]!==undefined?ejemplo[h]:'')]);
+  ws['!cols'] = headers.map(h => ({ wch: Math.min(30, Math.max(10, h.length+3)) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Estudios');
+
+  const inst = [
+    ['PLANTILLA DE IMPORTACIÓN — ErgoSmart'],
+    [''],
+    ['1. Escribí un estudio por fila en la hoja «Estudios».'],
+    ['2. BORRÁ la fila de ejemplo antes de importar (la que dice «FILA DE EJEMPLO»).'],
+    ['3. Guardá como .xlsx y usá 📥 Importar → Excel en la pestaña Guardados.'],
+    [''],
+    ['COLUMNAS OBLIGATORIAS'],
+    ['Fecha', 'AAAA-MM-DD. También acepta DD/MM/AAAA y el formato fecha de Excel.'],
+    ['Nombre o CI', 'Hace falta al menos uno: sin ninguno el estudio no se puede identificar.'],
+    [''],
+    ['CÓMO SE EVITAN LOS DUPLICADOS'],
+    ['', 'Primero por ID; si no hay ID, por CI + Fecha; si no hay CI, por Nombre + Fecha.'],
+    ['ID', 'Lo escribe la app al exportar. NO lo edites ni lo inventes: si lo cambiás, el'],
+    ['',   'estudio entra como nuevo en vez de actualizar el que ya estaba.'],
+    ['',   'Para dar de alta estudios nuevos, dejá la celda de ID vacía.'],
+    [''],
+    ['COLUMNAS ant: … y med: …'],
+    ['', 'Binarias: 1 = presente, 0 = ausente. Vacías significan «sin dato» y no tocan lo'],
+    ['', 'que ya estuviera guardado en ese estudio.'],
+    [''],
+    ['QUÉ NO SE IMPORTA'],
+    ['', 'La indicación, las complicaciones, los criterios de alto riesgo y el detalle por'],
+    ['', 'etapas del protocolo NO viajan en esta planilla: los arma el formulario de la app.'],
+    ['', 'Un estudio importado tiene esos campos vacíos hasta que lo abras y los completes.'],
+    ['', 'El resultado, el Duke, los METs y la conclusión sí se importan tal cual.'],
+    [''],
+    ['LÍMITES'],
+    ['Texto', 'Hasta '+ERGO_XLS_LARGO_MAX+' caracteres por celda.'],
+    ['Caso de interés', '1 o 0.']
+  ];
+  const wsI = XLSX.utils.aoa_to_sheet(inst);
+  wsI['!cols'] = [{wch:22},{wch:88}];
+  XLSX.utils.book_append_sheet(wb, wsI, 'Instrucciones');
+
+  const leg = [['COLUMNA','SIGNIFICADO','VALORES']]
+    .concat(LAB_ANTEC.map(a => ['ant: '+a, 'Antecedente cardiovascular: '+a, '1 = presente · 0 = ausente']))
+    .concat(LAB_MED.map(m  => ['med: '+m, 'Medicación activa: '+m,          '1 = presente · 0 = ausente']));
+  const wsL = XLSX.utils.aoa_to_sheet(leg);
+  wsL['!cols'] = [{wch:34},{wch:46},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, wsL, 'Leyenda');
+
+  XLSX.writeFile(wb, 'ergosmart_plantilla_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  showToast('✅ Plantilla descargada');
+}
+
+/* ── Exportar a Excel con las MISMAS columnas que la plantilla ──
+   Así lo exportado se reimporta sin renombrar ni reordenar nada, que es el único modo
+   de que el ida y vuelta sirva para corregir datos en planilla. */
+function ergoExportarXLSX(){
+  if (typeof XLSX === 'undefined') { showToast('❌ Librería Excel (XLSX) no disponible'); return; }
+  const infs = safeLoadReports();
+  if (!infs.length) { showToast('⚠️ No hay estudios para exportar'); return; }
+  const antCols = LAB_ANTEC.map(a => 'ant: '+a);
+  const medCols = LAB_MED.map(m => 'med: '+m);
+  const headers = ERGO_XLS_MAP.map(m => m[0]).concat(antCols, medCols);
+  const filas = infs.map(i => {
+    // Retrocompat: los registros viejos sólo tienen los seleccionados dentro de `form`.
+    const antSel = i.antec_cv_sel || (i.form && i.form.antec_cv) || [];
+    const medSel = i.med_activa_sel || (i.form && i.form.meds) || [];
+    const o = {};
+    ERGO_XLS_MAP.forEach(([col, campo]) => { o[col] = (i[campo]==null?'':String(i[campo])); });
+    LAB_ANTEC.forEach((a,k) => o[antCols[k]] = antSel.indexOf(a)>=0 ? '1' : '0');
+    LAB_MED.forEach((m,k)   => o[medCols[k]] = medSel.indexOf(m)>=0 ? '1' : '0');
+    return headers.map(h => o[h]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...filas]);
+  /* La columna de ID se fuerza a TEXTO. Los id son Date.now(), o sea 13 dígitos: escritos
+     como número, Excel los muestra en notación científica y sheet_to_json devolvía
+     "1.78813E+12". Al reimportar ese archivo el id ya no coincide con ninguno, así que
+     cada estudio entraba como NUEVO: un ida y vuelta por planilla duplicaba la base
+     entera, en silencio y con los mismos nombres y fechas. */
+  for (let r=1; r<=filas.length; r++){
+    const ref = XLSX.utils.encode_cell({c:0, r:r});
+    if (ws[ref]) { ws[ref].t='s'; ws[ref].z='@'; }
+  }
+  ws['!cols'] = headers.map(h => ({ wch: Math.min(30, Math.max(10, h.length+3)) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Estudios');
+  const leg = [['COLUMNA','SIGNIFICADO','VALORES']]
+    .concat(LAB_ANTEC.map(a => ['ant: '+a, 'Antecedente cardiovascular: '+a, '1 = presente · 0 = ausente']))
+    .concat(LAB_MED.map(m  => ['med: '+m, 'Medicación activa: '+m,          '1 = presente · 0 = ausente']));
+  const wsL = XLSX.utils.aoa_to_sheet(leg);
+  wsL['!cols'] = [{wch:34},{wch:46},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, wsL, 'Leyenda');
+  XLSX.writeFile(wb, 'ergosmart_estudios_' + new Date().toISOString().split('T')[0] + '.xlsx');
+  showToast('✅ Excel exportado — ' + infs.length + ' estudios');
+}
+
+/* ── Importar ── */
+let _ergoImpDatos = null;
+
+function ergoImportarXLSX(file){
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { showToast('❌ Librería Excel (XLSX) no disponible'); return; }
+  const reader = new FileReader();
+  reader.onerror = () => showToast('❌ No se pudo leer el archivo');
+  reader.onload = e => {
+    let wb;
+    try { wb = XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true }); }
+    catch (err) { showToast('❌ El archivo no se pudo abrir como Excel'); return; }
+    /* La hoja se busca por NOMBRE y no se toma la primera: la plantilla trae además
+       "Instrucciones" y "Leyenda", y si alguien reordena las pestañas se importarían
+       las filas de texto de la ayuda como si fueran estudios. */
+    const nomHoja = wb.SheetNames.find(n => /estudios/i.test(n)) || wb.SheetNames[0];
+    const ws = wb.Sheets[nomHoja];
+    if (!ws) { showToast('❌ El archivo no tiene ninguna hoja'); return; }
+    const filas = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false, blankrows:false });
+    if (!filas.length) { showToast('⚠️ La hoja «'+nomHoja+'» no tiene filas'); return; }
+    /* Tope explícito: el parseo es síncrono en el hilo principal y con un archivo enorme
+       la pestaña se congela sin spinner y el médico recarga a mitad. */
+    if (filas.length > 1000 && !confirm('El archivo tiene '+filas.length+' filas. Procesarlo puede tardar y la pantalla va a quedar sin responder unos segundos.\n\n¿Continuar?')) return;
+
+    /* Los encabezados se comparan NORMALIZADOS: "CI " con un espacio de más no matchea
+       y la columna se descartaría en silencio — y perder justo la de CI degrada la
+       deduplicación a nombre+fecha. Se guarda el nombre real para leer cada fila. */
+    const porNorm = new Map();
+    Object.keys(filas[0]).forEach(h => { const n=_ergoNormCab(h); if(!porNorm.has(n)) porNorm.set(n,h); });
+    const conocidas = ERGO_XLS_MAP.filter(m => porNorm.has(_ergoNormCab(m[0])))
+      .map(m => [porNorm.get(_ergoNormCab(m[0])), m[1], m[2], m[0]]);
+    if (!conocidas.length) { showToast('❌ Ninguna columna reconocida — usá «📋 Plantilla Excel»'); return; }
+
+    const existentes = safeLoadReports();
+    const porId = new Map();
+    existentes.forEach((x,idx) => { if (x && x.id!=null) porId.set(String(x.id), idx); });
+    /* Índice por TODAS las claves de cada estudio guardado, no sólo por la más fuerte:
+       así una fila sin CI encuentra igual al estudio que sí lo tiene. `repetidosPrevios`
+       marca identidades que YA están duplicadas en el almacenamiento, donde actualizar
+       tocaría una sola y la otra quedaría con datos viejos sin decirlo. */
+    const keysExist = new Map(), repetidosPrevios = new Set();
+    existentes.forEach((x,idx) => _ergoDupKeys(x).forEach(k => {
+      if (keysExist.has(k)) repetidosPrevios.add(k); else keysExist.set(k, idx);
+    }));
+
+    const ok=[], errores=[], vistasEnArchivo=new Map();
+    let ejemplos=0;
+
+    filas.forEach((row,i) => {
+      const nFila = i+2;   // +1 por el encabezado, +1 porque Excel numera desde 1
+      const colNom = porNorm.get('nombre');
+      const nombreCrudo = String(colNom!=null && row[colNom]!=null ? row[colNom] : '').trim();
+      // La fila de ejemplo de la plantilla nunca entra, esté donde esté.
+      if (nombreCrudo.indexOf('FILA DE EJEMPLO')>=0 || nombreCrudo===ERGO_XLS_EJEMPLO) { ejemplos++; return; }
+      // Fila totalmente vacía: se ignora sin ruido (Excel deja filas fantasma).
+      if (conocidas.every(([c]) => String(row[c]==null?'':row[c]).trim()==='')) return;
+
+      const errs=[];
+      const inf={};
+      let idExcel=null;
+      conocidas.forEach(([colReal,campo,tipo,colVis]) => {
+        const bruto = row[colReal];
+        const vacio = bruto===null || bruto===undefined || String(bruto).trim()==='';
+        if (tipo==='id'){
+          if (vacio) return;
+          const txt = String(bruto).trim();
+          /* Notación científica: Excel muestra así los id de 13 dígitos si la columna
+             quedó con formato numérico. "1,78813E+12" ya perdió los últimos siete
+             dígitos, así que NO se puede reconstruir el id — aceptarlo emparejaría con
+             el estudio equivocado o con ninguno. Se rechaza nombrando la causa. */
+          if (/e\+?\d/i.test(txt)){
+            errs.push('«ID»: "'+txt.slice(0,20)+'" está en notación científica y perdió dígitos. '+
+              'Dale formato Texto a la columna ID en Excel y volvé a exportar, o vaciá la celda para que entre como estudio nuevo');
+            return;
+          }
+          const n = _ergoXlsNum(txt);
+          if (isNaN(n) || !Number.isInteger(n) || n<=0){
+            errs.push('«ID»: "'+txt.slice(0,20)+'" no es un identificador válido (dejalo vacío para un estudio nuevo)');
+          } else idExcel = n;
+          return;
+        }
+        if (tipo==='num'){
+          if (vacio) return;
+          const n=_ergoXlsNum(bruto);
+          if (isNaN(n)){ errs.push('«'+colVis+'»: "'+String(bruto).slice(0,20)+'" no es un número'); return; }
+          inf[campo]=String(n); return;
+        }
+        if (tipo==='fecha'){
+          const f=_ergoXlsFecha(bruto);
+          if (f===null){ errs.push('«'+colVis+'»: "'+String(bruto).slice(0,20)+'" no es una fecha (usá AAAA-MM-DD)'); return; }
+          if (f!=='') inf[campo]=f; return;
+        }
+        if (tipo==='bin01'){
+          const b=_ergoXlsBin(bruto);
+          if (b===null){ errs.push('«'+colVis+'»: "'+String(bruto).slice(0,20)+'" no es 0 ni 1'); return; }
+          if (b!=='') inf[campo]=b; return;
+        }
+        if (vacio) return;
+        const t=String(bruto).trim();
+        if (t.length>ERGO_XLS_LARGO_MAX){
+          errs.push('«'+colVis+'»: son '+t.length+' caracteres y el máximo es '+ERGO_XLS_LARGO_MAX);
+          return;
+        }
+        inf[campo]=t;
+      });
+
+      /* Antecedentes y medicación: columnas binarias → listas. Sólo se escribe la lista
+         si al menos una celda del grupo traía un valor; con todas vacías la planilla no
+         usa esas columnas y NO hay que pisar lo que el estudio ya tuviera. */
+      const leerGrupo = (lista, prefijo) => {
+        let alguna=false; const sel=[];
+        lista.forEach(nom => {
+          const col = porNorm.get(_ergoNormCab(prefijo+' '+nom)) || porNorm.get(_ergoNormCab(prefijo+nom));
+          if (!col) return;
+          const b=_ergoXlsBin(row[col]);
+          if (b===null){ errs.push('«'+prefijo+' '+nom+'»: "'+String(row[col]).slice(0,20)+'" no es 0 ni 1'); alguna=true; return; }
+          if (b===''){ return; }
+          alguna=true;
+          if (b==='1') sel.push(nom);
+        });
+        return alguna ? sel : null;
+      };
+      const ant=leerGrupo(LAB_ANTEC,'ant:'); if (ant) inf.antec_cv_sel=ant;
+      const med=leerGrupo(LAB_MED,'med:');   if (med) inf.med_activa_sel=med;
+
+      if (!inf.fecha && !errs.some(x => x.indexOf('«Fecha»')>=0)) errs.push('falta «Fecha»');
+      if (!inf.nombre && !inf.ci) errs.push('falta «Nombre» y «CI»: sin uno de los dos el estudio no se puede identificar');
+      if (errs.length){ errores.push({fila:nFila, nombre:nombreCrudo||'(sin nombre)', errs}); return; }
+
+      /* Dos filas del MISMO archivo con la misma identidad: la segunda pisaría a la
+         primera al guardar y una se perdería sin decirlo. */
+      const mias=_ergoDupKeys(inf);
+      const choque=mias.find(k => vistasEnArchivo.has(k));
+      if (choque){
+        errores.push({fila:nFila, nombre:nombreCrudo||inf.ci, errs:['repite la identidad de la fila '+vistasEnArchivo.get(choque)]});
+        return;
+      }
+      mias.forEach(k => vistasEnArchivo.set(k,nFila));
+
+      /* Emparejado: ID primero —lo escribe la app y no depende de cómo esté tipeado el
+         nombre—, y si no hay, la identidad clínica. */
+      let idx=-1, via='';
+      if (idExcel!=null && porId.has(String(idExcel))){ idx=porId.get(String(idExcel)); via='ID'; }
+      if (idx<0){
+        for (const k of mias) if (keysExist.has(k)){
+          if (repetidosPrevios.has(k)){
+            errores.push({fila:nFila, nombre:nombreCrudo||inf.ci,
+              errs:['ya hay MÁS DE UN estudio guardado con esta identidad: actualizar tocaría sólo uno. Resolvelo en Guardados antes de importar']});
+            return;
+          }
+          idx=keysExist.get(k); via=(k.charAt(0)==='D'?'CI + fecha':'nombre + fecha'); break;
+        }
+      }
+      if (idExcel!=null && idx<0) via='ID no encontrado — entra como nuevo';
+      ok.push({inf, fila:nFila, idx, via, idExcel});
+    });
+
+    if (!ok.length && !errores.length){
+      /* Distinguir "la planilla está vacía" de "sólo tenía la fila de ejemplo": es lo que
+         pasa la primera vez que alguien baja la plantilla y la importa sin llenarla, y
+         "no hay filas con datos" lo manda a buscar un problema en un archivo que sí
+         tiene una fila escrita. */
+      showToast(ejemplos
+        ? '⚠️ La planilla sólo tenía la fila de ejemplo: reemplazala por tus estudios'
+        : '⚠️ No hay filas con datos para importar');
+      return;
+    }
+    _ergoImpDatos={ filas:ok, errores, ejemplos, hoja:nomHoja, existentes };
+    ergoImpRender();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function ergoImpRender(){
+  const d=_ergoImpDatos; if(!d) return;
+  const nuevos=d.filas.filter(f=>f.idx<0).length, act=d.filas.filter(f=>f.idx>=0).length;
+  let ov=document.getElementById('ergo-imp-ov');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='ergo-imp-ov'; ov.className='modal-overlay';
+    ov.style.display='none';
+    document.body.appendChild(ov);
+  }
+  const errHtml = d.errores.length
+    ? '<div style="margin-top:12px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);border-radius:8px;padding:10px;">'+
+      '<b style="color:var(--danger)">'+d.errores.length+' fila(s) con problemas — no se van a importar</b>'+
+      '<ul style="margin:6px 0 0 18px;font-size:.78rem;line-height:1.55;max-height:190px;overflow:auto;">'+
+      d.errores.slice(0,80).map(e=>'<li><b>Fila '+e.fila+'</b> ('+esc(e.nombre)+'): '+e.errs.map(esc).join('; ')+'</li>').join('')+
+      (d.errores.length>80?'<li>… y '+(d.errores.length-80)+' más</li>':'')+
+      '</ul></div>'
+    : '';
+  const prev = d.filas.slice(0,12).map(f=>
+    '<tr><td style="padding:3px 6px;">'+f.fila+'</td>'+
+    '<td style="padding:3px 6px;">'+esc(f.inf.nombre||'—')+'</td>'+
+    '<td style="padding:3px 6px;">'+esc(f.inf.fecha||'—')+'</td>'+
+    '<td style="padding:3px 6px;">'+esc(f.inf.mets||'—')+'</td>'+
+    '<td style="padding:3px 6px;">'+esc(f.inf.resultado||'—')+'</td>'+
+    '<td style="padding:3px 6px;font-size:.72rem;color:var(--text2);">'+
+      (f.idx>=0?'actualiza (por '+esc(f.via)+')':'nuevo'+(f.via?' — '+esc(f.via):''))+'</td></tr>').join('');
+  ov.innerHTML=
+    '<div class="modal" style="max-width:760px;padding:22px;max-height:88vh;overflow:auto;">'+
+      '<h3 style="margin:0 0 4px;">📥 Importar desde Excel</h3>'+
+      '<div style="font-size:.78rem;color:var(--text2);line-height:1.55;margin-bottom:10px;">'+
+        'Hoja «'+esc(d.hoja)+'». Todavía no se escribió nada.'+
+        (d.ejemplos?' Se salteó la fila de ejemplo de la plantilla.':'')+'</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'+
+        '<span class="badge" style="background:rgba(34,197,94,.15);padding:4px 10px;border-radius:6px;">'+nuevos+' nuevos</span>'+
+        '<span class="badge" style="background:rgba(59,130,246,.15);padding:4px 10px;border-radius:6px;">'+act+' actualizan uno existente</span>'+
+        (d.errores.length?'<span class="badge" style="background:rgba(239,68,68,.15);padding:4px 10px;border-radius:6px;">'+d.errores.length+' con error</span>':'')+
+      '</div>'+
+      (d.filas.length?'<div style="overflow:auto;max-height:250px;border:1px solid var(--border);border-radius:8px;">'+
+        '<table style="width:100%;border-collapse:collapse;font-size:.78rem;">'+
+        '<thead><tr style="color:var(--text2);text-align:left;"><th style="padding:4px 6px;">Fila</th><th style="padding:4px 6px;">Nombre</th>'+
+        '<th style="padding:4px 6px;">Fecha</th><th style="padding:4px 6px;">METs</th><th style="padding:4px 6px;">Resultado</th><th style="padding:4px 6px;">Acción</th></tr></thead>'+
+        '<tbody>'+prev+'</tbody></table></div>'+
+        (d.filas.length>12?'<div style="font-size:.74rem;color:var(--text2);margin-top:6px;">Se muestran las primeras 12 de '+d.filas.length+'. Se importan todas.</div>':''):'')+
+      errHtml+
+      '<div style="margin-top:12px;font-size:.78rem;">Con los que ya existen: '+
+        '<label style="margin-right:12px;"><input type="radio" name="ergo-imp-dup" value="omitir" checked> Omitir</label>'+
+        '<label><input type="radio" name="ergo-imp-dup" value="actualizar"> Actualizar (fusiona campos)</label></div>'+
+      '<div style="font-size:.74rem;color:var(--text2);margin-top:8px;line-height:1.5;">'+
+        'La indicación, las complicaciones, los criterios de alto riesgo y el detalle por etapas no viajan en la planilla: '+
+        'en un estudio nuevo quedan vacíos, y al actualizar uno existente NO se tocan.</div>'+
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">'+
+        '<button class="btn btn-outline" id="ergo-imp-cancel">Cancelar</button>'+
+        '<button class="btn btn-primary" id="ergo-imp-ok"'+(d.filas.length?'':' disabled')+'>Importar '+d.filas.length+'</button>'+
+      '</div>'+
+    '</div>';
+  ov.style.display='flex';
+  ov.querySelector('#ergo-imp-cancel').onclick=ergoImpCerrar;
+  const b=ov.querySelector('#ergo-imp-ok'); if(b) b.onclick=ergoImpEjecutar;
+}
+function ergoImpCerrar(){
+  const ov=document.getElementById('ergo-imp-ov'); if(ov) ov.style.display='none';
+  _ergoImpDatos=null;
+}
+function ergoImpEjecutar(){
+  const d=_ergoImpDatos; if(!d) return;
+  const modo=document.querySelector('input[name="ergo-imp-dup"]:checked')?.value||'omitir';
+  /* Se relee el almacenamiento AHORA y no se usa la foto de la vista previa: entre
+     abrir el diálogo y confirmar pudo guardarse un informe desde otra pestaña de la app,
+     y escribir sobre la lista vieja lo borraría. */
+  let lista=safeLoadReports();
+  const usados=new Set(lista.map(x=>x&&x.id).filter(v=>v!=null));
+  const porId=new Map(); lista.forEach((x,i)=>{ if(x&&x.id!=null) porId.set(String(x.id),i); });
+  const keys=new Map(); lista.forEach((x,i)=>_ergoDupKeys(x).forEach(k=>{ if(!keys.has(k)) keys.set(k,i); }));
+
+  let nuevos=0, actualizados=0, omitidos=0, sinCambios=0;
+  d.filas.forEach(({inf, idExcel}) => {
+    let idx=-1;
+    if (idExcel!=null && porId.has(String(idExcel))) idx=porId.get(String(idExcel));
+    if (idx<0) for (const k of _ergoDupKeys(inf)) if (keys.has(k)) { idx=keys.get(k); break; }
+    if (idx>=0){
+      if (modo!=='actualizar'){ omitidos++; return; }
+      const prev=lista[idx];
+      /* Se FUSIONA en vez de reemplazar: la planilla trae ~22 campos y un estudio
+         cargado a mano tiene el `form` completo, las etapas del protocolo, los criterios
+         de alto riesgo. Un reemplazo borraría todo eso. Y se conserva el id. */
+      const merged=Object.assign({}, prev, inf, {id:prev.id});
+      if (JSON.stringify(merged)===JSON.stringify(prev)){ sinCambios++; return; }
+      lista[idx]=merged; actualizados++; return;
+    }
+    const id=_ergoNuevoId(usados);
+    const nuevo=Object.assign({}, inf, {id});
+    lista.unshift(nuevo);
+    // Los índices se corrieron: se reconstruyen para que las filas siguientes emparejen bien.
+    porId.clear(); keys.clear();
+    lista.forEach((x,i)=>{ if(x&&x.id!=null) porId.set(String(x.id),i); });
+    lista.forEach((x,i)=>_ergoDupKeys(x).forEach(k=>{ if(!keys.has(k)) keys.set(k,i); }));
+    nuevos++;
+  });
+
+  ergoImpCerrar();
+  CeiboStore.setAll(lista).then(function(okGuardado){
+    if (okGuardado===false) return;      // CeiboStore ya avisó el error de escritura
+    if (typeof rGuard==='function') rGuard();
+    if (typeof ergoLabInit==='function') { try{ ergoLabInit(); }catch(e){} }
+    showToast('✅ '+nuevos+' nuevos · '+actualizados+' actualizados · '+
+      (sinCambios+omitidos)+' sin cambios'+(d.errores.length?' · '+d.errores.length+' con error':''));
+  });
+}
+/* ── Apertura y cierre de los desplegables de Guardados ── */
+function eioCerrar(){
+  ['exp','imp'].forEach(k=>{
+    const m=document.getElementById('eio-menu-'+k), b=document.getElementById('eio-btn-'+k);
+    if(m){ m.classList.remove('open'); m.style.transform=''; }
+    if(b) b.setAttribute('aria-expanded','false');
+  });
+  const o=document.getElementById('eio-ov'); if(o) o.classList.remove('open');
+}
+function eioToggle(cual){
+  const m=document.getElementById('eio-menu-'+cual); if(!m) return;
+  const abrir=!m.classList.contains('open');
+  eioCerrar();
+  if(!abrir) return;
+  m.classList.add('open');
+  const b=document.getElementById('eio-btn-'+cual); if(b) b.setAttribute('aria-expanded','true');
+  const o=document.getElementById('eio-ov'); if(o) o.classList.add('open');
+  /* Se encuadra MIDIENDO, no con un breakpoint: la fila de búsqueda de Guardados se
+     parte en celular y los botones cambian de lugar, así que anclado a la derecha el
+     panel se salía del viewport. Deslizarlo lo justo siempre tiene solución mientras sea
+     más angosto que la ventana, que es lo que garantiza el max-width del CSS. */
+  m.style.transform='';
+  const M=8, W=document.documentElement.clientWidth||window.innerWidth;
+  const r=m.getBoundingClientRect();
+  let dx=0;
+  if(r.left<M) dx=M-r.left;
+  else if(r.right>W-M) dx=(W-M)-r.right;
+  if(dx) m.style.transform='translateX('+Math.round(dx)+'px)';
+}
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') eioCerrar(); });
+// Rotar el celular deja el translateX calculado para el ancho anterior.
+window.addEventListener('resize',function(){ if(document.querySelector('.eio-menu.open')) eioCerrar(); });
+window.eioToggle=eioToggle;
+window.eioCerrar=eioCerrar;
+
+window.ergoPlantillaXLSX=ergoPlantillaXLSX;
+window.ergoExportarXLSX=ergoExportarXLSX;
+window.ergoImportarXLSX=ergoImportarXLSX;
+window.ergoImpCerrar=ergoImpCerrar;
+
 function ergoLabCSV() {
   const infs = ergoLabGetInfs();
   if (!infs.length) { showToast('⚠️ Sin estudios'); return; }
   const cols = ['nombre','ci','fecha','mets','resultado',
-    'duke','dukeNivel','fcmax','protocolo','cf','concl','ensuma',
     'caso_interes','fecha_solicitud'];
   // Columnas binarias 0/1: una por antecedente y una por medicación
   const antCols = LAB_ANTEC.map(a => 'ant:'+a);
