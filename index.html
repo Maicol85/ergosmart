@@ -72,6 +72,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
   .ergo-drawer button{background:transparent;border:none;color:var(--text);text-align:left;font-size:14px;font-weight:600;padding:12px 18px;cursor:pointer;display:flex;align-items:center;gap:10px;white-space:nowrap;border-left:3px solid transparent}
   .ergo-drawer button:hover{background:var(--card)}
   .ergo-drawer button.active{color:var(--accent);border-left-color:var(--accent)}
+  /* ── Destino táctil de 44px en los dos menús de móvil ──
+     Medido a 375px antes del cambio: los 10 ítems del ⋮ median entre 28 y 33,5px de alto,
+     los del drawer 42,5, y el propio ⋮ 30×31,4 —el más chico era justamente el que hay que
+     acertar primero—. 44 es el mínimo de las guías de Apple y de Google, y acá importa más
+     que en una app común: se usa con guantes, apurado y con el paciente en la cinta, y los
+     vecinos de «💾 Guardar» y «📄 PDF» en la lista son «Importar estudios» y «Cerrar
+     informe», o sea que errarle no es inocuo.
+     Se toca sólo el ANCHO DE MÓVIL y sólo adentro de los menús: en escritorio .topbar-right
+     es la barra de herramientas normal y estirar sus botones a 44px rompería la barra. */
+  .topbar-burger,.ergo-tabsburger{min-height:44px;min-width:44px;justify-content:center}
+  .topbar-right.open button{min-height:44px}
+  /* Los .btn son inline-block: sin flex, el min-height agranda la caja pero deja el texto
+     arriba y el toque «válido» sigue sintiéndose en la mitad de arriba. */
+  .topbar-right.open .btn,.topbar-right.open .icon-btn{display:inline-flex;align-items:center;justify-content:center}
+  .ergo-drawer button{min-height:44px}
   .ergo-drawer-ov{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:399;opacity:0;pointer-events:none;transition:opacity .25s}
   .ergo-drawer-ov.open{opacity:1;pointer-events:auto}
 }
@@ -7432,7 +7447,16 @@ document.addEventListener('click',function(e){
       d.appendChild(btn);
     });
   }
-  window.ergoDrawerToggle=function(){var d=document.getElementById('ergoDrawer'),o=document.getElementById('ergoDrawerOv');if(d)d.classList.toggle('open');if(o)o.classList.toggle('open');};
+  /* El estado se calcula UNA vez y se aplica a los dos. Con dos `toggle()` independientes,
+     si el panel y su velo llegaban desincronizados —basta que algo cierre uno solo—, cada
+     toque los invertía sin juntarlos nunca: el velo oscuro quedaba puesto con el drawer
+     cerrado, tapando la app entera. */
+  window.ergoDrawerToggle=function(){
+    var d=document.getElementById('ergoDrawer'),o=document.getElementById('ergoDrawerOv');
+    var abrir=!(d&&d.classList.contains('open'));
+    if(o)o.classList.toggle('open',abrir);
+    if(d)d.classList.toggle('open',abrir);
+  };
   window.ergoDrawerClose=function(){var d=document.getElementById('ergoDrawer'),o=document.getElementById('ergoDrawerOv');if(d)d.classList.remove('open');if(o)o.classList.remove('open');};
 
   /* ── Menú ⋮ de la barra ──
