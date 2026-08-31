@@ -38,6 +38,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .topbar-burger{display:none;background:transparent;border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:6px;font-size:18px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
 .ergo-tabsburger{display:none;background:transparent;border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:6px;font-size:19px;line-height:1;padding:5px 11px;cursor:pointer;flex-shrink:0}
 .ergo-drawer,.ergo-drawer-ov{display:none}
+/* Overlay INVISIBLE, no un listener en document: con un listener, el primer toque cierra
+   el menú Y activa lo que haya debajo. Verificado antes del arreglo a 375px: el toque de
+   afuera caía sobre un campo del formulario del paciente.
+   z-index 89, NO 299: .topbar es position:sticky con z-index:90, así que crea contexto de
+   apilamiento y el z-index:300 del menú es interno a él. Con el overlay por encima de 90
+   quedaría tapando la barra entera y se comería los toques del propio menú, o sea que
+   sería imposible elegir una acción. En 89 tapa todo el contenido y deja la barra por
+   arriba, que es lo único que tiene que seguir siendo tocable.
+   La regla vive fuera del @media a propósito, pero el .open se enciende adentro. */
+#ergoHdrOv{display:none;position:fixed;inset:0;z-index:89;background:transparent}
 .tr-mob-only{display:none}
 /* Botones de acción al pie del contenido (patrón UltraSmart) */
 .foot-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:560px;margin:34px auto 0;padding:20px 0 24px;border-top:1px solid var(--border)}
@@ -50,6 +60,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
   .topbar-burger{display:inline-flex;align-items:center;margin-left:auto}
   .topbar-right{display:none;position:absolute;top:100%;right:8px;flex-direction:column;align-items:stretch;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;box-shadow:0 12px 34px rgba(0,0,0,.5);z-index:300;min-width:220px;max-height:78vh;overflow:auto}
   .topbar-right.open{display:flex}
+  /* El .open del overlay SÓLO existe acá adentro. El menú ⋮ es de móvil: al ensanchar
+     —rotar una tablet— la barra vuelve a su forma normal y se ve igual que siempre, así
+     que nada avisaría de que «hay un menú abierto»; con la regla global, el overlay
+     quedaría tapando toda la app y comiéndose un toque, que podría ser el de una etapa
+     del protocolo o el de Guardar. */
+  #ergoHdrOv.open{display:block}
   .topbar-right .tr-mob-only{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;text-align:left}
   .ergo-drawer{display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;width:250px;max-width:82vw;background:var(--card2);border-right:1px solid var(--border);z-index:400;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:14px 0}
   .ergo-drawer.open{transform:translateX(0)}
@@ -677,8 +693,8 @@ body.printing-clean #clean-controls{display:none!important}
       </div>
     </div>
   </div>
-  <button class="topbar-burger" aria-label="Menú de acciones" onclick="document.querySelector('.topbar-right').classList.toggle('open')">⋮</button>
-  <div class="topbar-right">
+  <button class="topbar-burger" id="ergoHdrBurger" aria-label="Menú de acciones" aria-haspopup="true" aria-expanded="false" aria-controls="ergoHdrBtns" onclick="ergoHdrToggle()">⋮</button>
+  <div class="topbar-right" id="ergoHdrBtns">
     <div id="logo-centro-wrap" onclick="logoClick(event)" title="Logo institucional (click para cargar)" style="position:relative;min-width:46px;height:40px;padding:0 6px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;background:var(--bg3);">
       <div id="logo-centro-ph" style="display:flex;flex-direction:column;align-items:center;line-height:1.1;color:var(--text2);font-size:9px;gap:1px;"><span style="font-size:15px;">＋</span>Logo</div>
       <img id="logo-centro-img" style="display:none;max-width:130px;max-height:40px;object-fit:contain;" alt="logo institucional">
@@ -715,11 +731,19 @@ body.printing-clean #clean-controls{display:none!important}
       </select>
     </span>
     <button class="btn btn-outline" onclick="abrirAyudaErgo()" title="Ayuda / Manual" style="padding:6px 10px;font-size:14px;">?</button>
-    <button class="tr-mob-only" onclick="document.querySelector('.topbar-right').classList.remove('open');swTab('calc',null)">🧮 Calculadoras</button>
-    <button class="tr-mob-only" onclick="document.querySelector('.topbar-right').classList.remove('open');swTab('ref',null)">📚 Referencias</button>
+    <button class="tr-mob-only" onclick="ergoHdrCerrar();swTab('calc',null)">🧮 Calculadoras</button>
+    <button class="tr-mob-only" onclick="ergoHdrCerrar();swTab('ref',null)">📚 Referencias</button>
     <button class="btn btn-outline" onclick="cerrarSesion()" title="Cerrar informe">🔒 Cerrar</button>
   </div>
 </div>
+<!-- Overlay del menú ⋮ de la barra. Va acá y NO dentro de .topbar.
+     El motivo NO es el tamaño: la barra no tiene transform ni filter ni backdrop-filter,
+     así que un position:fixed adentro seguiría midiendo el viewport entero (medido:
+     375×812). El motivo es el APILAMIENTO: .topbar es sticky con z-index:90 y por eso crea
+     contexto propio; un overlay adentro quedaría dentro de ese contexto y taparía al propio
+     burger y al resto de la barra, que van con z-index auto. O sea que sería imposible
+     cerrar el menú, y de paso abrirlo. -->
+<div id="ergoHdrOv" onclick="ergoHdrCerrar()"></div>
 <!-- Drawer de tabs (≡, solo móvil ≤768px) -->
 <div class="ergo-drawer-ov" id="ergoDrawerOv" onclick="ergoDrawerClose()"></div>
 <nav class="ergo-drawer" id="ergoDrawer" aria-label="Secciones principales"></nav>
@@ -6373,8 +6397,16 @@ function eioToggle(cual){
   if(dx) m.style.transform='translateX('+Math.round(dx)+'px)';
 }
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') eioCerrar(); });
-// Rotar el celular deja el translateX calculado para el ancho anterior.
-window.addEventListener('resize',function(){ if(document.querySelector('.eio-menu.open')) eioCerrar(); });
+/* Rotar el celular deja el translateX calculado para el ancho anterior. Se escucha el
+   CAMBIO DE LA MEDIA QUERY y no `resize`: en Android el teclado virtual emite resize sin
+   cambiar el ancho, y 📤 Exportar está en la misma fila que el buscador de pacientes, así
+   que buscar un paciente y tocar Exportar cerraba el menú solo al bajar el teclado. */
+if(window.matchMedia){
+  var _eioMq=window.matchMedia('(max-width:768px)');
+  var _eioAlCambiar=function(){ if(document.querySelector('.eio-menu.open')) eioCerrar(); };
+  if(_eioMq.addEventListener)_eioMq.addEventListener('change',_eioAlCambiar);
+  else if(_eioMq.addListener)_eioMq.addListener(_eioAlCambiar);
+}
 window.eioToggle=eioToggle;
 window.eioCerrar=eioCerrar;
 
@@ -7402,6 +7434,77 @@ document.addEventListener('click',function(e){
   }
   window.ergoDrawerToggle=function(){var d=document.getElementById('ergoDrawer'),o=document.getElementById('ergoDrawerOv');if(d)d.classList.toggle('open');if(o)o.classList.toggle('open');};
   window.ergoDrawerClose=function(){var d=document.getElementById('ergoDrawer'),o=document.getElementById('ergoDrawerOv');if(d)d.classList.remove('open');if(o)o.classList.remove('open');};
+
+  /* ── Menú ⋮ de la barra ──
+     El overlay, el menú y el aria-expanded se mueven JUNTOS: separados, cualquier camino
+     que cerrara el menú sin tocar el overlay dejaría una capa invisible sobre toda la
+     pantalla comiéndose los toques, que es peor que el bug original. */
+  function ergoHdrSet(abrir){
+    var m=document.getElementById('ergoHdrBtns'), o=document.getElementById('ergoHdrOv'),
+        b=document.getElementById('ergoHdrBurger');
+    /* El overlay se apaga ANTES del guard, no después: si algún día falta o se renombra
+       #ergoHdrBtns, un `return` temprano dejaría la capa invisible pegada para siempre, que
+       es justo lo que este bloque promete que no puede pasar. La garantía no puede depender
+       del orden de dos líneas. */
+    if(o)o.classList.toggle('open',abrir);
+    if(b)b.setAttribute('aria-expanded',abrir?'true':'false');
+    if(!m)return;
+    m.classList.toggle('open',abrir);
+  }
+  window.ergoHdrCerrar=function(){ ergoHdrSet(false); };
+  window.ergoHdrToggle=function(){
+    var m=document.getElementById('ergoHdrBtns');
+    ergoHdrSet(!(m&&m.classList.contains('open')));
+  };
+  (function(){
+    /* Elegir una acción también cierra: si no, el menú tapa el resultado de lo que se
+       acaba de pedir —el toast, el diálogo de guardado, el visor del PDF—. */
+    var m=document.getElementById('ergoHdrBtns');
+    if(m)m.addEventListener('click',function(e){ if(e.target.closest('button'))ergoHdrCerrar(); });
+    /* El overlay no cubre la barra (ver el CSS), así que un toque en el resto de ella
+       —el título, el ≡ de secciones— no lo cerraría. Se cierra acá, salvo en el propio
+       burger, que ya alterna. */
+    var t=document.querySelector('.topbar');
+    if(t)t.addEventListener('click',function(e){
+      if(e.target.closest('#ergoHdrBtns')||e.target.closest('#ergoHdrBurger'))return;
+      ergoHdrCerrar();
+    });
+    /* Escape cierra los DOS menús de móvil. Enganchar sólo el ⋮ dejaba una asimetría sin
+       motivo: el mismo gesto cerraba uno y el otro no. */
+    document.addEventListener('keydown',function(e){
+      if(e.key!=='Escape')return;
+      ergoHdrCerrar();
+      if(typeof window.ergoDrawerClose==='function')window.ergoDrawerClose();
+    });
+    /* En móvil .topbar es position:relative (lo pisa la media query), así que el menú es
+       absolute respecto de ella y SCROLLEA; el overlay es fixed y se queda. Sin esto,
+       arrastrar el dedo con el menú abierto saca la barra entera de pantalla y deja una capa
+       invisible sobre una app que se ve perfectamente normal —el mismo modo de falla que
+       este arreglo vino a evitar, y encima sin la salida de emergencia de tocar la barra,
+       porque la barra ya no está—. Medido a 375px: con 502px de scroll el menú quedaba en
+       top:-349 y el overlay seguía tapando el centro de la pantalla. */
+    window.addEventListener('scroll',function(){
+      ergoHdrCerrar();
+      if(typeof window.ergoDrawerClose==='function')window.ergoDrawerClose();
+    },{passive:true});
+    /* Rotar la tablet saca los menús de su media query: el CSS ya los apaga, pero el estado
+       en clases quedaría abierto y volverían a aparecer al rotar de vuelta —el drawer con su
+       velo oscuro y pointer-events:auto, sin que nadie lo pidiera—.
+       Se escucha el CAMBIO DE LA MEDIA QUERY y no `resize`: en Android, subir o bajar el
+       teclado virtual emite resize sin que cambie el ancho. Con `resize` a secas, tocar ⋮
+       mientras se estaban escribiendo los datos del paciente abría el menú y el teclado, al
+       bajar por el propio toque, lo cerraba unos 200 ms después: el botón parecía no andar,
+       y sólo a veces —cuando venías de tipear—, que es lo peor para diagnosticarlo. */
+    if(window.matchMedia){
+      var mq=window.matchMedia('(max-width:768px)');
+      var alCambiar=function(){
+        ergoHdrCerrar();
+        if(typeof window.ergoDrawerClose==='function')window.ergoDrawerClose();
+      };
+      if(mq.addEventListener)mq.addEventListener('change',alCambiar);
+      else if(mq.addListener)mq.addListener(alCambiar);   // Safari < 14
+    }
+  })();
   function syncDrawerActive(){
     var d=document.getElementById('ergoDrawer');if(!d)return;
     var active=document.querySelector('.rail .tab-btn.active');var id=active?idOf(active):null;
